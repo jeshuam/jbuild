@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/jeshuam/jbuild/common"
 )
 
 var (
@@ -16,11 +18,19 @@ var (
 
 // A target object
 type TargetSpec struct {
-	Path, Name string
+	Path, Name, Workspace string
 }
 
 func (this *TargetSpec) String() string {
 	return "//" + this.Path + ":" + this.Name
+}
+
+func (this *TargetSpec) PathSystem() string {
+	return strings.Replace(this.Path, "/", pathSeparator, -1)
+}
+
+func (this *TargetSpec) OutputPath() string {
+	return filepath.Join(common.OutputDirectory, this.PathSystem())
 }
 
 func splitTargetSpec(targetSpec string) (string, string) {
@@ -87,24 +97,31 @@ func CanonicalTargetSpec(workspaceDir, cwd, target string) (*TargetSpec, error) 
 	targetSpec := new(TargetSpec)
 	targetSpec.Path = targetPath
 	targetSpec.Name = targetName
+	targetSpec.Workspace = workspaceDir
 	return targetSpec, nil
 }
 
 // Representation of a single Target.
 type Target struct {
-	Spec       *TargetSpec
-	Deps       []*Target
-	Processed  bool
-	Processing bool
+	Spec      *TargetSpec // The path/name of this target. Useful for printing.
+	Type      string      // The type of the target (e.g. c++/library)
+	Deps      []*Target   // The targets which this target depends on.
+	Processed bool        // Whether or not this target has been processed.
+
+	// Options which are required for processors. Note that not all of these may be
+	// used depending on the type of target.
+	Srcs         []string // A list of source files to build. Relative to the target dir.
+	CompileFlags []string // A list of compilation flags to pass to the compiler
+	Output       []string // A list of output files produced by this target. Should be populated by a processor.
 }
 
 func (this *Target) String() string {
 	return this.Spec.String()
 }
 
-func (this *Target) LoadDependencies(depSpecs []*TargetSpec, workspaceDir string) error {
+func (this *Target) LoadDependencies(depSpecs []*TargetSpec) error {
 	for _, depSpec := range depSpecs {
-		target, err := LoadTarget(depSpec, workspaceDir)
+		target, err := LoadTarget(depSpec)
 		if err != nil {
 			return err
 		}
@@ -160,6 +177,18 @@ func (this *Target) ReadyToProcess() bool {
 	return true
 }
 
+func loadArrayFromJson(json map[string]interface{}, key string) []string {
+	out := make([]string, 0)
+	arr, ok := json[key]
+	if ok {
+		for _, item := range arr.([]interface{}) {
+			out = append(out, item.(string))
+		}
+	}
+
+	return out
+}
+
 func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, []*TargetSpec) {
 	target := new(Target)
 	target.Spec = targetSpec
@@ -183,21 +212,32 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 			depSpec := new(TargetSpec)
 			depSpec.Path = depPath
 			depSpec.Name = depName
+			depSpec.Workspace = targetSpec.Workspace
 			depSpecs = append(depSpecs, depSpec)
 		}
 	}
+
+	// Load the target type.
+	targetType, ok := json["type"]
+	if ok {
+		target.Type = targetType.(string)
+	}
+
+	// Load the srcs.
+	target.Srcs = loadArrayFromJson(json, "srcs")
+	target.CompileFlags = loadArrayFromJson(json, "compile_flags")
 
 	return target, depSpecs
 }
 
 // Load the given target spec and all related dependencies into Target objects.
-func LoadTarget(targetSpec *TargetSpec, workspaceDir string) (*Target, error) {
+func LoadTarget(targetSpec *TargetSpec) (*Target, error) {
 	// If we have already loaded this target, then return it.
 	target, inCache := targetCache[targetSpec.String()]
 
 	if !inCache {
 		// Load all of the targets in the given BUILD file.
-		buildFilepath := path.Join(workspaceDir, targetSpec.Path, *buildFilename)
+		buildFilepath := path.Join(targetSpec.Workspace, targetSpec.Path, *buildFilename)
 		targetsJSON, err := LoadBuildFile(buildFilepath)
 		if err != nil {
 			return nil, err
@@ -212,10 +252,17 @@ func LoadTarget(targetSpec *TargetSpec, workspaceDir string) (*Target, error) {
 		// Load the target from it's JSON.
 		var depSpecs []*TargetSpec
 		target, depSpecs = makeTarget(targetJSON.(map[string]interface{}), targetSpec)
+
+		// Validate the target.
+		if target.Type == "" {
+			return nil, errors.New("Missing required field 'type'")
+		}
+
+		// Save the target to the cache.
 		targetCache[targetSpec.String()] = target
 
 		// Process dependencies for this target.
-		err = target.LoadDependencies(depSpecs, workspaceDir)
+		err = target.LoadDependencies(depSpecs)
 		if err != nil {
 			return nil, err
 		}

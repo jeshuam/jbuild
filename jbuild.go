@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
 	"github.com/jeshuam/jbuild/processor"
 	"github.com/op/go-logging"
@@ -40,6 +42,12 @@ func main() {
 		log.Fatalf("ERROR: %v", err)
 	}
 
+	// If the output directory flag was relative, make it absolute relative to
+	// the workspace directory.
+	if !filepath.IsAbs(common.OutputDirectory) {
+		common.OutputDirectory = filepath.Join(workspaceDir, common.OutputDirectory)
+	}
+
 	/// Convert the targets into their canonical format, i.e. the long format.
 	canonicalTargetSpecs := make([]*config.TargetSpec, len(targetArgs))
 	for i, target := range targetArgs {
@@ -55,7 +63,7 @@ func main() {
 	/// This involves going to each target file
 	targetsToProcess := make([]*config.Target, 0)
 	for _, targetSpec := range canonicalTargetSpecs {
-		target, err := config.LoadTarget(targetSpec, workspaceDir)
+		target, err := config.LoadTarget(targetSpec)
 		if err != nil {
 			log.Fatalf("Could not load target '%s': %v", targetSpec, err)
 		}
@@ -80,7 +88,10 @@ func main() {
 		for _, target := range targetsToProcess {
 			if target.ReadyToProcess() {
 				log.Infof("Processing %s...", target)
-				processor.Process(target, targetChannel)
+				err := processor.Process(target, targetChannel)
+				if err != nil {
+					log.Fatalf("Error while processing %s: %v", target, err)
+				}
 			} else {
 				newTargetsToProcess = append(newTargetsToProcess, target)
 			}

@@ -14,6 +14,5 @@ type NullProcessor struct {
 
 func (p NullProcessor) Process(target *config.Target) error {
 	time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
-	target.Processed = true
 	return nil
 }

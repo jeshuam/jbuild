@@ -1,9 +1,12 @@
 package processor
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jeshuam/jbuild/config"
+	"github.com/jeshuam/jbuild/processor/cc"
 	"github.com/op/go-logging"
 )
 
@@ -29,10 +32,21 @@ func makeProcessingResult(target *config.Target, err error) ProcessingResult {
 	return ProcessingResult{target, err}
 }
 
-func Process(target *config.Target, ch chan ProcessingResult) {
-	p := NullProcessor{}
+func Process(target *config.Target, ch chan ProcessingResult) error {
+	// Switch on the processor type.
+	var p Processor
+	if strings.HasPrefix(target.Type, "c++/") {
+		p = new(cc.CCProcessor)
+	} else {
+		return errors.New(fmt.Sprintf("Unknown target type '%s'", target.Type))
+	}
+
+	// Process the target.
 	go func() {
 		err := p.Process(target)
+		target.Processed = true
 		ch <- makeProcessingResult(target, err)
 	}()
+
+	return nil
 }

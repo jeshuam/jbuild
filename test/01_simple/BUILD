@@ -1,13 +1,16 @@
 main: {
+  type: c++/binary
+  srcs: [
+    "main.cc"
+  ]
   deps: [
     ":lib"
-    ":lib2"
   ]
 }
 
 lib: {
-}
-
-lib2: {
-  
+  type: c++/library
+  srcs: [
+    "lib.cc"
+  ]
 }
