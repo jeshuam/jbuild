@@ -59,7 +59,7 @@ func CanonicalTargetSpec(workspaceDir, cwd, target string) (*TargetSpec, error) 
 	targetPath, targetName := splitTargetSpec(target)
 
 	// Make sure the target conforms to a regex.
-	match, err := regexp.MatchString("^(//)?[a-z]+([/a-z]+)?(:[a-z]+)?$", target)
+	match, err := regexp.MatchString("^(//)?[a-z_]+([/a-z_]+)?(:[a-z_]+)?$", target)
 	if err != nil {
 		log.Fatalf("Target regex matching failed: %v", err)
 	}
@@ -68,7 +68,6 @@ func CanonicalTargetSpec(workspaceDir, cwd, target string) (*TargetSpec, error) 
 		// Check for special cases: the target path is either empty or just the
 		// root path.
 		if targetPath != "" && targetPath != "//" {
-			log.Info(targetPath)
 			return nil, errors.New(fmt.Sprintf("Target didn't match regex"))
 		}
 	}
@@ -201,7 +200,7 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 	if ok {
 		for _, depNameInterface := range depNames.([]interface{}) {
 			depName := depNameInterface.(string)
-			if strings.HasPrefix(depName, "//") {
+			if !strings.HasPrefix(depName, "//") {
 				depName = target.Spec.Path + depName
 			} else {
 				depName = strings.TrimPrefix(depName, "//")

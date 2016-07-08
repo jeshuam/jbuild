@@ -74,7 +74,7 @@ func compileFiles(target *config.Target) ([]string, error) {
 	objs := make([]string, len(target.Srcs))
 
 	// Use a different command maker based on the OS and compiler.
-	var compileCommand func(string, string) *exec.Cmd
+	var compileCommand func(*config.Target, string, string) *exec.Cmd
 	if *ccCompiler == "cl.exe" {
 		compileCommand = windowsClCompileCommand
 	} else {
@@ -86,9 +86,17 @@ func compileFiles(target *config.Target) ([]string, error) {
 		// to the compiler.
 		srcPath := filepath.Join(target.Spec.Workspace, target.Spec.PathSystem(), srcFile)
 		objPath := filepath.Join(target.Spec.OutputPath(), srcFile+".o")
+		objs[i] = objPath
+
+		// If the object is newer than the source file, don't compile it again.
+		srcStat, _ := os.Stat(srcPath)
+		objStat, _ := os.Stat(objPath)
+		if srcStat != nil && objStat != nil && objStat.ModTime().After(srcStat.ModTime()) {
+			continue
+		}
 
 		// Build the compilation command.
-		cmd := compileCommand(srcPath, objPath)
+		cmd := compileCommand(target, srcPath, objPath)
 		cmd.Args = append(cmd.Args, target.CompileFlags...)
 
 		// Run the command.
@@ -96,8 +104,6 @@ func compileFiles(target *config.Target) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		objs[i] = objPath
 	}
 
 	return objs, nil
@@ -131,7 +137,7 @@ func linkObjects(target *config.Target, objects []string) (string, error) {
 	// Now, we need to build up the command to run.
 	var cmd *exec.Cmd
 	if *ccCompiler == "cl.exe" {
-		cmd = windowsClLinkCommand(objects, libs, outputPath)
+		cmd = windowsClLinkCommand(target, objects, libs, outputPath)
 	} else {
 		return "", errors.New("System not yet implemented.")
 	}

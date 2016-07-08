@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"golang.org/x/sys/windows/registry"
+
+	"github.com/jeshuam/jbuild/config"
 )
 
 // This file contains a bunch of functions which are needed to compile with the
@@ -42,20 +44,20 @@ func windowsReadRegistryKey(key, name string) (string, error) {
 
 func windowsLoadSdkDir() {
 	// Load the Windows SDK directory from the registry.
-	val, err := windowsReadRegistryKey(`SOFTWARE\Microsoft\VisualStudio\SxS\VC7`, *vcVersion)
+	val, err := windowsReadRegistryKey(`SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7`, *vcVersion)
 	if err != nil {
-		val, err = windowsReadRegistryKey(`SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7`, *vcVersion)
+		val, err = windowsReadRegistryKey(`SOFTWARE\Microsoft\VisualStudio\SxS\VC7`, *vcVersion)
 		if err != nil {
 			log.Fatal("Could not find Visual Studio install directory.")
 		}
-
-		vcInstallDir = val
 	}
 
+	vcInstallDir = val
+
 	// Load the UCRT SDK directory from the registry.
-	val, err = windowsReadRegistryKey(`SOFTWARE\Microsoft\Windows Kits\Installed Roots`, "KitsRoot10")
+	val, err = windowsReadRegistryKey(`SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots`, "KitsRoot10")
 	if err != nil {
-		val, err = windowsReadRegistryKey(`SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots`, "KitsRoot10")
+		val, err = windowsReadRegistryKey(`SOFTWARE\Microsoft\Windows Kits\Installed Roots`, "KitsRoot10")
 		if err != nil {
 			log.Fatal("Could not find UCRT SDK directory.")
 		}
@@ -78,7 +80,7 @@ func windowsLoadSdkDir() {
 	}
 }
 
-func windowsPrepareClCommand(cmd *exec.Cmd) {
+func windowsPrepareClCommand(target *config.Target, cmd *exec.Cmd) {
 	env := os.Environ()
 
 	// Set PATH.
@@ -88,9 +90,10 @@ func windowsPrepareClCommand(cmd *exec.Cmd) {
 
 	// Set INCLUDE.
 	env = append(env, fmt.Sprintf(
-		"INCLUDE=%s;%s",
+		"INCLUDE=%s;%s;%s",
 		filepath.Join(vcInstallDir, "include"),
-		filepath.Join(ucrtSdkDir, "Include", ucrtSdkVersion, "ucrt")))
+		filepath.Join(ucrtSdkDir, "Include", ucrtSdkVersion, "ucrt"),
+		target.Spec.Workspace))
 
 	// Set LIBDIR.
 	env = append(env, fmt.Sprintf(
@@ -100,30 +103,21 @@ func windowsPrepareClCommand(cmd *exec.Cmd) {
 		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "ucrt", "x86"),
 		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "um", "x86")))
 
-	env = append(env, fmt.Sprintf(
-		"LIBDIR=%s;%s;%s;%s",
-		filepath.Join(vcInstallDir, "lib"),
-		filepath.Join(vcInstallDir, "lib", "amd64"),
-		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "ucrt", "x86"),
-		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "um", "x86")))
-
-	log.Info(ucrtSdkDir, ucrtSdkVersion)
-
 	cmd.Env = env
 }
 
 // Build a command which can be used to compile a windows source file into an
 // object. This will not include any additional flags required.
-func windowsClCompileCommand(src, obj string) *exec.Cmd {
+func windowsClCompileCommand(target *config.Target, src, obj string) *exec.Cmd {
 	command := exec.Command("cl.exe", "/c", "/Fo"+obj, src)
 
 	// Add the required environment variables.
-	windowsPrepareClCommand(command)
+	windowsPrepareClCommand(target, command)
 
 	return command
 }
 
-func windowsClLinkCommand(objs, libs []string, output string) *exec.Cmd {
+func windowsClLinkCommand(target *config.Target, objs, libs []string, output string) *exec.Cmd {
 	// Work out the linker to use. This will change depending on the desired
 	// output file.
 	var linker string
@@ -137,7 +131,7 @@ func windowsClLinkCommand(objs, libs []string, output string) *exec.Cmd {
 	cmd := exec.Command(linker, "/OUT:"+output)
 	cmd.Args = append(cmd.Args, objs...)
 	cmd.Args = append(cmd.Args, libs...)
-	windowsPrepareClCommand(cmd)
+	windowsPrepareClCommand(target, cmd)
 
 	return cmd
 }
