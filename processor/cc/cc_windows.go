@@ -14,17 +14,16 @@ import (
 	"github.com/jeshuam/jbuild/config"
 )
 
-// This file contains a bunch of functions which are needed to compile with the
-// Visual Studio compiler (cl.exe). This compiler works in some very... obscure
-// ways, especially with regards to it's flag structure. As such, it should be
-// treated very differently to normal compilers (i.e. g++). cl.exe works best
-// when everything is defined as environment variables, so rather do that.
-
 var (
+	// Windows specific variables.
 	vcVersion = flag.String("vc_version", "14.0", "The Visual Studio version to use.")
 
 	vcInstallDir, ucrtSdkDir, ucrtSdkVersion string
 )
+
+func init() {
+	windowsLoadSdkDir()
+}
 
 func windowsReadRegistryKey(key, name string) (string, error) {
 	// Load the key.
@@ -80,7 +79,7 @@ func windowsLoadSdkDir() {
 	}
 }
 
-func windowsPrepareClCommand(target *config.Target, cmd *exec.Cmd) {
+func prepareEnvironment(target *config.Target, cmd *exec.Cmd) {
 	env := os.Environ()
 
 	// Set PATH.
@@ -106,40 +105,18 @@ func windowsPrepareClCommand(target *config.Target, cmd *exec.Cmd) {
 	cmd.Env = env
 }
 
-// Build a command which can be used to compile a windows source file into an
-// object. This will not include any additional flags required.
-func windowsClCompileCommand(target *config.Target, src, obj string) *exec.Cmd {
-	command := exec.Command("cl.exe", "/c", "/Fo"+obj, src)
-
-	// Add the required environment variables.
-	windowsPrepareClCommand(target, command)
-
-	return command
-}
-
-func windowsClLinkCommand(target *config.Target, objs, libs []string, output string) *exec.Cmd {
-	// Work out the linker to use. This will change depending on the desired
-	// output file.
-	var linker string
-	if strings.HasSuffix(output, ".lib") {
-		linker = "lib.exe"
-	} else {
-		linker = "link.exe"
-	}
-
-	// Make the command.
-	cmd := exec.Command(linker, "/OUT:"+output)
-	cmd.Args = append(cmd.Args, objs...)
-	cmd.Args = append(cmd.Args, libs...)
-	windowsPrepareClCommand(target, cmd)
-
-	return cmd
-}
-
-func windowsLibraryName(name string) string {
+func libraryName(name string) string {
 	if *ccStaticLinking {
 		return name + ".lib"
 	}
 
 	return name + ".dll"
+}
+
+func isSharedLib(path string) bool {
+	return strings.HasSuffix(path, ".dll")
+}
+
+func binaryName(name string) string {
+	return name + ".exe"
 }
