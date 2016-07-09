@@ -106,6 +106,7 @@ type Target struct {
 	Type      string      // The type of the target (e.g. c++/library)
 	Deps      []*Target   // The targets which this target depends on.
 	Processed bool        // Whether or not this target has been processed.
+	Changed   bool        // Set to true if the target has changed or not.
 
 	// Options which are required for processors. Note that not all of these may be
 	// used depending on the type of target.
@@ -140,6 +141,16 @@ func (this *Target) AllDependencies() []*Target {
 	}
 
 	return deps
+}
+
+func (this *Target) DependenciesChanged() bool {
+	for _, dep := range this.AllDependencies() {
+		if dep.Changed {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (this *Target) checkForDependencyCyclesRecurse(visited []string, seq int) {
@@ -236,11 +247,14 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 	// Load the srcs.
 	srcGlobs := loadArrayFromJson(json, "srcs")
 	for _, glob := range srcGlobs {
+		glob = path.Join(targetSpec.Workspace, targetSpec.PathSystem(), glob)
 		srcs, err := filepath.Glob(glob)
 		if err != nil {
-			target.Srcs = append(target.Srcs, glob)
+			target.Srcs = append(target.Srcs, filepath.Base(glob))
 		} else {
-			target.Srcs = append(target.Srcs, srcs...)
+			for _, src := range srcs {
+				target.Srcs = append(target.Srcs, filepath.Base(src))
+			}
 		}
 	}
 
@@ -276,6 +290,10 @@ func LoadTarget(targetSpec *TargetSpec) (*Target, error) {
 		// Validate the target.
 		if target.Type == "" {
 			return nil, errors.New("Missing required field 'type'")
+		}
+
+		if len(target.Srcs) == 0 {
+			return nil, errors.New("No source files found!")
 		}
 
 		// Save the target to the cache.

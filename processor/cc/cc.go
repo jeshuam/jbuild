@@ -54,7 +54,7 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 		// If the object is newer than the source file, don't compile it again.
 		srcStat, _ := os.Stat(srcPath)
 		objStat, _ := os.Stat(objPath)
-		if srcStat != nil && objStat != nil && objStat.ModTime().After(srcStat.ModTime()) {
+		if objStat != nil && objStat.ModTime().After(srcStat.ModTime()) {
 			continue
 		}
 
@@ -86,13 +86,18 @@ func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects [
 		outputName = binaryName(target.Spec.Name)
 	}
 
+	// If we are
+
 	// Work out the output filepath.
+	dependenciesChanged := target.Type == "c++/binary" && target.DependenciesChanged()
 	outputPath := filepath.Join(target.Spec.OutputPath(), outputName)
-	if nCompiled == 0 && common.FileExists(outputPath) {
+	if nCompiled == 0 && common.FileExists(outputPath) && !dependenciesChanged {
+		target.Changed = false
 		return outputPath, nil
 	}
 
 	// Make the error channel.
+	target.Changed = true
 	result := make(chan error)
 
 	// Combine all of this target's dependencies outputs into a single list of
