@@ -12,7 +12,7 @@ func compileCommand(target *config.Target, src, obj string) *exec.Cmd {
 
 	// Build up the command line. This varies depending on the compiler type
 	// (mainly because cl.exe is really weird).
-	var flags []string
+	flags := target.CompileFlags
 	if compiler == "cl.exe" {
 		flags = append(flags, []string{"/c", "/Fo" + obj, src}...)
 	} else {

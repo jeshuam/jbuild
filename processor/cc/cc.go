@@ -40,11 +40,11 @@ func init() {
 	}
 }
 
-func runCommand(cmd *exec.Cmd) error {
+func runCommand(cmd *exec.Cmd, result chan error) {
 	// Print the command.
 	if common.DryRun {
 		log.Infof("DRY_RUN: %s", cmd.Args)
-		return nil
+		result <- nil
 	} else {
 		log.Debug(cmd.Args)
 	}
@@ -58,18 +58,19 @@ func runCommand(cmd *exec.Cmd) error {
 	err := cmd.Run()
 	if err != nil {
 		if out.String() != "" {
-			return errors.New(out.String())
+			result <- errors.New(out.String())
 		} else {
-			return err
+			result <- err
 		}
 	}
 
-	return nil
+	result <- nil
 }
 
 // Compile the source files within the given target.
 func compileFiles(target *config.Target) ([]string, int, error) {
 	objs := make([]string, len(target.Srcs))
+	results := make(chan error)
 	nCompiled := 0
 
 	for i, srcFile := range target.Srcs {
@@ -91,7 +92,12 @@ func compileFiles(target *config.Target) ([]string, int, error) {
 
 		// Run the command.
 		nCompiled++
-		err := runCommand(cmd)
+		go runCommand(cmd, results)
+	}
+
+	// Check results.
+	for range target.Srcs {
+		err := <-results
 		if err != nil {
 			return nil, 0, err
 		}
@@ -115,6 +121,9 @@ func linkObjects(target *config.Target, objects []string, nCompiled int) (string
 		return outputPath, nil
 	}
 
+	// Make the error channel.
+	result := make(chan error)
+
 	// Combine all of this target's dependencies outputs into a single list of
 	// paths.
 	libs := make([]string, 0)
@@ -126,9 +135,10 @@ func linkObjects(target *config.Target, objects []string, nCompiled int) (string
 	cmd := linkCommand(target, objects, outputPath)
 
 	// Run the command.
-	err := runCommand(cmd)
+	go runCommand(cmd, result)
+	err := <-result
 	if err != nil {
-		return "", err
+		return "", nil
 	}
 
 	return outputPath, nil

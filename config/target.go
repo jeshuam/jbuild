@@ -234,7 +234,17 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 	}
 
 	// Load the srcs.
-	target.Srcs = loadArrayFromJson(json, "srcs")
+	srcGlobs := loadArrayFromJson(json, "srcs")
+	for _, glob := range srcGlobs {
+		srcs, err := filepath.Glob(glob)
+		if err != nil {
+			target.Srcs = append(target.Srcs, glob)
+		} else {
+			target.Srcs = append(target.Srcs, srcs...)
+		}
+	}
+
+	// Load the compile flags.
 	target.CompileFlags = loadArrayFromJson(json, "compile_flags")
 
 	return target, depSpecs
