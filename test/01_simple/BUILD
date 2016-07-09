@@ -3,7 +3,4 @@ hello_world: {
   srcs: [
     "hello_world.cc"
   ]
-  deps: [
-    "//lib"
-  ]
 }

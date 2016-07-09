@@ -19,6 +19,7 @@ func compileCommand(target *config.Target, src, obj string) *exec.Cmd {
 		flags = append(flags, []string{
 			"-I" + target.Spec.Workspace,
 			"-fPIC",
+			"-fcolor-diagnostics",
 			"-c", "-o", obj, src}...)
 	}
 

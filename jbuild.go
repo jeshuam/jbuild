@@ -25,7 +25,7 @@ func main() {
 	// Parse the command line arguments.
 	targetArgs := flag.Args()
 	if len(targetArgs) == 0 {
-		fmt.Printf("Usage: jbuild [flags] target <targets...>")
+		fmt.Println("Usage: jbuild [flags] target <targets...>")
 		return
 	}
 
