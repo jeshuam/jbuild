@@ -131,6 +131,17 @@ func (this *Target) LoadDependencies(depSpecs []*TargetSpec) error {
 	return nil
 }
 
+// Get a list of all dependencies of target.
+func (this *Target) AllDependencies() []*Target {
+	deps := []*Target{}
+	deps = append(deps, this.Deps...)
+	for _, dep := range this.Deps {
+		deps = append(deps, dep.AllDependencies()...)
+	}
+
+	return deps
+}
+
 func (this *Target) checkForDependencyCyclesRecurse(visited []string, seq int) {
 	// If this node has already been visited in the current recursive stack, then
 	// there must be a cycle in the graph.

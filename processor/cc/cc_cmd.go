@@ -53,7 +53,7 @@ func linkCommand(target *config.Target, objs []string, output string) *exec.Cmd 
 
 	// Get a list of libraries to include from the target.
 	libs := []string{}
-	for _, dep := range target.Deps {
+	for _, dep := range target.AllDependencies() {
 		libs = append(libs, dep.Output...)
 	}
 
@@ -73,7 +73,11 @@ func linkCommand(target *config.Target, objs []string, output string) *exec.Cmd 
 
 	// Add the objects to the commandline.
 	flags = append(flags, objs...)
-	flags = append(flags, libs...)
+
+	// Link in libraries for binaries.
+	if target.Type == "c++/binary" {
+		flags = append(flags, libs...)
+	}
 
 	// Make the command.
 	command := exec.Command(linker, flags...)

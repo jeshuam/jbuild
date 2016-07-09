@@ -70,11 +70,7 @@ func main() {
 
 		target.CheckForDependencyCycles()
 		targetsToProcess = append(targetsToProcess, target)
-
-		// Add the target's dependencies.
-		for _, dep := range target.Deps {
-			targetsToProcess = append(targetsToProcess, dep)
-		}
+		targetsToProcess = append(targetsToProcess, target.AllDependencies()...)
 	}
 
 	/// Now we have a list of targets we want to process, the next step is to

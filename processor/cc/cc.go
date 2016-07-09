@@ -111,7 +111,7 @@ func linkObjects(target *config.Target, objects []string, nCompiled int) (string
 
 	// Work out the output filepath.
 	outputPath := filepath.Join(target.Spec.OutputPath(), outputName)
-	if nCompiled == 0 {
+	if nCompiled == 0 && common.FileExists(outputPath) {
 		return outputPath, nil
 	}
 
