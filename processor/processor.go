@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
 	"github.com/jeshuam/jbuild/processor/cc"
 	"github.com/op/go-logging"
@@ -21,7 +22,7 @@ type ProcessingResult struct {
 
 type Processor interface {
 	// Process the given target using this processor.
-	Process(*config.Target) error
+	Process(*config.Target, chan common.CmdSpec) error
 }
 
 func (e *ProcessingResult) Error() string {
@@ -32,7 +33,7 @@ func makeProcessingResult(target *config.Target, err error) ProcessingResult {
 	return ProcessingResult{target, err}
 }
 
-func Process(target *config.Target, ch chan ProcessingResult) error {
+func Process(target *config.Target, ch chan ProcessingResult, taskQueue chan common.CmdSpec) error {
 	// Switch on the processor type.
 	var p Processor
 	if strings.HasPrefix(target.Type, "c++/") {
@@ -43,7 +44,7 @@ func Process(target *config.Target, ch chan ProcessingResult) error {
 
 	// Process the target.
 	go func() {
-		err := p.Process(target)
+		err := p.Process(target, taskQueue)
 		target.Processed = true
 		ch <- makeProcessingResult(target, err)
 	}()

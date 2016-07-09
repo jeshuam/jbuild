@@ -1,11 +1,8 @@
 package cc
 
 import (
-	"bytes"
-	"errors"
 	"flag"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 
@@ -17,6 +14,7 @@ import (
 var (
 	log = logging.MustGetLogger("jbuild")
 
+	ccThreads       = flag.Int("cc_threads", runtime.NumCPU()+1, "Number of threads to use when performing C++ operations.")
 	ccCompiler      = flag.String("cc_compiler", "", "The C++ compiler to use.")
 	ccStaticLinking = flag.Bool("cc_static_linking", true, "Whether or not to use static linking.")
 
@@ -40,37 +38,10 @@ func init() {
 	}
 }
 
-func runCommand(cmd *exec.Cmd, result chan error) {
-	// Print the command.
-	if common.DryRun {
-		log.Infof("DRY_RUN: %s", cmd.Args)
-		result <- nil
-	} else {
-		log.Debug(cmd.Args)
-	}
-
-	// Save the command output.
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-
-	// Run the command.
-	err := cmd.Run()
-	if err != nil {
-		if out.String() != "" {
-			result <- errors.New(out.String())
-		} else {
-			result <- err
-		}
-	}
-
-	result <- nil
-}
-
 // Compile the source files within the given target.
-func compileFiles(target *config.Target) ([]string, int, error) {
+func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]string, int, error) {
 	objs := make([]string, len(target.Srcs))
-	results := make(chan error)
+	results := make(chan error, len(target.Srcs))
 	nCompiled := 0
 
 	for i, srcFile := range target.Srcs {
@@ -92,11 +63,11 @@ func compileFiles(target *config.Target) ([]string, int, error) {
 
 		// Run the command.
 		nCompiled++
-		go runCommand(cmd, results)
+		taskQueue <- common.CmdSpec{cmd, results}
 	}
 
 	// Check results.
-	for range target.Srcs {
+	for i := 0; i < nCompiled; i++ {
 		err := <-results
 		if err != nil {
 			return nil, 0, err
@@ -106,7 +77,7 @@ func compileFiles(target *config.Target) ([]string, int, error) {
 	return objs, nCompiled, nil
 }
 
-func linkObjects(target *config.Target, objects []string, nCompiled int) (string, error) {
+func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects []string, nCompiled int) (string, error) {
 	// First, work out what the name of the output is.
 	var outputName string
 	if target.Type == "c++/library" {
@@ -135,7 +106,7 @@ func linkObjects(target *config.Target, objects []string, nCompiled int) (string
 	cmd := linkCommand(target, objects, outputPath)
 
 	// Run the command.
-	go runCommand(cmd, result)
+	taskQueue <- common.CmdSpec{cmd, result}
 	err := <-result
 	if err != nil {
 		return "", nil
@@ -144,7 +115,7 @@ func linkObjects(target *config.Target, objects []string, nCompiled int) (string
 	return outputPath, nil
 }
 
-func (p CCProcessor) Process(target *config.Target) error {
+func (p CCProcessor) Process(target *config.Target, taskQueue chan common.CmdSpec) error {
 	// Make the output directory for this target.
 	err := os.MkdirAll(target.Spec.OutputPath(), 0755)
 	if err != nil {
@@ -152,7 +123,7 @@ func (p CCProcessor) Process(target *config.Target) error {
 	}
 
 	// Compile all of the source files.
-	objFiles, nCompiled, err := compileFiles(target)
+	objFiles, nCompiled, err := compileFiles(target, taskQueue)
 	if err != nil {
 		return err
 	}
@@ -160,7 +131,7 @@ func (p CCProcessor) Process(target *config.Target) error {
 	// Link all object files into a binary. What this binary is depends on the
 	// type of the target. We only have to do that if something in the target was
 	// compiled (this should avoid expensive and pointless linking steps).
-	binary, err := linkObjects(target, objFiles, nCompiled)
+	binary, err := linkObjects(target, taskQueue, objFiles, nCompiled)
 	if err != nil {
 		return err
 	}

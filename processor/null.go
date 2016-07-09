@@ -1,9 +1,9 @@
 package processor
 
 import (
-	"math/rand"
-	"time"
+	"os/exec"
 
+	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
 )
 
@@ -12,7 +12,8 @@ import (
 type NullProcessor struct {
 }
 
-func (p NullProcessor) Process(target *config.Target) error {
-	time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
-	return nil
+func (p NullProcessor) Process(target *config.Target, taskQueue chan common.CmdSpec) error {
+	result := make(chan error)
+	taskQueue <- common.CmdSpec{exec.Command("sleep", "5"), result}
+	return <-result
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
@@ -16,9 +17,13 @@ var (
 	log    = logging.MustGetLogger("jbuild")
 	format = logging.MustStringFormatter(
 		`%{color}%{level:.1s} %{shortfunc}() >%{color:reset} %{message}`)
+
+	threads = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
 )
 
 func main() {
+	flag.Parse()
+
 	// Setup the logger.
 	logging.SetFormatter(format)
 
@@ -73,6 +78,17 @@ func main() {
 		targetsToProcess = append(targetsToProcess, target.AllDependencies()...)
 	}
 
+	/// Make some goroutines which can be used to run commands.
+	taskQueue := make(chan common.CmdSpec)
+	for i := 0; i < *threads; i++ {
+		go func() {
+			for {
+				task := <-taskQueue
+				common.RunCommand(task.Cmd, task.Result)
+			}
+		}()
+	}
+
 	/// Now we have a list of targets we want to process, the next step is to
 	/// actually process them! To process them, we will use a series of processors
 	/// depending on the type of the target.
@@ -84,7 +100,7 @@ func main() {
 		for _, target := range targetsToProcess {
 			if target.ReadyToProcess() {
 				log.Infof("Processing %s...", target)
-				err := processor.Process(target, targetChannel)
+				err := processor.Process(target, targetChannel, taskQueue)
 				if err != nil {
 					log.Fatalf("Error while processing %s: %v", target, err)
 				}

@@ -2,5 +2,5 @@
 #include "common.h"
 
 int fib48() {
-  return fibonacci<50>();
+  return fibonacci<25>();
 }

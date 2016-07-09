@@ -21,11 +21,6 @@ var (
 	buildFileCache = make(map[string]map[string]interface{})
 )
 
-// Parse flags for this module.
-func init() {
-	flag.Parse()
-}
-
 // Make this module variables to allow for simple testing.
 var pathSeparator = string(os.PathSeparator)
 var fileExists = func(filepath string) bool {
