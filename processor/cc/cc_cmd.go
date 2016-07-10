@@ -44,7 +44,7 @@ func linkCommand(target *config.Target, objs []string, output string) *exec.Cmd 
 			linker = "link.exe"
 		}
 	} else {
-		if *ccStaticLinking && target.Type == "c++/library" {
+		if *ccStaticLinking && target.IsLibrary() {
 			linker = "ar"
 		} else {
 			linker = *ccCompiler
@@ -64,7 +64,7 @@ func linkCommand(target *config.Target, objs []string, output string) *exec.Cmd 
 	} else if linker == "ar" {
 		flags = []string{"cr", output}
 	} else {
-		if target.Type == "c++/library" {
+		if target.IsLibrary() {
 			flags = append(flags, "-shared")
 		}
 
@@ -75,7 +75,7 @@ func linkCommand(target *config.Target, objs []string, output string) *exec.Cmd 
 	flags = append(flags, objs...)
 
 	// Link in libraries for binaries.
-	if target.Type == "c++/binary" {
+	if target.IsExecutable() {
 		flags = append(flags, libs...)
 	}
 

@@ -80,16 +80,16 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects []string, nCompiled int) (string, error) {
 	// First, work out what the name of the output is.
 	var outputName string
-	if target.Type == "c++/library" {
+	if target.IsLibrary() {
 		outputName = libraryName(target.Spec.Name)
-	} else if target.Type == "c++/binary" {
+	} else if target.IsExecutable() {
 		outputName = binaryName(target.Spec.Name)
 	}
 
 	// If we are
 
 	// Work out the output filepath.
-	dependenciesChanged := target.Type == "c++/binary" && target.DependenciesChanged()
+	dependenciesChanged := target.IsExecutable() && target.DependenciesChanged()
 	outputPath := filepath.Join(target.Spec.OutputPath(), outputName)
 	if nCompiled == 0 && common.FileExists(outputPath) && !dependenciesChanged {
 		target.Changed = false
@@ -99,13 +99,6 @@ func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects [
 	// Make the error channel.
 	target.Changed = true
 	result := make(chan error)
-
-	// Combine all of this target's dependencies outputs into a single list of
-	// paths.
-	libs := make([]string, 0)
-	for _, dep := range target.Deps {
-		libs = append(libs, dep.Output...)
-	}
 
 	// Now, we need to build up the command to run.
 	cmd := linkCommand(target, objects, outputPath)

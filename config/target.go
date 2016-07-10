@@ -119,6 +119,22 @@ func (this *Target) String() string {
 	return this.Spec.String()
 }
 
+func (this *Target) IsBinary() bool {
+	return strings.HasSuffix(this.Type, "binary")
+}
+
+func (this *Target) IsTest() bool {
+	return strings.HasSuffix(this.Type, "test")
+}
+
+func (this *Target) IsLibrary() bool {
+	return strings.HasSuffix(this.Type, "library")
+}
+
+func (this *Target) IsExecutable() bool {
+	return this.IsBinary() || this.IsTest()
+}
+
 func (this *Target) LoadDependencies(depSpecs []*TargetSpec) error {
 	for _, depSpec := range depSpecs {
 		target, err := LoadTarget(depSpec)

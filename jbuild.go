@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 
@@ -19,6 +20,12 @@ var (
 		`%{color}%{level:.1s} %{shortfunc}() >%{color:reset} %{message}`)
 
 	threads = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
+
+	validCommands = map[string]bool{
+		"build": true,
+		"test":  true,
+		"run":   true,
+	}
 )
 
 func main() {
@@ -28,10 +35,25 @@ func main() {
 	logging.SetFormatter(format)
 
 	// Parse the command line arguments.
-	targetArgs := flag.Args()
-	if len(targetArgs) == 0 {
-		fmt.Println("Usage: jbuild [flags] target <targets...>")
+	if len(flag.Args()) < 2 {
+		fmt.Println("Usage: jbuild [flags] build|test|run target <targets...>")
 		return
+	}
+
+	// Get the current processing target.
+	command := flag.Args()[0]
+	targetArgs := flag.Args()[1:]
+	runFlags := flag.Args()[2:]
+
+	// Validate the command arg.
+	if !validCommands[command] {
+		fmt.Printf("Unknown command '%s'.\n", command)
+		return
+	}
+
+	// If we are running, there should only be a single target.
+	if command == "run" {
+		targetArgs = []string{targetArgs[0]}
 	}
 
 	/// First, find the root of the workspace
@@ -66,6 +88,7 @@ func main() {
 
 	/// Now that we have a list of target specs, we can go and load the targets.
 	/// This involves going to each target file
+	targetsSpecified := make([]*config.Target, 0)
 	targetsToProcess := make([]*config.Target, 0)
 	for _, targetSpec := range canonicalTargetSpecs {
 		target, err := config.LoadTarget(targetSpec)
@@ -73,8 +96,20 @@ func main() {
 			log.Fatalf("Could not load target '%s': %v", targetSpec, err)
 		}
 
+		// If the target is not runnable, but we were told to run, then fail.
+		if !target.IsBinary() && command == "run" {
+			fmt.Printf("Cannot run target of type %s (%s)\n", target.Type, target)
+			return
+		}
+
+		if !target.IsTest() && command == "test" {
+			fmt.Printf("Cannot test target of type %s (%s)\n", target.Type, target)
+			return
+		}
+
 		target.CheckForDependencyCycles()
 		targetsToProcess = append(targetsToProcess, target)
+		targetsSpecified = append(targetsSpecified, target)
 		targetsToProcess = append(targetsToProcess, target.AllDependencies()...)
 	}
 
@@ -118,6 +153,35 @@ func main() {
 			log.Fatal(result.Err)
 		} else {
 			log.Infof("Finished processing %s!", result.Target)
+		}
+	}
+
+	// If we were running, there should only be one argument. Just run it.
+	if command == "run" {
+		cmd := exec.Command(targetsSpecified[0].Output[0], runFlags...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		log.Infof("Running %s...", cmd.Args)
+		cmd.Run()
+	}
+
+	if command == "test" {
+		log.Info("Testing...")
+		result := make(chan error)
+		for _, target := range targetsSpecified {
+			go func() {
+				cmd := exec.Command(target.Output[0])
+				common.RunCommand(cmd, result)
+			}()
+		}
+
+		// Get the output.
+		for i := 0; i < len(targetsSpecified); i++ {
+			err := <-result
+			if err != nil {
+				log.Errorf("FAILED: %s", err)
+			}
 		}
 	}
 }
