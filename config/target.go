@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jeshuam/jbuild/common"
+	"github.com/jeshuam/jbuild/progress"
 )
 
 var (
@@ -113,6 +114,9 @@ type Target struct {
 	Srcs         []string // A list of source files to build. Relative to the target dir.
 	CompileFlags []string // A list of compilation flags to pass to the compiler
 	Output       []string // A list of output files produced by this target. Should be populated by a processor.
+
+	// Progress bar for updating the display.
+	ProgressBar *progress.ProgressBar
 }
 
 func (this *Target) String() string {

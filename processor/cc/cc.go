@@ -45,6 +45,9 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 	nCompiled := 0
 
 	for i, srcFile := range target.Srcs {
+		// Display the source file we are building.
+		target.ProgressBar.SetSuffix(srcFile)
+
 		// Work out the full path to the source file. This will need to be provided
 		// to the compiler.
 		srcPath := filepath.Join(target.Spec.Workspace, target.Spec.PathSystem(), srcFile)
@@ -55,6 +58,7 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 		srcStat, _ := os.Stat(srcPath)
 		objStat, _ := os.Stat(objPath)
 		if objStat != nil && objStat.ModTime().After(srcStat.ModTime()) {
+			target.ProgressBar.Increment()
 			continue
 		}
 
@@ -63,7 +67,7 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 
 		// Run the command.
 		nCompiled++
-		taskQueue <- common.CmdSpec{cmd, results}
+		taskQueue <- common.CmdSpec{cmd, results, target.ProgressBar.Increment}
 	}
 
 	// Check results.
@@ -92,6 +96,7 @@ func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects [
 	dependenciesChanged := target.IsExecutable() && target.DependenciesChanged()
 	outputPath := filepath.Join(target.Spec.OutputPath(), outputName)
 	if nCompiled == 0 && common.FileExists(outputPath) && !dependenciesChanged {
+		target.ProgressBar.Increment()
 		target.Changed = false
 		return outputPath, nil
 	}
@@ -104,7 +109,7 @@ func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects [
 	cmd := linkCommand(target, objects, outputPath)
 
 	// Run the command.
-	taskQueue <- common.CmdSpec{cmd, result}
+	taskQueue <- common.CmdSpec{cmd, result, target.ProgressBar.Increment}
 	err := <-result
 	if err != nil {
 		return "", nil
@@ -121,6 +126,7 @@ func (p CCProcessor) Process(target *config.Target, taskQueue chan common.CmdSpe
 	}
 
 	// Compile all of the source files.
+	target.ProgressBar.SetOperation("compiling")
 	objFiles, nCompiled, err := compileFiles(target, taskQueue)
 	if err != nil {
 		return err
@@ -129,12 +135,14 @@ func (p CCProcessor) Process(target *config.Target, taskQueue chan common.CmdSpe
 	// Link all object files into a binary. What this binary is depends on the
 	// type of the target. We only have to do that if something in the target was
 	// compiled (this should avoid expensive and pointless linking steps).
+	target.ProgressBar.SetOperation("linking")
 	binary, err := linkObjects(target, taskQueue, objFiles, nCompiled)
 	if err != nil {
 		return err
 	}
 
 	// Save the output of this processing command.
+	target.ProgressBar.Finish()
 	target.Output = append(target.Output, binary)
 
 	// All finished, with no errors!

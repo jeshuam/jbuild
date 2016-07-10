@@ -7,10 +7,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
 	"github.com/jeshuam/jbuild/processor"
+	"github.com/jeshuam/jbuild/progress"
 	"github.com/op/go-logging"
 )
 
@@ -33,6 +35,7 @@ func main() {
 
 	// Setup the logger.
 	logging.SetFormatter(format)
+	logging.SetLevel(logging.CRITICAL, "jbuild")
 
 	// Parse the command line arguments.
 	if len(flag.Args()) < 2 {
@@ -119,10 +122,13 @@ func main() {
 		go func() {
 			for {
 				task := <-taskQueue
-				common.RunCommand(task.Cmd, task.Result)
+				common.RunCommand(task.Cmd, task.Result, task.Complete)
 			}
 		}()
 	}
+
+	// Log a starting message.
+	fmt.Printf("$ jbuild %s %s\n", command, strings.Join(targetArgs, " "))
 
 	/// Now we have a list of targets we want to process, the next step is to
 	/// actually process them! To process them, we will use a series of processors
@@ -159,6 +165,9 @@ func main() {
 		}
 	}
 
+	// Finish the progress bars.
+	progress.Finish()
+
 	// If we were running, there should only be one argument. Just run it.
 	if command == "run" {
 		cmd := exec.Command(targetsSpecified[0].Output[0], runFlags...)
@@ -175,7 +184,7 @@ func main() {
 		for _, target := range targetsSpecified {
 			go func() {
 				cmd := exec.Command(target.Output[0])
-				common.RunCommand(cmd, result)
+				common.RunCommand(cmd, result, func() {})
 			}()
 		}
 

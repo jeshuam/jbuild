@@ -8,6 +8,7 @@ import (
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
 	"github.com/jeshuam/jbuild/processor/cc"
+	"github.com/jeshuam/jbuild/progress"
 	"github.com/op/go-logging"
 )
 
@@ -41,6 +42,8 @@ func Process(target *config.Target, ch chan ProcessingResult, taskQueue chan com
 	} else {
 		return errors.New(fmt.Sprintf("Unknown target type '%s'", target.Type))
 	}
+
+	target.ProgressBar = progress.AddBar(len(target.Srcs)+1, target.String())
 
 	// Process the target.
 	go func() {

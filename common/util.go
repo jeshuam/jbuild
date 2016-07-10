@@ -23,12 +23,14 @@ func FileExists(filepath string) bool {
 }
 
 type CmdSpec struct {
-	Cmd    *exec.Cmd
-	Result chan error
+	Cmd      *exec.Cmd
+	Result   chan error
+	Complete func()
 }
 
-func RunCommand(cmd *exec.Cmd, result chan error) {
+func RunCommand(cmd *exec.Cmd, result chan error, complete func()) {
 	// Print the command.
+	defer complete()
 	if DryRun {
 		log.Infof("DRY_RUN: %s", cmd.Args)
 		result <- nil
