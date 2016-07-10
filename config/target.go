@@ -59,7 +59,7 @@ func CanonicalTargetSpec(workspaceDir, cwd, target string) (*TargetSpec, error) 
 	targetPath, targetName := splitTargetSpec(target)
 
 	// Make sure the target conforms to a regex.
-	match, err := regexp.MatchString("^(//)?[a-z_]+([/a-z_]+)?(:[a-z_]+)?$", target)
+	match, err := regexp.MatchString("^(//)?[0-9A-Za-z_]+([/0-9A-Za-z_]+)?(:[0-9A-Za-z_]+)?$", target)
 	if err != nil {
 		log.Fatalf("Target regex matching failed: %v", err)
 	}

@@ -129,7 +129,9 @@ func main() {
 	/// depending on the type of the target.
 	newTargetsToProcess := make([]*config.Target, 0, len(targetsToProcess))
 	targetChannel := make(chan processor.ProcessingResult)
-	for len(targetsToProcess) > 0 {
+	nCompletedTargets := 0
+	nTargetsToProcess := len(targetsToProcess)
+	for nCompletedTargets < nTargetsToProcess {
 		// Process all targets we need to; do nothing if there are no targets that
 		// need processing.
 		for _, target := range targetsToProcess {
@@ -152,6 +154,7 @@ func main() {
 		if result.Err != nil {
 			log.Fatal(result.Err)
 		} else {
+			nCompletedTargets++
 			log.Infof("Finished processing %s!", result.Target)
 		}
 	}
