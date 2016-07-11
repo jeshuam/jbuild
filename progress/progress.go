@@ -26,7 +26,7 @@ func Start() {
 	go func() {
 		term, _ := curse.New()
 		doUpdate := func(update *ProgressBar) {
-			id := len(progressBars) - update.id + 1
+			id := len(progressBars) - update.id + 2
 			term.MoveUp(id)
 			term.EraseCurrentLine()
 			width, _, _ := curse.GetScreenDimensions()

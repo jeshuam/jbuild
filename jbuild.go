@@ -137,7 +137,7 @@ func main() {
 
 	// Log a starting message.
 	cPrint := color.New(color.FgHiBlue, color.Bold).PrintfFunc()
-	cPrint("\n$ jbuild %s %s\n\n", command, strings.Join(targetArgs, " "))
+	cPrint("\n$ jbuild %s %s\n\n\n", command, strings.Join(targetArgs, " "))
 
 	/// Now we have a list of targets we want to process, the next step is to
 	/// actually process them! To process them, we will use a series of processors
