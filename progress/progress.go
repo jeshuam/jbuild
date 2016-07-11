@@ -1,49 +1,112 @@
 package progress
 
 import (
+	"flag"
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/sethgrid/curse"
 )
 
 var (
+	progressBarUpdateFrequency = flag.Duration("pb_update_freq", time.Microsecond*100, "Minimum delay between printings of the progress bar. Makes the display less jankey.")
+
 	// The main, global list of progress bars.
 	progressBars              = []*ProgressBar{}
 	progressBarUpdate         = make(chan *ProgressBar)
 	progressBarUpdateFunction = &sync.WaitGroup{}
+	progressBarLastUpdate     = time.Now()
 )
 
 func init() {
 	progressBarUpdateFunction.Add(1)
 	go func() {
 		term, _ := curse.New()
-		for update := range progressBarUpdate {
-			// Move to this line.
+		doUpdate := func(update *ProgressBar) {
 			term.MoveDown(update.id)
 			term.EraseCurrentLine()
 			width, _, _ := curse.GetScreenDimensions()
-			fmt.Println(update.Display(width))
+			update.Display(term, width)
 			term.MoveUp(update.id + 1)
+			progressBarLastUpdate = time.Now()
+		}
+
+		for update := range progressBarUpdate {
+			// Should we ignore this update?
+			duration := time.Since(progressBarLastUpdate)
+			if duration.Nanoseconds() < progressBarUpdateFrequency.Nanoseconds() {
+				continue
+			}
+
+			doUpdate(update)
 		}
 
 		// Finish.
+		for _, pb := range progressBars {
+			doUpdate(pb)
+		}
+
 		term.MoveDown(len(progressBars) + 1)
 		progressBarUpdateFunction.Done()
 	}()
 }
 
+type progressBarDisplay struct {
+	Name, Info, Prefix, Bar, Suffix, Tail string
+}
+
+func (pd *progressBarDisplay) Print(term *curse.Cursor, p *ProgressBar, name, info, prefix, bar, suffix, tail string) {
+	// Save some color functions.
+	yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
+	green := color.New(color.FgGreen, color.Bold).SprintFunc()
+	grey := color.New(color.FgBlack, color.Bold).SprintFunc()
+
+	// Set the colors of various parts.
+	tailColor := grey
+	nameColor := yellow
+	if p.finished {
+		nameColor = green
+	}
+
+	noColor := color.New().SprintFunc()
+
+	printParts := func(newParts []string, colors []func(...interface{}) string) {
+		term.EraseCurrentLine()
+		for i, newPart := range newParts {
+			color := colors[i]
+
+			fmt.Print(color(newPart))
+		}
+
+		fmt.Println()
+	}
+
+	printParts(
+		[]string{name, info, prefix, bar, suffix, tail},
+		[]func(...interface{}) string{nameColor, noColor, noColor, noColor, noColor, tailColor},
+	)
+
+	pd.Name = name
+	pd.Info = info
+	pd.Prefix = prefix
+	pd.Bar = bar
+	pd.Suffix = suffix
+	pd.Tail = tail
+}
+
 type ProgressBar struct {
-	id          int        // The location of this progress bar within the list of bars.
-	totalOps    int        // The total number of operations in the progress bar.
-	completeOps int        // The number of completed operations.
-	name        string     // The name of the progress bar.
-	operation   string     // The current operation.
-	suffix      string     // a suffix
-	finished    bool       // True if this progress bar has finished.
-	lock        sync.Mutex // A lock to ensure access to a progress bar is atomic.
+	id          int                // The location of this progress bar within the list of bars.
+	totalOps    int                // The total number of operations in the progress bar.
+	completeOps int                // The number of completed operations.
+	name        string             // The name of the progress bar.
+	operation   string             // The current operation.
+	suffix      string             // a suffix
+	finished    bool               // True if this progress bar has finished.
+	lock        sync.Mutex         // A lock to ensure access to a progress bar is atomic.
+	display     progressBarDisplay // The current display.
 }
 
 // Increment the number of operations completed. This will cap the progress bar
@@ -92,9 +155,9 @@ func (p *ProgressBar) IsFinished() bool {
 	return p.finished
 }
 
-func (p *ProgressBar) Display(width int) string {
+func (p *ProgressBar) Display(term *curse.Cursor, width int) {
 	// Add the header.
-	header := fmt.Sprintf("%s", p.name)
+	name := fmt.Sprintf("%s", p.name)
 	info := ""
 	if !p.finished && len(p.operation) > 0 {
 		info = fmt.Sprintf(" [%s...]", p.operation)
@@ -108,34 +171,27 @@ func (p *ProgressBar) Display(width int) string {
 	info += fmt.Sprintf(" %3.0f%%", p.PercentComplete())
 
 	// Print the rest of the progress bar.
-	progressHeader := " ["
-	progressFooter := "]"
+	prefix := " ["
+	suffix := "]"
 
 	// Get the suffix.
-	suffix := fmt.Sprintf(" %s", p.suffix)
+	tail := fmt.Sprintf(" %s", p.suffix)
 
-	progress := ""
-	progressLength := width - len(progressHeader) - len(progressFooter) - len(header) - len(info) - len(suffix)
-	for i := 0; i < progressLength; i++ {
-		percentComplete := (float64(i) / float64(progressLength)) * 100
+	bar := ""
+	barLength := width - len(prefix) - len(suffix) - len(name) - len(info) - len(tail)
+	for i := 0; i < barLength; i++ {
+		percentComplete := (float64(i) / float64(barLength)) * 100
 		if percentComplete < p.PercentComplete() {
-			progress += "="
+			bar += "="
 		} else {
-			progress += " "
+			bar += " "
 		}
 	}
 
-	progress = strings.Replace(progress, "= ", "=>", 1)
+	bar = strings.Replace(bar, "= ", "=>", 1)
 
 	// Set the colors of various parts.
-	headerColor := color.New(color.FgYellow, color.Bold).SprintFunc()
-	if p.finished {
-		headerColor = color.New(color.FgGreen, color.Bold).SprintFunc()
-	}
-
-	suffixColor := color.New(color.FgBlack, color.Bold).SprintFunc()
-
-	return headerColor(header) + info + progressHeader + progress + progressFooter + suffixColor(suffix)
+	p.display.Print(term, p, name, info, prefix, bar, suffix, tail)
 }
 
 // Add a progress bar to the group and return a pointer to it
