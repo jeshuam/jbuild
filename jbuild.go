@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
 	"github.com/jeshuam/jbuild/processor"
@@ -21,7 +22,8 @@ var (
 	format = logging.MustStringFormatter(
 		`%{color}%{level:.1s} %{shortfunc}() >%{color:reset} %{message}`)
 
-	threads = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
+	threads     = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
+	useProgress = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
 
 	validCommands = map[string]bool{
 		"build": true,
@@ -35,7 +37,13 @@ func main() {
 
 	// Setup the logger.
 	logging.SetFormatter(format)
-	logging.SetLevel(logging.CRITICAL, "jbuild")
+	if *useProgress {
+		logging.SetLevel(logging.CRITICAL, "jbuild")
+		progress.Start()
+	} else {
+		logging.SetLevel(logging.INFO, "jbuild")
+		progress.Disable()
+	}
 
 	// Parse the command line arguments.
 	if len(flag.Args()) < 2 {
@@ -128,7 +136,8 @@ func main() {
 	}
 
 	// Log a starting message.
-	fmt.Printf("$ jbuild %s %s\n", command, strings.Join(targetArgs, " "))
+	cPrint := color.New(color.FgHiBlue, color.Bold).PrintfFunc()
+	cPrint("\n$ jbuild %s %s\n\n", command, strings.Join(targetArgs, " "))
 
 	/// Now we have a list of targets we want to process, the next step is to
 	/// actually process them! To process them, we will use a series of processors

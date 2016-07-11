@@ -12,31 +12,32 @@ import (
 )
 
 var (
-	progressBarUpdateFrequency = flag.Duration("pb_update_freq", time.Microsecond*100, "Minimum delay between printings of the progress bar. Makes the display less jankey.")
+	progressBarUpdateFrequency = flag.Duration("pb_update_freq", time.Microsecond*25, "Minimum delay between printings of the progress bar. Makes the display less jankey.")
 
 	// The main, global list of progress bars.
 	progressBars              = []*ProgressBar{}
 	progressBarUpdate         = make(chan *ProgressBar)
 	progressBarUpdateFunction = &sync.WaitGroup{}
-	progressBarLastUpdate     = time.Now()
+	disabled                  = false
 )
 
-func init() {
+func Start() {
 	progressBarUpdateFunction.Add(1)
 	go func() {
 		term, _ := curse.New()
 		doUpdate := func(update *ProgressBar) {
-			term.MoveDown(update.id)
+			id := len(progressBars) - update.id + 1
+			term.MoveUp(id)
 			term.EraseCurrentLine()
 			width, _, _ := curse.GetScreenDimensions()
 			update.Display(term, width)
-			term.MoveUp(update.id + 1)
-			progressBarLastUpdate = time.Now()
+			term.MoveDown(id - 1)
+			update.lastUpdate = time.Now()
 		}
 
 		for update := range progressBarUpdate {
 			// Should we ignore this update?
-			duration := time.Since(progressBarLastUpdate)
+			duration := time.Since(update.lastUpdate)
 			if duration.Nanoseconds() < progressBarUpdateFrequency.Nanoseconds() {
 				continue
 			}
@@ -50,6 +51,17 @@ func init() {
 		}
 
 		term.MoveDown(len(progressBars) + 1)
+		progressBarUpdateFunction.Done()
+	}()
+}
+
+func Disable() {
+	disabled = true
+	progressBarUpdateFunction.Add(1)
+	go func() {
+		for range progressBarUpdate {
+
+		}
 		progressBarUpdateFunction.Done()
 	}()
 }
@@ -107,6 +119,7 @@ type ProgressBar struct {
 	finished    bool               // True if this progress bar has finished.
 	lock        sync.Mutex         // A lock to ensure access to a progress bar is atomic.
 	display     progressBarDisplay // The current display.
+	lastUpdate  time.Time          // Last update to this progress bar.
 }
 
 // Increment the number of operations completed. This will cap the progress bar
@@ -203,8 +216,11 @@ func AddBar(ops int, name string) *ProgressBar {
 		name:        name,
 	}
 
+	if !disabled {
+		fmt.Println()
+	}
 	progressBars = append(progressBars, progressBar)
-	fmt.Println()
+
 	return progressBar
 }
 
