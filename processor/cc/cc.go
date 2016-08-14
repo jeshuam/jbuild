@@ -1,7 +1,9 @@
 package cc
 
 import (
+	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -54,10 +56,25 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 		objPath := filepath.Join(target.Spec.OutputPath(), srcFile+".o")
 		objs[i] = objPath
 
-		// If the object is newer than the source file, don't compile it again.
+		// Make the directory of the obj if needed.
+		err := os.MkdirAll(filepath.Dir(objPath), 0755)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// Check if any dependent header files have been updated.
 		srcStat, _ := os.Stat(srcPath)
+		depsChanged := target.HeaderFilesChangedAfter(srcStat)
+
+		// If the object is newer than the source file, don't compile it again.
 		objStat, _ := os.Stat(objPath)
-		if objStat != nil && objStat.ModTime().After(srcStat.ModTime()) {
+		srcChanged := true
+		if objStat != nil {
+			srcChanged = !objStat.ModTime().After(srcStat.ModTime())
+		}
+
+		// Recompile this file if the deps or src has changed.
+		if !depsChanged && !srcChanged {
 			target.ProgressBar.Increment()
 			continue
 		}
@@ -67,7 +84,9 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 
 		// Run the command.
 		nCompiled++
-		taskQueue <- common.CmdSpec{cmd, results, target.ProgressBar.Increment}
+		taskQueue <- common.CmdSpec{cmd, results, func(error) {
+			target.ProgressBar.Increment()
+		}}
 	}
 
 	// Check results.
@@ -82,6 +101,11 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 }
 
 func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects []string, nCompiled int) (string, error) {
+	// Throw and error if there are no source files and this isn't a library.
+	if target.IsBinary() && len(target.Srcs) == 0 {
+		return "", errors.New(fmt.Sprintf("No source files found for binary %s", target))
+	}
+
 	// First, work out what the name of the output is.
 	var outputName string
 	if target.IsLibrary() {
@@ -89,8 +113,6 @@ func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects [
 	} else if target.IsExecutable() {
 		outputName = binaryName(target.Spec.Name)
 	}
-
-	// If we are
 
 	// Work out the output filepath.
 	dependenciesChanged := target.IsExecutable() && target.DependenciesChanged()
@@ -109,10 +131,13 @@ func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects [
 	cmd := linkCommand(target, objects, outputPath)
 
 	// Run the command.
-	taskQueue <- common.CmdSpec{cmd, result, target.ProgressBar.Increment}
+	taskQueue <- common.CmdSpec{cmd, result, func(error) {
+		target.ProgressBar.Increment()
+	}}
+
 	err := <-result
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	return outputPath, nil
@@ -123,6 +148,12 @@ func (p CCProcessor) Process(target *config.Target, taskQueue chan common.CmdSpe
 	err := os.MkdirAll(target.Spec.OutputPath(), 0755)
 	if err != nil {
 		return err
+	}
+
+	// If there are no source files and this is a library, just finish.
+	if target.IsLibrary() && len(target.Srcs) == 0 {
+		target.ProgressBar.Finish()
+		return nil
 	}
 
 	// Compile all of the source files.

@@ -1,7 +1,6 @@
 package progress
 
 import (
-	"flag"
 	"fmt"
 	"strings"
 	"sync"
@@ -12,8 +11,6 @@ import (
 )
 
 var (
-	progressBarUpdateFrequency = flag.Duration("pb_update_freq", time.Microsecond*25, "Minimum delay between printings of the progress bar. Makes the display less jankey.")
-
 	// The main, global list of progress bars.
 	progressBars              = []*ProgressBar{}
 	progressBarUpdate         = make(chan *ProgressBar)
@@ -26,31 +23,27 @@ func Start() {
 	go func() {
 		term, _ := curse.New()
 		doUpdate := func(update *ProgressBar) {
-			id := len(progressBars) - update.id + 2
+			id := len(progressBars) - update.id
 			term.MoveUp(id)
-			term.EraseCurrentLine()
 			width, _, _ := curse.GetScreenDimensions()
 			update.Display(term, width)
-			term.MoveDown(id - 1)
+			term.MoveUp(1)
+			term.MoveDown(id)
 			update.lastUpdate = time.Now()
 		}
 
+		oldLen := len(progressBars)
 		for update := range progressBarUpdate {
-			// Should we ignore this update?
-			duration := time.Since(update.lastUpdate)
-			if duration.Nanoseconds() < progressBarUpdateFrequency.Nanoseconds() {
-				continue
+			if oldLen != len(progressBars) {
+				for i := 0; i < len(progressBars)-oldLen; i++ {
+					fmt.Println()
+				}
 			}
 
+			oldLen = len(progressBars)
 			doUpdate(update)
 		}
 
-		// Finish.
-		for _, pb := range progressBars {
-			doUpdate(pb)
-		}
-
-		term.MoveDown(len(progressBars) + 1)
 		progressBarUpdateFunction.Done()
 	}()
 }
@@ -86,7 +79,7 @@ func (pd *progressBarDisplay) Print(term *curse.Cursor, p *ProgressBar, name, in
 	noColor := color.New().SprintFunc()
 
 	printParts := func(newParts []string, colors []func(...interface{}) string) {
-		term.EraseCurrentLine()
+		// term.EraseCurrentLine()
 		for i, newPart := range newParts {
 			color := colors[i]
 
@@ -159,6 +152,7 @@ func (p *ProgressBar) SetSuffix(newSuffix string) {
 func (p *ProgressBar) Finish() {
 	p.lock.Lock()
 	p.finished = true
+	p.completeOps = p.totalOps
 	p.lock.Unlock()
 
 	progressBarUpdate <- p
@@ -210,21 +204,24 @@ func (p *ProgressBar) Display(term *curse.Cursor, width int) {
 // Add a progress bar to the group and return a pointer to it
 func AddBar(ops int, name string) *ProgressBar {
 	progressBar := &ProgressBar{
-		id:          len(progressBars) + 1,
+		id:          len(progressBars),
 		totalOps:    ops,
 		completeOps: 0,
 		name:        name,
 	}
 
-	if !disabled {
-		fmt.Println()
+	if len(progressBars) == 0 {
+		fmt.Println("\n")
 	}
 	progressBars = append(progressBars, progressBar)
-
 	return progressBar
 }
 
 func Finish() {
+	for len(progressBarUpdate) > 0 {
+
+	}
+
 	close(progressBarUpdate)
 	progressBarUpdateFunction.Wait()
 }

@@ -14,6 +14,6 @@ type NullProcessor struct {
 
 func (p NullProcessor) Process(target *config.Target, taskQueue chan common.CmdSpec) error {
 	result := make(chan error)
-	taskQueue <- common.CmdSpec{exec.Command("sleep", "5"), result, func() {}}
+	taskQueue <- common.CmdSpec{exec.Command("sleep", "5"), result, func(error) {}}
 	return <-result
 }

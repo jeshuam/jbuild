@@ -43,6 +43,7 @@ func Process(target *config.Target, ch chan ProcessingResult, taskQueue chan com
 		return errors.New(fmt.Sprintf("Unknown target type '%s'", target.Type))
 	}
 
+	// Make the progress bar.
 	target.ProgressBar = progress.AddBar(len(target.Srcs)+1, target.String())
 
 	// Process the target.

@@ -2,6 +2,7 @@ package cc
 
 import (
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/jeshuam/jbuild/config"
@@ -13,11 +14,28 @@ func compileCommand(target *config.Target, src, obj string) *exec.Cmd {
 	// Build up the command line. This varies depending on the compiler type
 	// (mainly because cl.exe is really weird).
 	flags := target.CompileFlags
+	for _, include := range target.Includes {
+		includePath := filepath.Join(target.Spec.Workspace, target.Spec.Path, include)
+		flags = append(flags, "-I"+includePath)
+	}
+
+	// Include flags from dependencies.
+	for _, dep := range target.AllDependencies() {
+		flags = append(flags, dep.CompileFlags...)
+
+		for _, include := range dep.Includes {
+			includePath := filepath.Join(dep.Spec.Workspace, dep.Spec.Path, include)
+			flags = append(flags, "-I"+includePath)
+		}
+	}
+
+	// Add compiler specific options.
 	if compiler == "cl.exe" {
 		flags = append(flags, []string{"/c", "/Fo" + obj, src}...)
 	} else {
 		flags = append(flags, []string{
 			"-I" + target.Spec.Workspace,
+			"-I/usr/include",
 			"-fPIC",
 			"-fcolor-diagnostics",
 			"-c", "-o", obj, src}...)
@@ -51,12 +69,6 @@ func linkCommand(target *config.Target, objs []string, output string) *exec.Cmd 
 		}
 	}
 
-	// Get a list of libraries to include from the target.
-	libs := []string{}
-	for _, dep := range target.AllDependencies() {
-		libs = append(libs, dep.Output...)
-	}
-
 	// Make the flags.
 	flags := []string{}
 	if linker == "lib.exe" || linker == "link.exe" {
@@ -76,7 +88,10 @@ func linkCommand(target *config.Target, objs []string, output string) *exec.Cmd 
 
 	// Link in libraries for binaries.
 	if target.IsExecutable() {
-		flags = append(flags, libs...)
+		for _, dep := range target.AllDependencies() {
+			flags = append(flags, dep.Output...)
+			flags = append(flags, dep.LinkFlags...)
+		}
 	}
 
 	// Make the command.

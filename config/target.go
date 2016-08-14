@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -112,7 +113,10 @@ type Target struct {
 	// Options which are required for processors. Note that not all of these may be
 	// used depending on the type of target.
 	Srcs         []string // A list of source files to build. Relative to the target dir.
+	Hdrs         []string // A list of header files included with this target.
 	CompileFlags []string // A list of compilation flags to pass to the compiler
+	LinkFlags    []string
+	Includes     []string // Extra directories to include.
 	Output       []string // A list of output files produced by this target. Should be populated by a processor.
 
 	// Progress bar for updating the display.
@@ -150,6 +154,26 @@ func (this *Target) LoadDependencies(depSpecs []*TargetSpec) error {
 	}
 
 	return nil
+}
+
+// Return true if any of the header files within the target or it's dependencies
+// have changed.
+func (this *Target) HeaderFilesChangedAfter(file os.FileInfo) bool {
+	for _, hdr := range this.Hdrs {
+		hdrPath := filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), hdr)
+		hdrStat, _ := os.Stat(hdrPath)
+		if hdrStat != nil && hdrStat.ModTime().After(file.ModTime()) {
+			return true
+		}
+	}
+
+	for _, dep := range this.AllDependencies() {
+		if dep.HeaderFilesChangedAfter(file) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Get a list of all dependencies of target.
@@ -270,16 +294,36 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 		glob = path.Join(targetSpec.Workspace, targetSpec.PathSystem(), glob)
 		srcs, err := filepath.Glob(glob)
 		if err != nil {
-			target.Srcs = append(target.Srcs, filepath.Base(glob))
+			target.Srcs = append(target.Srcs, glob)
 		} else {
 			for _, src := range srcs {
-				target.Srcs = append(target.Srcs, filepath.Base(src))
+				rel, _ := filepath.Rel(filepath.Join(target.Spec.Workspace, target.Spec.Path), filepath.Dir(glob))
+				target.Srcs = append(target.Srcs, filepath.Join(rel, filepath.Base(src)))
+			}
+		}
+	}
+
+	// Load the hdrs.
+	hdrGlobs := loadArrayFromJson(json, "hdrs")
+	for _, glob := range hdrGlobs {
+		glob = path.Join(targetSpec.Workspace, targetSpec.PathSystem(), glob)
+		hdrs, err := filepath.Glob(glob)
+		if err != nil {
+			target.Hdrs = append(target.Hdrs, glob)
+		} else {
+			for _, hdr := range hdrs {
+				rel, _ := filepath.Rel(filepath.Join(target.Spec.Workspace, target.Spec.Path), filepath.Dir(glob))
+				target.Hdrs = append(target.Hdrs, filepath.Join(rel, filepath.Base(hdr)))
 			}
 		}
 	}
 
 	// Load the compile flags.
 	target.CompileFlags = loadArrayFromJson(json, "compile_flags")
+	target.LinkFlags = loadArrayFromJson(json, "link_flags")
+
+	// Load the include directories (add them to the compile flags).
+	target.Includes = loadArrayFromJson(json, "includes")
 
 	return target, depSpecs
 }
@@ -312,8 +356,8 @@ func LoadTarget(targetSpec *TargetSpec) (*Target, error) {
 			return nil, errors.New("Missing required field 'type'")
 		}
 
-		if len(target.Srcs) == 0 {
-			return nil, errors.New("No source files found!")
+		if len(target.Srcs) == 0 && len(target.Hdrs) == 0 {
+			return nil, errors.New(fmt.Sprintf("No src/hdr files found for target %s!", target))
 		}
 
 		// Save the target to the cache.

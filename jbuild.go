@@ -41,7 +41,7 @@ func main() {
 		logging.SetLevel(logging.CRITICAL, "jbuild")
 		progress.Start()
 	} else {
-		logging.SetLevel(logging.INFO, "jbuild")
+		logging.SetLevel(logging.DEBUG, "jbuild")
 		progress.Disable()
 	}
 
@@ -99,8 +99,9 @@ func main() {
 
 	/// Now that we have a list of target specs, we can go and load the targets.
 	/// This involves going to each target file
-	targetsSpecified := make([]*config.Target, 0)
-	targetsToProcess := make([]*config.Target, 0)
+	var firstTargetSpecified *config.Target = nil
+	targetsSpecified := make(map[*config.Target]bool, 0)
+	targetsToProcess := make(map[*config.Target]bool, 0)
 	for _, targetSpec := range canonicalTargetSpecs {
 		target, err := config.LoadTarget(targetSpec)
 		if err != nil {
@@ -118,10 +119,16 @@ func main() {
 			return
 		}
 
+		if len(targetsSpecified) == 0 {
+			firstTargetSpecified = target
+		}
+
 		target.CheckForDependencyCycles()
-		targetsToProcess = append(targetsToProcess, target)
-		targetsSpecified = append(targetsSpecified, target)
-		targetsToProcess = append(targetsToProcess, target.AllDependencies()...)
+		targetsToProcess[target] = true
+		targetsSpecified[target] = true
+		for _, dep := range target.AllDependencies() {
+			targetsToProcess[dep] = true
+		}
 	}
 
 	/// Make some goroutines which can be used to run commands.
@@ -135,21 +142,17 @@ func main() {
 		}()
 	}
 
-	// Log a starting message.
-	cPrint := color.New(color.FgHiBlue, color.Bold).PrintfFunc()
-	cPrint("\n$ jbuild %s %s\n\n\n", command, strings.Join(targetArgs, " "))
-
 	/// Now we have a list of targets we want to process, the next step is to
 	/// actually process them! To process them, we will use a series of processors
 	/// depending on the type of the target.
-	newTargetsToProcess := make([]*config.Target, 0, len(targetsToProcess))
+	newTargetsToProcess := make(map[*config.Target]bool, 0)
 	targetChannel := make(chan processor.ProcessingResult)
 	nCompletedTargets := 0
 	nTargetsToProcess := len(targetsToProcess)
 	for nCompletedTargets < nTargetsToProcess {
 		// Process all targets we need to; do nothing if there are no targets that
 		// need processing.
-		for _, target := range targetsToProcess {
+		for target, _ := range targetsToProcess {
 			if target.ReadyToProcess() {
 				log.Infof("Processing %s...", target)
 				err := processor.Process(target, targetChannel, taskQueue)
@@ -157,12 +160,12 @@ func main() {
 					log.Fatalf("Error while processing %s: %v", target, err)
 				}
 			} else {
-				newTargetsToProcess = append(newTargetsToProcess, target)
+				newTargetsToProcess[target] = true
 			}
 		}
 
 		targetsToProcess = newTargetsToProcess
-		newTargetsToProcess = []*config.Target{}
+		newTargetsToProcess = map[*config.Target]bool{}
 
 		// Wait for some process to respond.
 		result := <-targetChannel
@@ -179,30 +182,49 @@ func main() {
 
 	// If we were running, there should only be one argument. Just run it.
 	if command == "run" {
-		cmd := exec.Command(targetsSpecified[0].Output[0], runFlags...)
+		cmd := exec.Command(firstTargetSpecified.Output[0], runFlags...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
-		log.Infof("Running %s...", cmd.Args)
+		cPrint := color.New(color.FgHiBlue, color.Bold).PrintfFunc()
+		cPrint("\n$ %s\n", strings.Join(cmd.Args, " "))
 		cmd.Run()
 	}
 
 	if command == "test" {
 		log.Info("Testing...")
-		result := make(chan error)
-		for _, target := range targetsSpecified {
-			go func() {
-				cmd := exec.Command(target.Output[0])
-				common.RunCommand(cmd, result, func() {})
-			}()
-		}
+
+		// Get some colored prints.
+		gPrint := color.New(color.FgHiGreen, color.Bold).SprintfFunc()
+		rPrint := color.New(color.FgHiRed, color.Bold).SprintfFunc()
 
 		// Get the output.
-		for i := 0; i < len(targetsSpecified); i++ {
-			err := <-result
-			if err != nil {
-				log.Errorf("FAILED: %s", err)
-			}
+		fmt.Printf("\n")
+
+		// Function to run a single test.
+		runTest := func(target *config.Target, results chan error) {
+			cmd := exec.Command(target.Output[0], "--gtest_color=yes")
+
+			common.RunCommand(cmd, results, func(err error) {
+				if err != nil {
+					barrier := "================================================================="
+					fmt.Printf("\t%s: %s\n", rPrint("FAILED"), target)
+					fmt.Printf("\n%s\n%s%s\n", barrier, err, barrier)
+				} else {
+					fmt.Printf("\t%s: %s\n", gPrint("PASSED"), target)
+				}
+			})
+		}
+
+		// Run the commands.
+		results := make(chan error)
+		for target, _ := range targetsSpecified {
+			go runTest(target, results)
+		}
+
+		// Collect all results.
+		for range targetsSpecified {
+			<-results
 		}
 	}
 }
