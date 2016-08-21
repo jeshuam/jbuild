@@ -109,6 +109,7 @@ type TargetOptions struct {
 	CompileFlags []string // A list of compilation flags to pass to the compiler
 	LinkFlags    []string
 	Includes     []string // Extra directories to include.
+	Libs         []string // A list of pre-compiled libraries to include.
 }
 
 // Representation of a single Target.
@@ -167,6 +168,39 @@ func (this *Target) Includes() []string {
 	return includes
 }
 
+func (this *Target) Libs() []string {
+	libs := make([]string, 0)
+	libs = append(libs, this.Options.Libs...)
+	libs = append(libs, this.PlatformOptions.Libs...)
+	return libs
+}
+
+func (this *Target) LibsOrdered() []string {
+	libs := make([]string, 0)
+	for _, dep := range this.Deps {
+		libs = append(libs, dep.LibsOrdered()...)
+	}
+
+	for _, lib := range this.Libs() {
+		libs = append(libs, filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), lib))
+	}
+
+	return libs
+}
+
+func (this *Target) OutputOrdered() []string {
+	outputs := make([]string, 0)
+	for _, dep := range this.Deps {
+		outputs = append(outputs, dep.OutputOrdered()...)
+	}
+
+	for _, output := range this.Output {
+		outputs = append(outputs, output)
+	}
+
+	return outputs
+}
+
 func (this *Target) String() string {
 	return this.Spec.String()
 }
@@ -207,6 +241,7 @@ func (this *Target) HeaderFilesChangedAfter(file os.FileInfo) bool {
 		hdrPath := filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), hdr)
 		hdrStat, _ := os.Stat(hdrPath)
 		if hdrStat != nil && hdrStat.ModTime().After(file.ModTime()) {
+			fmt.Printf("header %s changed after %s\n", hdr, file.Name())
 			return true
 		}
 	}
@@ -329,26 +364,24 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 	// Function to load a list of globs from the config.
 	loadGlobs := func(root map[string]interface{}, key string) []string {
 		globs := loadArrayFromJson(root, key)
+		finalFiles := make([]string, 0)
 		for _, glob := range globs {
 			glob = path.Join(targetSpec.Workspace, targetSpec.PathSystem(), glob)
 			files, err := filepath.Glob(glob)
 
 			// If there was an error, then just return the glob by itself.
 			if err != nil {
-				return []string{glob}
+				finalFiles = append(finalFiles, glob)
 			} else {
 				// Otherwise, convert globs into actual paths.
-				finalFiles := make([]string, 0)
+				rel, _ := filepath.Rel(filepath.Join(target.Spec.Workspace, target.Spec.Path), filepath.Dir(glob))
 				for _, file := range files {
-					rel, _ := filepath.Rel(filepath.Join(target.Spec.Workspace, target.Spec.Path), filepath.Dir(glob))
 					finalFiles = append(finalFiles, filepath.Join(rel, filepath.Base(file)))
 				}
-
-				return finalFiles
 			}
 		}
 
-		return []string{}
+		return finalFiles
 	}
 
 	// Load the target type.
@@ -360,6 +393,7 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 	// Load the common options.
 	target.Options.Srcs = loadGlobs(json, "srcs")
 	target.Options.Hdrs = loadGlobs(json, "hdrs")
+	target.Options.Libs = loadGlobs(json, "libs")
 	target.Options.CompileFlags = loadArrayFromJson(json, "compile_flags")
 	target.Options.LinkFlags = loadArrayFromJson(json, "link_flags")
 	target.Options.Includes = loadArrayFromJson(json, "includes")
@@ -370,6 +404,7 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 		platformOptions := ops.(map[string]interface{})
 		target.PlatformOptions.Srcs = loadGlobs(platformOptions, "srcs")
 		target.PlatformOptions.Hdrs = loadGlobs(platformOptions, "hdrs")
+		target.PlatformOptions.Libs = loadGlobs(platformOptions, "libs")
 		target.PlatformOptions.CompileFlags = loadArrayFromJson(platformOptions, "compile_flags")
 		target.PlatformOptions.LinkFlags = loadArrayFromJson(platformOptions, "link_flags")
 		target.PlatformOptions.Includes = loadArrayFromJson(platformOptions, "includes")

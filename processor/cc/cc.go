@@ -77,6 +77,8 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 		if !depsChanged && !srcChanged {
 			target.ProgressBar.Increment()
 			continue
+		} else {
+			log.Debugf("Compiling file %s: depsChanged=%v, srcChanged=%v", srcFile, depsChanged, srcChanged)
 		}
 
 		// Build the compilation command.

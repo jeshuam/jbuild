@@ -93,7 +93,7 @@ func prepareEnvironment(target *config.Target, cmd *exec.Cmd) {
 
 	// Set INCLUDE.
 	env = append(env, fmt.Sprintf(
-		"INCLUDE=%s;%s;%s",
+		"INCLUDE=%s;%s;%s;%s",
 		filepath.Join(vcInstallDir, "include"),
 		filepath.Join(ucrtSdkDir, "Include", ucrtSdkVersion, "ucrt"),
 		filepath.Join(netFxSdkDir, "Include"),

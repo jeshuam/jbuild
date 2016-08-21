@@ -85,12 +85,38 @@ func linkCommand(target *config.Target, objs []string, output string) *exec.Cmd 
 
 	// Add the objects to the commandline.
 	flags = append(flags, objs...)
+	if target.IsExecutable() {
+		for _, lib := range target.Libs() {
+			flags = append(flags, lib)
+		}
+	}
 
 	// Link in libraries for binaries.
 	if target.IsExecutable() {
+		extraFlags := make(map[string]bool, 0)
 		for _, dep := range target.AllDependencies() {
-			flags = append(flags, dep.Output...)
-			flags = append(flags, dep.LinkFlags()...)
+			for _, flag := range dep.LinkFlags() {
+				extraFlags[flag] = true
+			}
+		}
+
+		// Add the extra flags.
+		for flag := range extraFlags {
+			flags = append(flags, flag)
+		}
+
+		// Add libs. This has to be done in order.
+		for _, lib := range target.LibsOrdered() {
+			flags = append(flags, lib)
+		}
+
+		outputUsed := make(map[string]bool, 0)
+		for _, output := range target.OutputOrdered() {
+			_, ok := outputUsed[output]
+			if !ok {
+				flags = append(flags, output)
+				outputUsed[output] = true
+			}
 		}
 	}
 
