@@ -3,7 +3,6 @@ package cc
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,7 +17,7 @@ var (
 	// Windows specific variables.
 	vcVersion = flag.String("vc_version", "14.0", "The Visual Studio version to use.")
 
-	vcInstallDir, ucrtSdkDir, ucrtSdkVersion string
+	vcInstallDir, ucrtSdkDir, ucrtSdkVersion, netFxSdkDir string
 )
 
 func init() {
@@ -70,13 +69,18 @@ func windowsLoadSdkDir() {
 
 	// Find the version which has all of the required directories.
 	ucrtSdkDir = val
-	for _, version := range versions {
-		files, _ := ioutil.ReadDir(version)
-		if len(files) >= 2 {
-			ucrtSdkVersion = filepath.Base(version)
-			break
+	ucrtSdkVersion = filepath.Base(versions[len(versions)-1])
+
+	// Load the NETFXSDK directory from the registry.
+	val, err = windowsReadRegistryKey(`SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1A`, "InstallationFolder")
+	if err != nil {
+		val, err = windowsReadRegistryKey(`SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1A`, "InstallationFolder")
+		if err != nil {
+			log.Fatal("Could not find NetFX SDK directory.")
 		}
 	}
+
+	netFxSdkDir = val
 }
 
 func prepareEnvironment(target *config.Target, cmd *exec.Cmd) {
@@ -92,15 +96,17 @@ func prepareEnvironment(target *config.Target, cmd *exec.Cmd) {
 		"INCLUDE=%s;%s;%s",
 		filepath.Join(vcInstallDir, "include"),
 		filepath.Join(ucrtSdkDir, "Include", ucrtSdkVersion, "ucrt"),
+		filepath.Join(netFxSdkDir, "Include"),
 		target.Spec.Workspace))
 
 	// Set LIBDIR.
 	env = append(env, fmt.Sprintf(
-		"LIB=%s;%s;%s;%s",
+		"LIB=%s;%s;%s;%s;%s",
 		filepath.Join(vcInstallDir, "lib"),
 		filepath.Join(vcInstallDir, "lib", "amd64"),
 		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "ucrt", "x86"),
-		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "um", "x86")))
+		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "um", "x86"),
+		filepath.Join(netFxSdkDir, "Lib")))
 
 	cmd.Env = env
 }

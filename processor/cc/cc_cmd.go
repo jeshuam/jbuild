@@ -13,17 +13,17 @@ func compileCommand(target *config.Target, src, obj string) *exec.Cmd {
 
 	// Build up the command line. This varies depending on the compiler type
 	// (mainly because cl.exe is really weird).
-	flags := target.CompileFlags
-	for _, include := range target.Includes {
+	flags := target.CompileFlags()
+	for _, include := range target.Includes() {
 		includePath := filepath.Join(target.Spec.Workspace, target.Spec.Path, include)
 		flags = append(flags, "-I"+includePath)
 	}
 
 	// Include flags from dependencies.
 	for _, dep := range target.AllDependencies() {
-		flags = append(flags, dep.CompileFlags...)
+		flags = append(flags, dep.CompileFlags()...)
 
-		for _, include := range dep.Includes {
+		for _, include := range dep.Includes() {
 			includePath := filepath.Join(dep.Spec.Workspace, dep.Spec.Path, include)
 			flags = append(flags, "-I"+includePath)
 		}
@@ -90,7 +90,7 @@ func linkCommand(target *config.Target, objs []string, output string) *exec.Cmd 
 	if target.IsExecutable() {
 		for _, dep := range target.AllDependencies() {
 			flags = append(flags, dep.Output...)
-			flags = append(flags, dep.LinkFlags...)
+			flags = append(flags, dep.LinkFlags()...)
 		}
 	}
 

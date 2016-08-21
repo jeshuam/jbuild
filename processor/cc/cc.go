@@ -42,11 +42,11 @@ func init() {
 
 // Compile the source files within the given target.
 func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]string, int, error) {
-	objs := make([]string, len(target.Srcs))
-	results := make(chan error, len(target.Srcs))
+	objs := make([]string, len(target.Srcs()))
+	results := make(chan error, len(target.Srcs()))
 	nCompiled := 0
 
-	for i, srcFile := range target.Srcs {
+	for i, srcFile := range target.Srcs() {
 		// Display the source file we are building.
 		target.ProgressBar.SetSuffix(srcFile)
 
@@ -102,7 +102,7 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 
 func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects []string, nCompiled int) (string, error) {
 	// Throw and error if there are no source files and this isn't a library.
-	if target.IsBinary() && len(target.Srcs) == 0 {
+	if target.IsBinary() && len(target.Srcs()) == 0 {
 		return "", errors.New(fmt.Sprintf("No source files found for binary %s", target))
 	}
 
@@ -151,7 +151,7 @@ func (p CCProcessor) Process(target *config.Target, taskQueue chan common.CmdSpe
 	}
 
 	// If there are no source files and this is a library, just finish.
-	if target.IsLibrary() && len(target.Srcs) == 0 {
+	if target.IsLibrary() && len(target.Srcs()) == 0 {
 		target.ProgressBar.Finish()
 		return nil
 	}

@@ -3,7 +3,10 @@ main: {
   srcs: [
     "*.cc"
   ]
-  compile_flags: [
-    "-std=c++11"
-  ]
+
+  linux: {
+    compile_flags: [
+      "-std=c++11",
+    ]
+  }
 }

@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/jeshuam/jbuild/common"
@@ -102,6 +103,14 @@ func CanonicalTargetSpec(workspaceDir, cwd, target string) (*TargetSpec, error) 
 	return targetSpec, nil
 }
 
+type TargetOptions struct {
+	Srcs         []string // A list of source files to build. Relative to the target dir.
+	Hdrs         []string // A list of header files included with this target.
+	CompileFlags []string // A list of compilation flags to pass to the compiler
+	LinkFlags    []string
+	Includes     []string // Extra directories to include.
+}
+
 // Representation of a single Target.
 type Target struct {
 	Spec      *TargetSpec // The path/name of this target. Useful for printing.
@@ -112,15 +121,50 @@ type Target struct {
 
 	// Options which are required for processors. Note that not all of these may be
 	// used depending on the type of target.
-	Srcs         []string // A list of source files to build. Relative to the target dir.
-	Hdrs         []string // A list of header files included with this target.
-	CompileFlags []string // A list of compilation flags to pass to the compiler
-	LinkFlags    []string
-	Includes     []string // Extra directories to include.
-	Output       []string // A list of output files produced by this target. Should be populated by a processor.
+	Options         TargetOptions // Common options for all platforms.
+	PlatformOptions TargetOptions // Platform specific options.
+
+	// Output options.
+	Output []string // A list of output files produced by this target. Should be populated by a processor.
 
 	// Progress bar for updating the display.
 	ProgressBar *progress.ProgressBar
+}
+
+// Getters for various options, which combine platform and non-platform options.
+func (this *Target) Srcs() []string {
+	srcs := make([]string, 0)
+	srcs = append(srcs, this.Options.Srcs...)
+	srcs = append(srcs, this.PlatformOptions.Srcs...)
+	return srcs
+}
+
+func (this *Target) Hdrs() []string {
+	hdrs := make([]string, 0)
+	hdrs = append(hdrs, this.Options.Hdrs...)
+	hdrs = append(hdrs, this.PlatformOptions.Hdrs...)
+	return hdrs
+}
+
+func (this *Target) CompileFlags() []string {
+	compileFlags := make([]string, 0)
+	compileFlags = append(compileFlags, this.Options.CompileFlags...)
+	compileFlags = append(compileFlags, this.PlatformOptions.CompileFlags...)
+	return compileFlags
+}
+
+func (this *Target) LinkFlags() []string {
+	linkFlags := make([]string, 0)
+	linkFlags = append(linkFlags, this.Options.LinkFlags...)
+	linkFlags = append(linkFlags, this.PlatformOptions.LinkFlags...)
+	return linkFlags
+}
+
+func (this *Target) Includes() []string {
+	includes := make([]string, 0)
+	includes = append(includes, this.Options.Includes...)
+	includes = append(includes, this.PlatformOptions.Includes...)
+	return includes
 }
 
 func (this *Target) String() string {
@@ -159,7 +203,7 @@ func (this *Target) LoadDependencies(depSpecs []*TargetSpec) error {
 // Return true if any of the header files within the target or it's dependencies
 // have changed.
 func (this *Target) HeaderFilesChangedAfter(file os.FileInfo) bool {
-	for _, hdr := range this.Hdrs {
+	for _, hdr := range this.Hdrs() {
 		hdrPath := filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), hdr)
 		hdrStat, _ := os.Stat(hdrPath)
 		if hdrStat != nil && hdrStat.ModTime().After(file.ModTime()) {
@@ -282,48 +326,54 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 		}
 	}
 
+	// Function to load a list of globs from the config.
+	loadGlobs := func(root map[string]interface{}, key string) []string {
+		globs := loadArrayFromJson(root, key)
+		for _, glob := range globs {
+			glob = path.Join(targetSpec.Workspace, targetSpec.PathSystem(), glob)
+			files, err := filepath.Glob(glob)
+
+			// If there was an error, then just return the glob by itself.
+			if err != nil {
+				return []string{glob}
+			} else {
+				// Otherwise, convert globs into actual paths.
+				finalFiles := make([]string, 0)
+				for _, file := range files {
+					rel, _ := filepath.Rel(filepath.Join(target.Spec.Workspace, target.Spec.Path), filepath.Dir(glob))
+					finalFiles = append(finalFiles, filepath.Join(rel, filepath.Base(file)))
+				}
+
+				return finalFiles
+			}
+		}
+
+		return []string{}
+	}
+
 	// Load the target type.
 	targetType, ok := json["type"]
 	if ok {
 		target.Type = targetType.(string)
 	}
 
-	// Load the srcs.
-	srcGlobs := loadArrayFromJson(json, "srcs")
-	for _, glob := range srcGlobs {
-		glob = path.Join(targetSpec.Workspace, targetSpec.PathSystem(), glob)
-		srcs, err := filepath.Glob(glob)
-		if err != nil {
-			target.Srcs = append(target.Srcs, glob)
-		} else {
-			for _, src := range srcs {
-				rel, _ := filepath.Rel(filepath.Join(target.Spec.Workspace, target.Spec.Path), filepath.Dir(glob))
-				target.Srcs = append(target.Srcs, filepath.Join(rel, filepath.Base(src)))
-			}
-		}
+	// Load the common options.
+	target.Options.Srcs = loadGlobs(json, "srcs")
+	target.Options.Hdrs = loadGlobs(json, "hdrs")
+	target.Options.CompileFlags = loadArrayFromJson(json, "compile_flags")
+	target.Options.LinkFlags = loadArrayFromJson(json, "link_flags")
+	target.Options.Includes = loadArrayFromJson(json, "includes")
+
+	// Load the platform specific options.
+	ops, ok := json[runtime.GOOS]
+	if ok {
+		platformOptions := ops.(map[string]interface{})
+		target.PlatformOptions.Srcs = loadGlobs(platformOptions, "srcs")
+		target.PlatformOptions.Hdrs = loadGlobs(platformOptions, "hdrs")
+		target.PlatformOptions.CompileFlags = loadArrayFromJson(platformOptions, "compile_flags")
+		target.PlatformOptions.LinkFlags = loadArrayFromJson(platformOptions, "link_flags")
+		target.PlatformOptions.Includes = loadArrayFromJson(platformOptions, "includes")
 	}
-
-	// Load the hdrs.
-	hdrGlobs := loadArrayFromJson(json, "hdrs")
-	for _, glob := range hdrGlobs {
-		glob = path.Join(targetSpec.Workspace, targetSpec.PathSystem(), glob)
-		hdrs, err := filepath.Glob(glob)
-		if err != nil {
-			target.Hdrs = append(target.Hdrs, glob)
-		} else {
-			for _, hdr := range hdrs {
-				rel, _ := filepath.Rel(filepath.Join(target.Spec.Workspace, target.Spec.Path), filepath.Dir(glob))
-				target.Hdrs = append(target.Hdrs, filepath.Join(rel, filepath.Base(hdr)))
-			}
-		}
-	}
-
-	// Load the compile flags.
-	target.CompileFlags = loadArrayFromJson(json, "compile_flags")
-	target.LinkFlags = loadArrayFromJson(json, "link_flags")
-
-	// Load the include directories (add them to the compile flags).
-	target.Includes = loadArrayFromJson(json, "includes")
 
 	return target, depSpecs
 }
@@ -356,7 +406,7 @@ func LoadTarget(targetSpec *TargetSpec) (*Target, error) {
 			return nil, errors.New("Missing required field 'type'")
 		}
 
-		if len(target.Srcs) == 0 && len(target.Hdrs) == 0 {
+		if len(target.Srcs()) == 0 && len(target.Hdrs()) == 0 {
 			return nil, errors.New(fmt.Sprintf("No src/hdr files found for target %s!", target))
 		}
 
