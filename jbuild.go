@@ -187,6 +187,9 @@ func main() {
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
 		cPrint := color.New(color.FgHiBlue, color.Bold).PrintfFunc()
+		if runtime.GOOS == "windows" {
+			cPrint = color.New(color.FgHiCyan, color.Bold).PrintfFunc()
+		}
 		cPrint("\n$ %s\n", strings.Join(cmd.Args, " "))
 		cmd.Run()
 	}

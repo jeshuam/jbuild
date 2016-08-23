@@ -241,7 +241,6 @@ func (this *Target) HeaderFilesChangedAfter(file os.FileInfo) bool {
 		hdrPath := filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), hdr)
 		hdrStat, _ := os.Stat(hdrPath)
 		if hdrStat != nil && hdrStat.ModTime().After(file.ModTime()) {
-			fmt.Printf("header %s changed after %s\n", hdr, file.Name())
 			return true
 		}
 	}

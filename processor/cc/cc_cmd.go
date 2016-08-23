@@ -31,7 +31,7 @@ func compileCommand(target *config.Target, src, obj string) *exec.Cmd {
 
 	// Add compiler specific options.
 	if compiler == "cl.exe" {
-		flags = append(flags, []string{"/c", "/Fo" + obj, src}...)
+		flags = append(flags, []string{"/c", "/Fo" + obj, src, "/EHsc"}...)
 	} else {
 		flags = append(flags, []string{
 			"-I" + target.Spec.Workspace,
