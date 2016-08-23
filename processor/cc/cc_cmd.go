@@ -100,6 +100,10 @@ func linkCommand(target *config.Target, objs []string, output string) *exec.Cmd 
 			}
 		}
 
+		for _, flag := range target.LinkFlags() {
+			extraFlags[flag] = true
+		}
+
 		// Add the extra flags.
 		for flag := range extraFlags {
 			flags = append(flags, flag)
@@ -110,14 +114,21 @@ func linkCommand(target *config.Target, objs []string, output string) *exec.Cmd 
 			flags = append(flags, lib)
 		}
 
+		// We have to go through the outputs in reverse order to make sure that we
+		// put core dependencies last in the list.
 		outputUsed := make(map[string]bool, 0)
-		for _, output := range target.OutputOrdered() {
+		outputOrderedDuplicates := target.OutputOrdered()
+		outputOrderedFiltered := make([]string, 0)
+		for i := len(outputOrderedDuplicates) - 1; i >= 0; i-- {
+			output := outputOrderedDuplicates[i]
 			_, ok := outputUsed[output]
 			if !ok {
-				flags = append(flags, output)
+				outputOrderedFiltered = append([]string{output}, outputOrderedFiltered...)
 				outputUsed[output] = true
 			}
 		}
+
+		flags = append(flags, outputOrderedFiltered...)
 	}
 
 	// Make the command.
