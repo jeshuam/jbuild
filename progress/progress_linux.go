@@ -3,6 +3,7 @@ package progress
 import (
 	"fmt"
 	"strings"
+  "time"
 
 	"github.com/fatih/color"
 	"github.com/sethgrid/curse"

@@ -177,12 +177,12 @@ func (this *Target) Libs() []string {
 
 func (this *Target) LibsOrdered() []string {
 	libs := make([]string, 0)
-	for _, dep := range this.Deps {
-		libs = append(libs, dep.LibsOrdered()...)
-	}
-
 	for _, lib := range this.Libs() {
 		libs = append(libs, filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), lib))
+	}
+
+	for _, dep := range this.Deps {
+		libs = append(libs, dep.LibsOrdered()...)
 	}
 
 	return libs
@@ -190,12 +190,12 @@ func (this *Target) LibsOrdered() []string {
 
 func (this *Target) OutputOrdered() []string {
 	outputs := make([]string, 0)
-	for _, dep := range this.Deps {
-		outputs = append(outputs, dep.OutputOrdered()...)
-	}
-
 	for _, output := range this.Output {
 		outputs = append(outputs, output)
+	}
+
+	for _, dep := range this.Deps {
+		outputs = append(outputs, dep.OutputOrdered()...)
 	}
 
 	return outputs

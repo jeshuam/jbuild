@@ -32,7 +32,9 @@ func RunCommand(cmd *exec.Cmd, result chan error, complete func(error)) {
 	// Print the command.
 	if DryRun {
 		log.Infof("DRY_RUN: %s", cmd.Args)
+		complete(nil)
 		result <- nil
+		return
 	} else {
 		log.Debug(cmd.Args)
 	}
@@ -48,7 +50,6 @@ func RunCommand(cmd *exec.Cmd, result chan error, complete func(error)) {
 		if out.String() != "" {
 			complete(errors.New(out.String()))
 			result <- errors.New(out.String())
-
 		} else {
 			complete(err)
 			result <- err
