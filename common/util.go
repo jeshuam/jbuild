@@ -80,7 +80,7 @@ func RunCommand(cmd *exec.Cmd, result chan error, complete func(error, time.Dura
 	// Print the command.
 	if DryRun {
 		log.Infof("DRY_RUN: %s", cmd.Args)
-		complete(nil)
+		complete(nil, 0)
 		result <- nil
 		return
 	} else {
