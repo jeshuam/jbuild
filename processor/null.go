@@ -2,6 +2,7 @@ package processor
 
 import (
 	"os/exec"
+	"time"
 
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
@@ -14,6 +15,6 @@ type NullProcessor struct {
 
 func (p NullProcessor) Process(target *config.Target, taskQueue chan common.CmdSpec) error {
 	result := make(chan error)
-	taskQueue <- common.CmdSpec{exec.Command("sleep", "5"), result, func(error) {}}
+	taskQueue <- common.CmdSpec{exec.Command("sleep", "5"), result, func(error, time.Duration) {}}
 	return <-result
 }

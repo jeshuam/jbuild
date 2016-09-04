@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
@@ -86,7 +87,7 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 
 		// Run the command.
 		nCompiled++
-		taskQueue <- common.CmdSpec{cmd, results, func(error) {
+		taskQueue <- common.CmdSpec{cmd, results, func(error, time.Duration) {
 			target.ProgressBar.Increment()
 		}}
 	}
@@ -133,7 +134,7 @@ func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects [
 	cmd := linkCommand(target, objects, outputPath)
 
 	// Run the command.
-	taskQueue <- common.CmdSpec{cmd, result, func(error) {
+	taskQueue <- common.CmdSpec{cmd, result, func(error, time.Duration) {
 		target.ProgressBar.Increment()
 	}}
 

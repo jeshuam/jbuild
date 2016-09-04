@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/jeshuam/jbuild/common"
@@ -22,8 +24,9 @@ var (
 	format = logging.MustStringFormatter(
 		`%{color}%{level:.1s} %{shortfunc}() >%{color:reset} %{message}`)
 
-	threads     = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
-	useProgress = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
+	threads      = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
+	useProgress  = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
+	forceRunTest = flag.Bool("force_run_tests", false, "Whether or not we should for tests to run.")
 
 	validCommands = map[string]bool{
 		"build": true,
@@ -204,19 +207,52 @@ func main() {
 		// Get the output.
 		fmt.Printf("\n")
 
-		// Function to run a single test.
-		runTest := func(target *config.Target, results chan error) {
-			cmd := exec.Command(target.Output[0], "--gtest_color=yes")
-
-			common.RunCommand(cmd, results, func(err error) {
+		// Function to display the test result.
+		getTestResultFunction := func(target *config.Target, cached bool) func(error, time.Duration) {
+			return func(err error, duration time.Duration) {
+				// Save the test results.
+				var passed bool
 				if err != nil {
 					barrier := "================================================================="
-					fmt.Printf("\t%s: %s\n", rPrint("FAILED"), target)
+					msg := fmt.Sprintf("FAILED in %s", duration)
+					if cached {
+						msg = msg + " (cached)"
+					}
+					fmt.Printf("\t%s: %s\n", rPrint(msg), target)
 					fmt.Printf("\n%s\n%s%s\n", barrier, err, barrier)
+					passed = false
 				} else {
-					fmt.Printf("\t%s: %s\n", gPrint("PASSED"), target)
+					msg := fmt.Sprintf("PASSED in %s", duration)
+					if cached {
+						msg = msg + " (cached)"
+					}
+					fmt.Printf("\t%s: %s\n", gPrint(msg), target)
+					passed = true
 				}
-			})
+
+				// Save the test results.
+				common.SaveTestResult(target.Output[0], passed, fmt.Sprintf("%s", err), duration)
+			}
+		}
+
+		// Function to run a single test.
+		runTest := func(target *config.Target, results chan error) {
+			// First, look for a cached result file.
+			result := common.LoadTestResult(target.Output[0])
+			if result != nil {
+				if result.Passed {
+					getTestResultFunction(target, true)(nil, result.Duration)
+				} else {
+					getTestResultFunction(target, true)(errors.New(result.Result), result.Duration)
+				}
+
+				results <- nil
+				return
+			}
+
+			// If no cached result was found, then run the command again.
+			cmd := exec.Command(target.Output[0], "--gtest_color=yes")
+			common.RunCommand(cmd, results, getTestResultFunction(target, false))
 		}
 
 		// Run the commands.
