@@ -34,6 +34,7 @@ type TestResult struct {
 	Passed   bool
 	Result   string
 	Duration time.Duration
+	Cached   bool
 }
 
 func SaveTestResult(testExe string, passed bool, result string, duration time.Duration) {
@@ -46,7 +47,7 @@ func SaveTestResult(testExe string, passed bool, result string, duration time.Du
 	}
 
 	encoder := gob.NewEncoder(file)
-	encoder.Encode(TestResult{passed, result, duration})
+	encoder.Encode(TestResult{passed, result, duration, true})
 }
 
 func LoadTestResult(testExe string) *TestResult {
@@ -73,6 +74,7 @@ func LoadTestResult(testExe string) *TestResult {
 
 	decoder := gob.NewDecoder(file)
 	decoder.Decode(result)
+	result.Cached = true
 	return result
 }
 

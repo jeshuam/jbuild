@@ -63,15 +63,14 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 			return nil, 0, err
 		}
 
-		// Check if any dependent header files have been updated.
-		srcStat, _ := os.Stat(srcPath)
-		depsChanged := target.HeaderFilesChangedAfter(srcStat)
-
 		// If the object is newer than the source file, don't compile it again.
+		srcStat, _ := os.Stat(srcPath)
 		objStat, _ := os.Stat(objPath)
 		srcChanged := true
+		depsChanged := true
 		if objStat != nil {
 			srcChanged = !objStat.ModTime().After(srcStat.ModTime())
+			depsChanged = target.HeaderFilesChangedAfter(objStat)
 		}
 
 		// Recompile this file if the deps or src has changed.
