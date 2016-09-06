@@ -3,11 +3,13 @@ package processor
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
 	"github.com/jeshuam/jbuild/processor/cc"
+	"github.com/jeshuam/jbuild/processor/cs"
 	"github.com/jeshuam/jbuild/progress"
 	"github.com/op/go-logging"
 )
@@ -39,16 +41,26 @@ func Process(target *config.Target, ch chan ProcessingResult, taskQueue chan com
 	var p Processor
 	if strings.HasPrefix(target.Type, "c++/") {
 		p = new(cc.CCProcessor)
+		target.ProgressBar = progress.AddBar(len(target.Srcs())+1, target.String())
+	} else if strings.HasPrefix(target.Type, "c#/") {
+		p = new(cs.CSProcessor)
+		target.ProgressBar = progress.AddBar(1, target.String())
 	} else {
 		return errors.New(fmt.Sprintf("Unknown target type '%s'", target.Type))
 	}
 
 	// Make the progress bar.
-	target.ProgressBar = progress.AddBar(len(target.Srcs())+1, target.String())
 
 	// Process the target.
 	go func() {
-		err := p.Process(target, taskQueue)
+		// Make the output directory for this target.
+		err := os.MkdirAll(target.Spec.OutputPath(), 0755)
+		if err != nil {
+			ch <- makeProcessingResult(target, err)
+			return
+		}
+
+		err = p.Process(target, taskQueue)
 		target.Processed = true
 		ch <- makeProcessingResult(target, err)
 	}()

@@ -146,12 +146,6 @@ func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects [
 }
 
 func (p CCProcessor) Process(target *config.Target, taskQueue chan common.CmdSpec) error {
-	// Make the output directory for this target.
-	err := os.MkdirAll(target.Spec.OutputPath(), 0755)
-	if err != nil {
-		return err
-	}
-
 	// If there are no source files and this is a library, just finish.
 	if target.IsLibrary() && len(target.Srcs()) == 0 {
 		target.ProgressBar.Finish()

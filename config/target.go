@@ -373,9 +373,9 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 				finalFiles = append(finalFiles, glob)
 			} else {
 				// Otherwise, convert globs into actual paths.
-				rel, _ := filepath.Rel(filepath.Join(target.Spec.Workspace, target.Spec.Path), filepath.Dir(glob))
 				for _, file := range files {
-					finalFiles = append(finalFiles, filepath.Join(rel, filepath.Base(file)))
+					rel, _ := filepath.Rel(filepath.Join(target.Spec.Workspace, target.Spec.Path), filepath.Dir(file))
+					finalFiles = append(finalFiles, filepath.Join(target.Spec.Workspace, target.Spec.Path, rel, filepath.Base(file)))
 				}
 			}
 		}
