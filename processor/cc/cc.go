@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
@@ -62,15 +63,14 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 			return nil, 0, err
 		}
 
-		// Check if any dependent header files have been updated.
-		srcStat, _ := os.Stat(srcPath)
-		depsChanged := target.HeaderFilesChangedAfter(srcStat)
-
 		// If the object is newer than the source file, don't compile it again.
+		srcStat, _ := os.Stat(srcPath)
 		objStat, _ := os.Stat(objPath)
 		srcChanged := true
+		depsChanged := true
 		if objStat != nil {
 			srcChanged = !objStat.ModTime().After(srcStat.ModTime())
+			depsChanged = target.HeaderFilesChangedAfter(objStat)
 		}
 
 		// Recompile this file if the deps or src has changed.
@@ -86,7 +86,7 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 
 		// Run the command.
 		nCompiled++
-		taskQueue <- common.CmdSpec{cmd, results, func(error) {
+		taskQueue <- common.CmdSpec{cmd, results, func(error, time.Duration) {
 			target.ProgressBar.Increment()
 		}}
 	}
@@ -133,7 +133,7 @@ func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects [
 	cmd := linkCommand(target, objects, outputPath)
 
 	// Run the command.
-	taskQueue <- common.CmdSpec{cmd, result, func(error) {
+	taskQueue <- common.CmdSpec{cmd, result, func(error, time.Duration) {
 		target.ProgressBar.Increment()
 	}}
 

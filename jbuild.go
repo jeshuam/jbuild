@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/jeshuam/jbuild/common"
@@ -22,8 +24,11 @@ var (
 	format = logging.MustStringFormatter(
 		`%{color}%{level:.1s} %{shortfunc}() >%{color:reset} %{message}`)
 
-	threads     = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
-	useProgress = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
+	threads       = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
+	testThreads   = flag.Int("test_threads", runtime.NumCPU()/2, "Number of threads to use when running tests.")
+	useProgress   = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
+	forceRunTests = flag.Bool("force_run_tests", false, "Whether or not we should for tests to run.")
+	testRuns      = flag.Uint("test_runs", 1, "Number of times to run each test.")
 
 	validCommands = map[string]bool{
 		"build": true,
@@ -35,10 +40,16 @@ var (
 func main() {
 	flag.Parse()
 
+	// If testRuns is provided, then force tests to run.
+	if *testRuns > 1 {
+		*forceRunTests = true
+	}
+
 	// Setup the logger.
 	logging.SetFormatter(format)
 	if *useProgress {
 		logging.SetLevel(logging.CRITICAL, "jbuild")
+		fmt.Printf("\n\n")
 		progress.Start()
 	} else {
 		logging.SetLevel(logging.DEBUG, "jbuild")
@@ -205,29 +216,111 @@ func main() {
 		fmt.Printf("\n")
 
 		// Function to run a single test.
+		testResults := map[string][]common.TestResult{}
+		testReusltsMutex := sync.Mutex{}
+		concurrentTestSemaphore := make(chan bool, *testThreads)
 		runTest := func(target *config.Target, results chan error) {
-			cmd := exec.Command(target.Output[0], "--gtest_color=yes")
-
-			common.RunCommand(cmd, results, func(err error) {
-				if err != nil {
-					barrier := "================================================================="
-					fmt.Printf("\t%s: %s\n", rPrint("FAILED"), target)
-					fmt.Printf("\n%s\n%s%s\n", barrier, err, barrier)
-				} else {
-					fmt.Printf("\t%s: %s\n", gPrint("PASSED"), target)
+			// First, look for a cached result file.
+			if !*forceRunTests {
+				result := common.LoadTestResult(target.Output[0])
+				if result != nil {
+					testReusltsMutex.Lock()
+					testResults[target.Spec.String()] = append(testResults[target.Spec.String()], *result)
+					testReusltsMutex.Unlock()
+					results <- nil
+					return
 				}
+			}
+
+			// If no cached result was found, then run the command again.
+			cmd := exec.Command(target.Output[0], "--gtest_color=yes")
+			concurrentTestSemaphore <- true
+			common.RunCommand(cmd, results, func(e error, d time.Duration) {
+				testReusltsMutex.Lock()
+				testResults[target.Spec.String()] = append(
+					testResults[target.Spec.String()],
+					common.TestResult{err == nil, fmt.Sprintf("%s\n", e), d, false})
+				testReusltsMutex.Unlock()
+				<-concurrentTestSemaphore
 			})
 		}
 
 		// Run the commands.
 		results := make(chan error)
+		timesToRunEachTest := *testRuns
+		var i uint
 		for target, _ := range targetsSpecified {
-			go runTest(target, results)
+			for i = 0; i < timesToRunEachTest; i++ {
+				go runTest(target, results)
+			}
 		}
 
-		// Collect all results.
-		for range targetsSpecified {
+		// Wait for all targets to be processed.
+		totalTestRuns := uint(len(targetsSpecified)) * timesToRunEachTest
+		for i = 0; i < totalTestRuns; i++ {
 			<-results
+		}
+
+		// Display the results.
+		for target, results := range testResults {
+			var (
+				nPasses, nFails int
+				totalDuration   time.Duration
+				cached          bool
+			)
+
+			// Aggregate the results.
+			for _, result := range results {
+				totalDuration += result.Duration
+				if result.Cached {
+					cached = true
+				}
+
+				if result.Passed {
+					nPasses++
+				} else {
+					nFails++
+				}
+			}
+
+			// Find the average duration.
+			averageDuration := totalDuration / time.Duration(len(results))
+
+			// Display the results.
+			if nFails > 0 {
+				msg := fmt.Sprintf("FAILED in %s", averageDuration)
+				if len(results) > 1 {
+					msg += " (mean)"
+				}
+
+				if cached {
+					msg += " (cached)"
+				}
+
+				if nFails > 1 {
+					msg += fmt.Sprintf(", %d/%d runs failed", nFails, len(results))
+				}
+
+				fmt.Printf("\t%s: %s\n", rPrint(msg), target)
+
+				// If we failed and only did a single run, the display the result. We
+				// don't want to display the results if there were multiple runs.
+				if len(results) == 1 {
+					barrier := "================================================================="
+					fmt.Printf("\n%s\n%s%s\n", barrier, err, barrier)
+				}
+			} else {
+				msg := fmt.Sprintf("PASSED in %s", averageDuration)
+				if len(results) > 1 {
+					msg += " (mean)"
+				}
+
+				if cached {
+					msg += " (cached)"
+				}
+
+				fmt.Printf("\t%s: %s\n", gPrint(msg), target)
+			}
 		}
 	}
 }
