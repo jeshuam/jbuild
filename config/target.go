@@ -447,8 +447,8 @@ func LoadTarget(targetSpec *TargetSpec) (*Target, error) {
 			return nil, errors.New("Missing required field 'type'")
 		}
 
-		if len(target.Srcs()) == 0 && len(target.Hdrs()) == 0 {
-			return nil, errors.New(fmt.Sprintf("No src/hdr files found for target %s!", target))
+		if len(target.Srcs()) == 0 && len(target.Hdrs()) == 0 && len(depSpecs) == 0 {
+			return nil, errors.New(fmt.Sprintf("No src/hdr files or deps found for target %s!", target))
 		}
 
 		// Save the target to the cache.

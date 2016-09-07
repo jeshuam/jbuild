@@ -104,8 +104,8 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 
 func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects []string, nCompiled int) (string, error) {
 	// Throw and error if there are no source files and this isn't a library.
-	if target.IsBinary() && len(target.Srcs()) == 0 {
-		return "", errors.New(fmt.Sprintf("No source files found for binary %s", target))
+	if target.IsBinary() && (len(target.Srcs()) == 0 && len(target.Deps) == 0) {
+		return "", errors.New(fmt.Sprintf("No source files/deps found for binary %s", target))
 	}
 
 	// First, work out what the name of the output is.
