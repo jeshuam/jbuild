@@ -27,7 +27,7 @@ func FileExists(filepath string) bool {
 type CmdSpec struct {
 	Cmd      *exec.Cmd
 	Result   chan error
-	Complete func(error, time.Duration)
+	Complete func(string, bool, time.Duration)
 }
 
 type TestResult struct {
@@ -78,11 +78,11 @@ func LoadTestResult(testExe string) *TestResult {
 	return result
 }
 
-func RunCommand(cmd *exec.Cmd, result chan error, complete func(error, time.Duration)) {
+func RunCommand(cmd *exec.Cmd, result chan error, complete func(string, bool, time.Duration)) {
 	// Print the command.
 	if DryRun {
 		log.Infof("DRY_RUN: %s", cmd.Args)
-		complete(nil, 0)
+		complete("", true, 0)
 		result <- nil
 		return
 	} else {
@@ -99,17 +99,16 @@ func RunCommand(cmd *exec.Cmd, result chan error, complete func(error, time.Dura
 	err := cmd.Run()
 	elaspedTime := time.Since(startTime)
 	if err != nil {
+		complete(out.String(), false, elaspedTime)
 		if out.String() != "" {
-			complete(errors.New(out.String()), elaspedTime)
 			result <- errors.New(out.String())
 		} else {
-			complete(err, elaspedTime)
 			result <- err
 		}
 
 		return
 	}
 
-	complete(nil, elaspedTime)
+	complete(out.String(), true, elaspedTime)
 	result <- nil
 }

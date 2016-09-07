@@ -12,7 +12,12 @@ var (
 	moveToStart   = "\x1b[80D"
 	moveUpOneLine = "\x1b[1A"
 	lastUpdate    time.Time
+	totalOps      = 0
 )
+
+func SetTotalOps(ops int) {
+	totalOps = ops
+}
 
 func doUpdate(progressBar *ProgressBar) string {
 	fmt.Print(moveToStart)
@@ -23,16 +28,20 @@ func doUpdate(progressBar *ProgressBar) string {
 	fmt.Print(moveToStart)
 
 	completeOps := 0
-	totalOps := 0
+	currentTotalOps := totalOps
 	for _, progressBar := range progressBars {
 		completeOps += progressBar.completeOps
-		totalOps += progressBar.totalOps
+		currentTotalOps += progressBar.totalOps
+	}
+
+	if totalOps > 0 {
+		currentTotalOps = totalOps
 	}
 
 	// Prepare the new bar.
 	green := color.New(color.FgGreen, color.Bold).SprintfFunc()
 	blue := color.New(color.FgYellow, color.Bold).SprintfFunc()
-	header := green("[%d/%d]", completeOps, totalOps)
+	header := green("[%d/%d]", completeOps, currentTotalOps)
 	target := blue("%s", progressBar.name)
 
 	// Make the new bar string and print it.

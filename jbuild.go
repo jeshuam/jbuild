@@ -24,16 +24,19 @@ var (
 	format = logging.MustStringFormatter(
 		`%{color}%{level:.1s} %{shortfunc}() >%{color:reset} %{message}`)
 
-	threads       = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
-	testThreads   = flag.Int("test_threads", runtime.NumCPU()/2, "Number of threads to use when running tests.")
-	useProgress   = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
-	forceRunTests = flag.Bool("force_run_tests", false, "Whether or not we should for tests to run.")
-	testRuns      = flag.Uint("test_runs", 1, "Number of times to run each test.")
+	threads        = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
+	testThreads    = flag.Int("test_threads", runtime.NumCPU()/2, "Number of threads to use when running tests.")
+	useProgress    = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
+	simpleProgress = flag.Bool("use_simple_progress", true, "Use the simple progress system rather than multiple bars.")
+	forceRunTests  = flag.Bool("force_run_tests", false, "Whether or not we should for tests to run.")
+	testRuns       = flag.Uint("test_runs", 1, "Number of times to run each test.")
+	testOutput     = flag.String("test_output", "errors", "The verbosity of test output to show. Can be all|errors|none.")
 
 	validCommands = map[string]bool{
 		"build": true,
 		"test":  true,
 		"run":   true,
+		"clean": true,
 	}
 )
 
@@ -49,21 +52,50 @@ func main() {
 	logging.SetFormatter(format)
 	if *useProgress {
 		logging.SetLevel(logging.CRITICAL, "jbuild")
-		fmt.Printf("\n\n")
-		progress.Start()
+		if *simpleProgress {
+			progress.Start()
+		} else {
+			fmt.Printf("\n\n")
+			progress.StartComplex()
+		}
 	} else {
 		logging.SetLevel(logging.DEBUG, "jbuild")
 		progress.Disable()
 	}
 
-	// Parse the command line arguments.
+	// Save a nice printing color.
+	cPrint := color.New(color.FgHiBlue, color.Bold).PrintfFunc()
+	if runtime.GOOS == "windows" {
+		cPrint = color.New(color.FgHiCyan, color.Bold).PrintfFunc()
+	}
+
+	// Make sure at least the command was passed.
+	if len(flag.Args()) < 1 {
+		fmt.Println("Usage: jbuild [flags] build|test|run|clean [target [targets...]]")
+		return
+	}
+
+	// Get the command.
+	command := flag.Args()[0]
+
+	// If we are cleaning, just delete the output directory.
+	if command == "clean" {
+		cPrint("$ rm -rf %s", common.OutputDirectory)
+		err := os.RemoveAll(common.OutputDirectory)
+		if err != nil {
+			fmt.Printf("error: %s\n", err)
+		}
+
+		return
+	}
+
+	// If we aren't cleaning, get more arguments.
 	if len(flag.Args()) < 2 {
-		fmt.Println("Usage: jbuild [flags] build|test|run target <targets...>")
+		fmt.Println("Usage: jbuild [flags] build|test|run|clean [target [targets...]]")
 		return
 	}
 
 	// Get the current processing target.
-	command := flag.Args()[0]
 	targetArgs := flag.Args()[1:]
 	runFlags := flag.Args()[2:]
 
@@ -153,6 +185,16 @@ func main() {
 		}()
 	}
 
+	// If we are using simple progress bars, then pre-set the total number of ops.
+	if *simpleProgress {
+		totalOps := 0
+		for target, _ := range targetsToProcess {
+			totalOps += target.TotalOps()
+		}
+
+		progress.SetTotalOps(totalOps)
+	}
+
 	/// Now we have a list of targets we want to process, the next step is to
 	/// actually process them! To process them, we will use a series of processors
 	/// depending on the type of the target.
@@ -197,10 +239,6 @@ func main() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
-		cPrint := color.New(color.FgHiBlue, color.Bold).PrintfFunc()
-		if runtime.GOOS == "windows" {
-			cPrint = color.New(color.FgHiCyan, color.Bold).PrintfFunc()
-		}
 		cPrint("\n$ %s\n", strings.Join(cmd.Args, " "))
 		cmd.Run()
 	}
@@ -235,11 +273,12 @@ func main() {
 			// If no cached result was found, then run the command again.
 			cmd := exec.Command(target.Output[0], "--gtest_color=yes")
 			concurrentTestSemaphore <- true
-			common.RunCommand(cmd, results, func(e error, d time.Duration) {
+			common.RunCommand(cmd, results, func(output string, success bool, d time.Duration) {
 				testReusltsMutex.Lock()
 				testResults[target.Spec.String()] = append(
 					testResults[target.Spec.String()],
-					common.TestResult{err == nil, fmt.Sprintf("%s\n", e), d, false})
+					common.TestResult{success, output, d, false})
+				common.SaveTestResult(target.Output[0], success, output, d)
 				testReusltsMutex.Unlock()
 				<-concurrentTestSemaphore
 			})
@@ -305,9 +344,9 @@ func main() {
 
 				// If we failed and only did a single run, the display the result. We
 				// don't want to display the results if there were multiple runs.
-				if len(results) == 1 {
+				if len(results) == 1 && *testOutput != "none" {
 					barrier := "================================================================="
-					fmt.Printf("\n%s\n%s%s\n", barrier, err, barrier)
+					fmt.Printf("\n%s\n%s%s\n", barrier, results[0].Result, barrier)
 				}
 			} else {
 				msg := fmt.Sprintf("PASSED in %s", averageDuration)
@@ -320,6 +359,10 @@ func main() {
 				}
 
 				fmt.Printf("\t%s: %s\n", gPrint(msg), target)
+				if len(results) == 1 && *testOutput == "all" {
+					barrier := "================================================================="
+					fmt.Printf("\n%s\n%s%s\n", barrier, results[0].Result, barrier)
+				}
 			}
 		}
 	}

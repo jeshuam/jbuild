@@ -3,13 +3,13 @@ package progress
 import (
 	"fmt"
 	"strings"
-  "time"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/sethgrid/curse"
 )
 
-func Start() {
+func StartComplex() {
 	progressBarUpdateFunction.Add(1)
 	go func() {
 		term, _ := curse.New()

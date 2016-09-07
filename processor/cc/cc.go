@@ -86,7 +86,7 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 
 		// Run the command.
 		nCompiled++
-		taskQueue <- common.CmdSpec{cmd, results, func(error, time.Duration) {
+		taskQueue <- common.CmdSpec{cmd, results, func(string, bool, time.Duration) {
 			target.ProgressBar.Increment()
 		}}
 	}
@@ -133,7 +133,7 @@ func linkObjects(target *config.Target, taskQueue chan common.CmdSpec, objects [
 	cmd := linkCommand(target, objects, outputPath)
 
 	// Run the command.
-	taskQueue <- common.CmdSpec{cmd, result, func(error, time.Duration) {
+	taskQueue <- common.CmdSpec{cmd, result, func(string, bool, time.Duration) {
 		target.ProgressBar.Increment()
 	}}
 

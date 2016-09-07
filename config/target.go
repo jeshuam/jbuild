@@ -234,6 +234,10 @@ func (this *Target) LoadDependencies(depSpecs []*TargetSpec) error {
 	return nil
 }
 
+func (this *Target) TotalOps() int {
+	return len(this.Srcs()) + 1
+}
+
 // Return true if any of the header files within the target or it's dependencies
 // have changed.
 func (this *Target) HeaderFilesChangedAfter(file os.FileInfo) bool {
@@ -244,7 +248,7 @@ func (this *Target) HeaderFilesChangedAfter(file os.FileInfo) bool {
 			log.Debugf("file %s has changed after %s\n", hdrPath, file.Name())
 			return true
 		} else {
-			log.Debugf("file %s has not changed after %s\n", hdrPath, file.Name())
+			// log.Debugf("file %s has not changed after %s\n", hdrPath, file.Name())
 		}
 	}
 
