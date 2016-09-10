@@ -12,6 +12,7 @@ import (
 
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/progress"
+	"github.com/mattn/go-zglob"
 )
 
 var (
@@ -62,7 +63,7 @@ func CanonicalTargetSpec(workspaceDir, cwd, target string) (*TargetSpec, error) 
 	targetPath, targetName := splitTargetSpec(target)
 
 	// Make sure the target conforms to a regex.
-	match, err := regexp.MatchString("^(//)?[0-9A-Za-z_]+([/0-9A-Za-z_]+)?(:[0-9A-Za-z_]+)?$", target)
+	match, err := regexp.MatchString("^(//)?[0-9A-Za-z_]+([/0-9A-Za-z_]+)?(:[0-9.A-Za-z_]+)?$", target)
 	if err != nil {
 		log.Fatalf("Target regex matching failed: %v", err)
 	}
@@ -373,7 +374,7 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 		finalFiles := make([]string, 0)
 		for _, glob := range globs {
 			glob = path.Join(targetSpec.Workspace, targetSpec.PathSystem(), glob)
-			files, err := filepath.Glob(glob)
+			files, err := zglob.Glob(glob)
 
 			// If there was an error, then just return the glob by itself.
 			if err != nil {
@@ -417,6 +418,58 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 	}
 
 	return target, depSpecs
+}
+
+func ListTargetNamesRecursive(targetSpec *TargetSpec, command string) ([]*TargetSpec, error) {
+	buildFiles, err := zglob.Glob(filepath.Join(targetSpec.Workspace, targetSpec.PathSystem(), "**", *buildFilename))
+	if err != nil {
+		return nil, err
+	}
+
+	finalSpecs := make([]*TargetSpec, 0)
+	for _, buildFile := range buildFiles {
+		spec := new(TargetSpec)
+		spec.Workspace = targetSpec.Workspace
+		spec.Path, err = filepath.Rel(targetSpec.Workspace, filepath.Dir(buildFile))
+		if err != nil {
+			return nil, err
+		}
+
+		targets, err := ListTargetNames(spec, command)
+		if err != nil {
+			return nil, err
+		}
+
+		finalSpecs = append(finalSpecs, targets...)
+	}
+
+	fmt.Printf("%s\n", buildFiles)
+	fmt.Printf("%s\n", finalSpecs)
+	return finalSpecs, nil
+}
+
+func ListTargetNames(targetSpec *TargetSpec, command string) ([]*TargetSpec, error) {
+	buildFilepath := path.Join(targetSpec.Workspace, targetSpec.Path, *buildFilename)
+	targetsJSON, err := LoadBuildFile(buildFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	targets := make([]*TargetSpec, 0, len(targetsJSON))
+	for targetName, targetJSON := range targetsJSON {
+		target, _ := makeTarget(targetJSON.(map[string]interface{}), targetSpec)
+		if command == "test" && !strings.HasSuffix(target.Type, "test") {
+			continue
+		}
+
+		newTargetSpec := new(TargetSpec)
+		newTargetSpec.Workspace = targetSpec.Workspace
+		newTargetSpec.Path = targetSpec.Path
+		newTargetSpec.Name = targetName
+		targets = append(targets, newTargetSpec)
+	}
+
+	return targets, nil
 }
 
 // Load the given target spec and all related dependencies into Target objects.

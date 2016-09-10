@@ -50,17 +50,10 @@ func main() {
 
 	// Setup the logger.
 	logging.SetFormatter(format)
-	if *useProgress {
-		logging.SetLevel(logging.CRITICAL, "jbuild")
-		if *simpleProgress {
-			progress.Start()
-		} else {
-			fmt.Printf("\n\n")
-			progress.StartComplex()
-		}
-	} else {
+	if !*useProgress {
 		logging.SetLevel(logging.DEBUG, "jbuild")
-		progress.Disable()
+	} else {
+		logging.SetLevel(logging.CRITICAL, "jbuild")
 	}
 
 	// Save a nice printing color.
@@ -107,6 +100,11 @@ func main() {
 
 	// If we are running, there should only be a single target.
 	if command == "run" {
+		if strings.HasSuffix(targetArgs[0], ":all") {
+			fmt.Printf("Invalid specified :all for command run.")
+			return
+		}
+
 		targetArgs = []string{targetArgs[0]}
 	}
 
@@ -140,12 +138,40 @@ func main() {
 		canonicalTargetSpecs[i] = canonicalTarget
 	}
 
+	/// Load any special, meta targets.
+	expandedTargetSpecs := make([]*config.TargetSpec, 0, len(canonicalTargetSpecs))
+	for _, targetSpec := range canonicalTargetSpecs {
+		if targetSpec.Name == "all" {
+			expandedTargets, err := config.ListTargetNames(targetSpec, command)
+			if err != nil {
+				log.Fatalf("Could not expand target '%s': %v", targetSpec, err)
+			}
+
+			for _, expandedSpec := range expandedTargets {
+				expandedTargetSpecs = append(expandedTargetSpecs, expandedSpec)
+			}
+
+			cPrint("Expanding %s to %d targets.\n", targetSpec, len(expandedTargets))
+		} else if targetSpec.Name == "..." {
+			expandedTargets, err := config.ListTargetNamesRecursive(targetSpec, command)
+			if err != nil {
+				log.Fatalf("Could not expand target '%s': %v", targetSpec, err)
+			}
+
+			for _, expandedSpec := range expandedTargets {
+				expandedTargetSpecs = append(expandedTargetSpecs, expandedSpec)
+			}
+		} else {
+			expandedTargetSpecs = append(expandedTargetSpecs, targetSpec)
+		}
+	}
+
 	/// Now that we have a list of target specs, we can go and load the targets.
 	/// This involves going to each target file
 	var firstTargetSpecified *config.Target = nil
 	targetsSpecified := make(map[*config.Target]bool, 0)
 	targetsToProcess := make(map[*config.Target]bool, 0)
-	for _, targetSpec := range canonicalTargetSpecs {
+	for _, targetSpec := range expandedTargetSpecs {
 		target, err := config.LoadTarget(targetSpec)
 		if err != nil {
 			log.Fatalf("Could not load target '%s': %v", targetSpec, err)
@@ -183,6 +209,16 @@ func main() {
 				common.RunCommand(task.Cmd, task.Result, task.Complete)
 			}
 		}()
+	}
+
+	// Enable or disable logging.
+	if *useProgress {
+		if *simpleProgress {
+			progress.Start()
+		} else {
+			fmt.Printf("\n\n")
+			progress.StartComplex()
+		}
 	}
 
 	// If we are using simple progress bars, then pre-set the total number of ops.
