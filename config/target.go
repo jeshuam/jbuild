@@ -443,8 +443,6 @@ func ListTargetNamesRecursive(targetSpec *TargetSpec, command string) ([]*Target
 		finalSpecs = append(finalSpecs, targets...)
 	}
 
-	fmt.Printf("%s\n", buildFiles)
-	fmt.Printf("%s\n", finalSpecs)
 	return finalSpecs, nil
 }
 
