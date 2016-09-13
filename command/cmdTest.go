@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
@@ -203,7 +204,15 @@ func RunTests(targetsToTest config.TargetSet) {
 	results := collateTestResults(rawResults, len(targetsToTest)*int(*testRuns))
 
 	// Display the results to the screen.
-	for target, targetResults := range results {
+	resultKeySorted := make([]string, 0, len(results))
+	for resultKey := range results {
+		resultKeySorted = append(resultKeySorted, resultKey)
+	}
+
+	sort.Strings(resultKeySorted)
+
+	for _, target := range resultKeySorted {
+		targetResults := results[target]
 		displayResultsForTarget(target, targetResults)
 	}
 }
