@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -13,8 +12,6 @@ import (
 	jbuildCommands "github.com/jeshuam/jbuild/command"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
-	"github.com/jeshuam/jbuild/processor"
-	"github.com/jeshuam/jbuild/progress"
 	"github.com/op/go-logging"
 )
 
@@ -22,10 +19,6 @@ var (
 	log    = logging.MustGetLogger("jbuild")
 	format = logging.MustStringFormatter(
 		`%{color}%{level:.1s} %{shortfunc}() >%{color:reset} %{message}`)
-
-	threads        = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
-	useProgress    = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
-	simpleProgress = flag.Bool("use_simple_progress", true, "Use the simple progress system rather than multiple bars.")
 
 	validCommands = map[string]bool{
 		"build": true,
@@ -40,11 +33,6 @@ func main() {
 
 	// Setup the logger.
 	logging.SetFormatter(format)
-	if !*useProgress {
-		logging.SetLevel(logging.DEBUG, "jbuild")
-	} else {
-		logging.SetLevel(logging.CRITICAL, "jbuild")
-	}
 
 	// Save a nice printing color.
 	cPrint := color.New(color.FgHiBlue, color.Bold).PrintfFunc()
@@ -190,86 +178,13 @@ func main() {
 		}
 	}
 
-	/// Make some goroutines which can be used to run commands.
-	taskQueue := make(chan common.CmdSpec)
-	for i := 0; i < *threads; i++ {
-		go func() {
-			for {
-				task := <-taskQueue
-				common.RunCommand(task.Cmd, task.Result, task.Complete)
-			}
-		}()
-	}
-
-	// Enable or disable logging.
-	if *useProgress {
-		if *simpleProgress {
-			progress.Start()
-		} else {
-			fmt.Printf("\n\n")
-			progress.StartComplex()
-		}
-	}
-
-	// If we are using simple progress bars, then pre-set the total number of ops.
-	if *simpleProgress {
-		totalOps := 0
-		for target := range targetsToProcess {
-			totalOps += target.TotalOps()
-		}
-
-		progress.SetTotalOps(totalOps)
-	}
-
-	/// Now we have a list of targets we want to process, the next step is to
-	/// actually process them! To process them, we will use a series of processors
-	/// depending on the type of the target.
-	newTargetsToProcess := config.TargetSet{}
-	targetChannel := make(chan processor.ProcessingResult)
-	nCompletedTargets := 0
-	nTargetsToProcess := len(targetsToProcess)
-	for nCompletedTargets < nTargetsToProcess {
-		// Process all targets we need to; do nothing if there are no targets that
-		// need processing.
-		for target, _ := range targetsToProcess {
-			if target.ReadyToProcess() {
-				log.Infof("Processing %s...", target)
-				err := processor.Process(target, targetChannel, taskQueue)
-				if err != nil {
-					log.Fatalf("Error while processing %s: %v", target, err)
-				}
-			} else {
-				newTargetsToProcess.Add(target)
-			}
-		}
-
-		targetsToProcess = newTargetsToProcess
-		newTargetsToProcess = config.TargetSet{}
-
-		// Wait for some process to respond.
-		result := <-targetChannel
-		if result.Err != nil {
-			log.Fatal(result.Err)
-		} else {
-			nCompletedTargets++
-			log.Infof("Finished processing %s!", result.Target)
-		}
-	}
-
-	// Finish the progress bars.
-	progress.Finish()
+	// First, build all targets.
+	jbuildCommands.BuildTargets(targetsToProcess)
 
 	// If we were running, there should only be one argument. Just run it.
 	if command == "run" {
-		cmd := exec.Command(firstTargetSpecified.Output[0], runFlags...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Stdin = os.Stdin
-		cPrint("\n$ %s\n", strings.Join(cmd.Args, " "))
-		cmd.Run()
-	}
-
-	if command == "test" {
+		jbuildCommands.Run(firstTargetSpecified, runFlags)
+	} else if command == "test" {
 		jbuildCommands.RunTests(targetsSpecified)
 	}
 }

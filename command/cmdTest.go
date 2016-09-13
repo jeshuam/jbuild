@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -104,8 +105,7 @@ func runTest(target *config.Target, results chan testResult) {
 	})
 }
 
-func RunTests(targetsToTest config.TargetSet) {
-	// Run the tests once, for each command, and collect the results.
+func runTests(targetsToTest config.TargetSet) chan testResult {
 	rawResults := make(chan testResult)
 	for target := range targetsToTest {
 		for i := 0; i < int(*testRuns); i++ {
@@ -113,80 +113,90 @@ func RunTests(targetsToTest config.TargetSet) {
 		}
 	}
 
-	// Collect all of the results into a result map, mapping target names to a
-	// list of results.
+	return rawResults
+}
+
+func collateTestResults(rawResults chan testResult, testRuns int) map[string][]testResult {
 	results := make(map[string][]testResult, 0)
-	for i := 0; i < len(targetsToTest)*int(*testRuns); i++ {
+	for i := 0; i < testRuns; i++ {
 		result := <-rawResults
 		resultSpec := result.TargetSpec.String()
 		results[resultSpec] = append(results[resultSpec], result)
 	}
 
-	// Display the results to the screen.
-	gPrint := color.New(color.FgHiGreen, color.Bold).SprintfFunc()
-	rPrint := color.New(color.FgHiRed, color.Bold).SprintfFunc()
-	for target, targetResults := range results {
-		var (
-			nPasses, nFails int
-			totalDuration   time.Duration
-			cached          bool
-		)
+	return results
+}
 
-		// Aggregate the results.
-		for _, targetResult := range targetResults {
-			totalDuration += targetResult.Duration
-			if targetResult.Cached {
-				cached = true
-			}
+func displayResultsForTarget(target string, results []testResult) {
+	var (
+		nPasses, nFails int
+		totalDuration   time.Duration
+		cached          bool
 
-			if targetResult.Passed {
-				nPasses++
-			} else {
-				nFails++
-			}
-		}
+		gPrint = color.New(color.FgHiGreen, color.Bold).SprintfFunc()
+		rPrint = color.New(color.FgHiRed, color.Bold).SprintfFunc()
+	)
 
-		// Find the average duration.
-		averageDuration := totalDuration / time.Duration(len(targetResults))
+	// Aggregate the results.
+	for _, result := range results {
+		totalDuration += result.Duration
+		cached = result.Cached
 
-		// Display the results.
-		if nFails > 0 {
-			msg := fmt.Sprintf("FAILED in %s", averageDuration)
-			if len(targetResults) > 1 {
-				msg += " (mean)"
-			}
-
-			if cached {
-				msg += " (cached)"
-			}
-
-			if nFails > 1 {
-				msg += fmt.Sprintf(", %d/%d runs failed", nFails, len(targetResults))
-			}
-
-			fmt.Printf("\t%s: %s\n", rPrint(msg), target)
-
-			// If we failed and only did a single run, the display the result. We
-			// don't want to display the results if there were multiple runs.
-			if len(targetResults) == 1 && *testOutput != "none" {
-				barrier := "================================================================="
-				fmt.Printf("\n%s\n%s%s\n", barrier, targetResults[0].Output, barrier)
-			}
+		if result.Passed {
+			nPasses++
 		} else {
-			msg := fmt.Sprintf("PASSED in %s", averageDuration)
-			if len(targetResults) > 1 {
-				msg += " (mean)"
-			}
-
-			if cached {
-				msg += " (cached)"
-			}
-
-			fmt.Printf("\t%s: %s\n", gPrint(msg), target)
-			if len(targetResults) == 1 && *testOutput == "all" {
-				barrier := "================================================================="
-				fmt.Printf("\n%s\n%s%s\n", barrier, targetResults[0].Output, barrier)
-			}
+			nFails++
 		}
+	}
+
+	// Find the average duration.
+	averageDuration := totalDuration / time.Duration(len(results))
+
+	// Display the results.
+	var state string
+	cPrint := gPrint
+	if nFails > 0 {
+		state = "FAILED"
+		cPrint = rPrint
+	} else {
+		state = "PASSED"
+	}
+
+	msg := fmt.Sprintf("%s in %s", state, averageDuration)
+	if cached {
+		msg += " (cached)"
+	}
+
+	if len(results) > 1 {
+		msg += " (mean)"
+		if nFails > 0 {
+			msg += fmt.Sprintf(", %d/%d runs failed", nFails, len(results))
+		}
+	}
+
+	fmt.Printf("\t%s: %s\n", cPrint(msg), target)
+
+	// Decide if we should display the test output. We never display the output
+	// for multi-run tests (this could probably be changed), and we don't usually
+	// show test output for passed tests.
+	barrier := strings.Repeat("=", 80)
+	if len(results) == 1 {
+		if (nFails > 0 && *testOutput != "none") || (nFails == 0 && *testOutput == "all") {
+			fmt.Printf("\n%s\n%s%s\n\n", barrier, results[0].Output, barrier)
+		}
+	}
+}
+
+func RunTests(targetsToTest config.TargetSet) {
+	// Run the tests once, for each command, and collect the results.
+	rawResults := runTests(targetsToTest)
+
+	// Collect all of the results into a result map, mapping target names to a
+	// list of results.
+	results := collateTestResults(rawResults, len(targetsToTest)*int(*testRuns))
+
+	// Display the results to the screen.
+	for target, targetResults := range results {
+		displayResultsForTarget(target, targetResults)
 	}
 }

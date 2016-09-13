@@ -26,6 +26,11 @@ func (this TargetSet) Add(target *Target) {
 	this[target] = true
 }
 
+func (this TargetSet) Contains(target *Target) bool {
+	_, ok := this[target]
+	return ok
+}
+
 // A target object
 type TargetSpec struct {
 	Path, Name, Workspace string
