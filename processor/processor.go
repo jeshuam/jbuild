@@ -8,6 +8,7 @@ import (
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
 	"github.com/jeshuam/jbuild/processor/cc"
+	"github.com/jeshuam/jbuild/processor/genrule"
 	"github.com/jeshuam/jbuild/progress"
 	"github.com/op/go-logging"
 )
@@ -39,6 +40,8 @@ func Process(target *config.Target, ch chan ProcessingResult, taskQueue chan com
 	var p Processor
 	if strings.HasPrefix(target.Type, "c++/") {
 		p = new(cc.CCProcessor)
+	} else if strings.HasPrefix(target.Type, "genrule/") {
+		p = new(genrule.GenruleProcessor)
 	} else {
 		return errors.New(fmt.Sprintf("Unknown target type '%s'", target.Type))
 	}

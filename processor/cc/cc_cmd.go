@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
 )
 
@@ -21,11 +22,17 @@ func compileCommand(target *config.Target, src, obj string) *exec.Cmd {
 
 	// Include flags from dependencies.
 	for _, dep := range target.AllDependencies() {
-		flags = append(flags, dep.CompileFlags()...)
+		if strings.HasPrefix(dep.Type, "c++") {
+			flags = append(flags, dep.CompileFlags()...)
 
-		for _, include := range dep.Includes() {
-			includePath := filepath.Join(dep.Spec.Workspace, dep.Spec.Path, include)
-			flags = append(flags, "-I"+includePath)
+			for _, include := range dep.Includes() {
+				includePath := filepath.Join(dep.Spec.Workspace, dep.Spec.Path, include)
+				flags = append(flags, "-I"+includePath)
+			}
+		} else if strings.HasPrefix(dep.Type, "genrule") {
+
+		} else {
+			log.Fatalf("Invalid dependency from C++ --> %s", dep.Type)
 		}
 	}
 
@@ -35,6 +42,7 @@ func compileCommand(target *config.Target, src, obj string) *exec.Cmd {
 	} else {
 		flags = append(flags, []string{
 			"-I" + target.Spec.Workspace,
+			"-I" + filepath.Join(common.OutputDirectory, "gen"),
 			"-I/usr/include",
 			"-fPIC",
 			"-fcolor-diagnostics",

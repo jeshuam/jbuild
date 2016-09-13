@@ -172,6 +172,10 @@ type TargetOptions struct {
 	LinkFlags    []string
 	Includes     []string // Extra directories to include.
 	Libs         []string // A list of pre-compiled libraries to include.
+
+	// Genrule options.
+	In  string // Input to the genrule.
+	Out string // Output from the genrule.
 }
 
 // Representation of a single Target.
@@ -303,14 +307,22 @@ func (this *Target) TotalOps() int {
 // Return true if any of the header files within the target or it's dependencies
 // have changed.
 func (this *Target) HeaderFilesChangedAfter(file os.FileInfo) bool {
-	for _, hdr := range this.Hdrs() {
-		hdrPath := filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), hdr)
-		hdrStat, _ := os.Stat(hdrPath)
-		if hdrStat != nil && hdrStat.ModTime().After(file.ModTime()) {
-			log.Debugf("file %s has changed after %s\n", hdrPath, file.Name())
+	if strings.HasPrefix(this.Type, "c++") {
+		for _, hdr := range this.Hdrs() {
+			hdrPath := filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), hdr)
+			hdrStat, _ := os.Stat(hdrPath)
+			if hdrStat != nil && hdrStat.ModTime().After(file.ModTime()) {
+				log.Debugf("file %s has changed after %s\n", hdrPath, file.Name())
+				return true
+			} else {
+				// log.Debugf("file %s has not changed after %s\n", hdrPath, file.Name())
+			}
+		}
+	} else if strings.HasPrefix(this.Type, "genrule") {
+		outPath := filepath.Join(common.OutputDirectory, "gen", this.Spec.PathSystem(), this.Options.Out)
+		outStat, _ := os.Stat(outPath)
+		if outStat != nil && outStat.ModTime().After(file.ModTime()) {
 			return true
-		} else {
-			// log.Debugf("file %s has not changed after %s\n", hdrPath, file.Name())
 		}
 	}
 
@@ -401,6 +413,15 @@ func loadArrayFromJson(json map[string]interface{}, key string) []string {
 	return out
 }
 
+func loadStringFromJson(json map[string]interface{}, key string) string {
+	item, ok := json[key]
+	if ok {
+		return item.(string)
+	}
+
+	return ""
+}
+
 func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, []*TargetSpec) {
 	target := new(Target)
 	target.Spec = targetSpec
@@ -466,6 +487,10 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 	target.Options.LinkFlags = loadArrayFromJson(json, "link_flags")
 	target.Options.Includes = loadArrayFromJson(json, "includes")
 
+	// Load options for genrules.
+	target.Options.In = loadStringFromJson(json, "in")
+	target.Options.Out = loadStringFromJson(json, "out")
+
 	// Load the platform specific options.
 	ops, ok := json[runtime.GOOS]
 	if ok {
@@ -476,6 +501,10 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 		target.PlatformOptions.CompileFlags = loadArrayFromJson(platformOptions, "compile_flags")
 		target.PlatformOptions.LinkFlags = loadArrayFromJson(platformOptions, "link_flags")
 		target.PlatformOptions.Includes = loadArrayFromJson(platformOptions, "includes")
+
+		// Load options for genrules.
+		target.PlatformOptions.In = loadStringFromJson(platformOptions, "in")
+		target.PlatformOptions.Out = loadStringFromJson(platformOptions, "out")
 	}
 
 	return target, depSpecs
@@ -509,9 +538,9 @@ func LoadTarget(targetSpec *TargetSpec) (*Target, error) {
 			return nil, errors.New("Missing required field 'type'")
 		}
 
-		if len(target.Srcs()) == 0 && len(target.Hdrs()) == 0 && len(depSpecs) == 0 {
-			return nil, errors.New(fmt.Sprintf("No src/hdr files or deps found for target %s!", target))
-		}
+		// if len(target.Srcs()) == 0 && len(target.Hdrs()) == 0 && len(depSpecs) == 0 {
+		// 	return nil, errors.New(fmt.Sprintf("No src/hdr files or deps found for target %s!", target))
+		// }
 
 		// Save the target to the cache.
 		targetCache[targetSpec.String()] = target
