@@ -69,7 +69,7 @@ func splitTargetSpec(targetSpec string) (string, string) {
 // target_name may be optionally excluded if the target name is the same as the
 // directory in which the target lives. The directory can be disregarded
 // completely, but in this case the target must be provided.
-func CanonicalTargetSpec(workspaceDir, cwd, target string) (*TargetSpec, error) {
+func CanonicalTargetSpec(workspaceDir, cwd, target string) ([]*TargetSpec, error) {
 	// Split the target into path and target.
 	targetPath, targetName := splitTargetSpec(target)
 
@@ -112,7 +112,16 @@ func CanonicalTargetSpec(workspaceDir, cwd, target string) (*TargetSpec, error) 
 	targetSpec.Path = targetPath
 	targetSpec.Name = targetName
 	targetSpec.Workspace = workspaceDir
-	return targetSpec, nil
+
+	// Final special case: if the target name is a special value, then expand the
+	// target into multiple targets.
+	if targetSpec.Name == "all" {
+		return ListTargetNames(targetSpec)
+	} else if targetSpec.Name == "..." {
+		return ListTargetNamesRecursive(targetSpec)
+	}
+
+	return []*TargetSpec{targetSpec}, nil
 }
 
 type TargetOptions struct {
@@ -431,7 +440,7 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 	return target, depSpecs
 }
 
-func ListTargetNamesRecursive(targetSpec *TargetSpec, command string) ([]*TargetSpec, error) {
+func ListTargetNamesRecursive(targetSpec *TargetSpec) ([]*TargetSpec, error) {
 	buildFiles, err := zglob.Glob(filepath.Join(targetSpec.Workspace, targetSpec.PathSystem(), "**", *buildFilename))
 	if err != nil {
 		return nil, err
@@ -446,7 +455,7 @@ func ListTargetNamesRecursive(targetSpec *TargetSpec, command string) ([]*Target
 			return nil, err
 		}
 
-		targets, err := ListTargetNames(spec, command)
+		targets, err := ListTargetNames(spec)
 		if err != nil {
 			return nil, err
 		}
@@ -457,7 +466,7 @@ func ListTargetNamesRecursive(targetSpec *TargetSpec, command string) ([]*Target
 	return finalSpecs, nil
 }
 
-func ListTargetNames(targetSpec *TargetSpec, command string) ([]*TargetSpec, error) {
+func ListTargetNames(targetSpec *TargetSpec) ([]*TargetSpec, error) {
 	buildFilepath := path.Join(targetSpec.Workspace, targetSpec.Path, *buildFilename)
 	targetsJSON, err := LoadBuildFile(buildFilepath)
 	if err != nil {
@@ -465,12 +474,7 @@ func ListTargetNames(targetSpec *TargetSpec, command string) ([]*TargetSpec, err
 	}
 
 	targets := make([]*TargetSpec, 0, len(targetsJSON))
-	for targetName, targetJSON := range targetsJSON {
-		target, _ := makeTarget(targetJSON.(map[string]interface{}), targetSpec)
-		if command == "test" && !strings.HasSuffix(target.Type, "test") {
-			continue
-		}
-
+	for targetName := range targetsJSON {
 		newTargetSpec := new(TargetSpec)
 		newTargetSpec.Workspace = targetSpec.Workspace
 		newTargetSpec.Path = targetSpec.Path

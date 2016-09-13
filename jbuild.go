@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
-	"strings"
 
-	"github.com/fatih/color"
 	jbuildCommands "github.com/jeshuam/jbuild/command"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
@@ -28,71 +25,7 @@ var (
 	}
 )
 
-func main() {
-	flag.Parse()
-
-	// Setup the logger.
-	logging.SetFormatter(format)
-
-	// Save a nice printing color.
-	cPrint := color.New(color.FgHiBlue, color.Bold).PrintfFunc()
-	if runtime.GOOS == "windows" {
-		cPrint = color.New(color.FgHiCyan, color.Bold).PrintfFunc()
-	}
-
-	// Make sure at least the command was passed.
-	if len(flag.Args()) < 1 {
-		fmt.Println("Usage: jbuild [flags] build|test|run|clean [target [targets...]]")
-		return
-	}
-
-	// Get the command.
-	command := flag.Args()[0]
-
-	// If we are cleaning, just delete the output directory.
-	if command == "clean" {
-		cPrint("$ rm -rf %s", common.OutputDirectory)
-		err := os.RemoveAll(common.OutputDirectory)
-		if err != nil {
-			fmt.Printf("error: %s\n", err)
-		}
-
-		return
-	}
-
-	// If we aren't cleaning, get more arguments.
-	if len(flag.Args()) < 2 {
-		fmt.Println("Usage: jbuild [flags] build|test|run|clean [target [targets...]]")
-		return
-	}
-
-	// Get the current processing target.
-	targetArgs := flag.Args()[1:]
-	runFlags := flag.Args()[2:]
-
-	// Validate the command arg.
-	if !validCommands[command] {
-		fmt.Printf("Unknown command '%s'.\n", command)
-		return
-	}
-
-	// If we are running, there should only be a single target.
-	if command == "run" {
-		if strings.HasSuffix(targetArgs[0], ":all") {
-			fmt.Printf("Invalid specified :all for command run.")
-			return
-		}
-
-		targetArgs = []string{targetArgs[0]}
-	}
-
-	/// First, find the root of the workspace
-	// Get the current working directory.
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Could not get cwd: %v", err)
-	}
-
+func findWorkspaceDir(cwd string) string {
 	// Find the workspace directory.
 	workspaceDir, _, err := config.FindWorkspaceFile(cwd)
 	if err != nil {
@@ -105,77 +38,102 @@ func main() {
 		common.OutputDirectory = filepath.Join(workspaceDir, common.OutputDirectory)
 	}
 
-	/// Convert the targets into their canonical format, i.e. the long format.
-	canonicalTargetSpecs := make([]*config.TargetSpec, len(targetArgs))
-	for i, target := range targetArgs {
-		canonicalTarget, err := config.CanonicalTargetSpec(workspaceDir, cwd, target)
+	return workspaceDir
+}
+
+func printUsageAndExit() {
+	log.Fatalf("Usage: jbuild [flags] build|test|run|clean [target [targets...]]")
+}
+
+func main() {
+	flag.Parse()
+
+	// Setup the logger.
+	logging.SetFormatter(format)
+
+	// First, see if we are in a workspace.
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Could not get cwd: %v", err)
+	}
+
+	workspaceDir := findWorkspaceDir(cwd)
+
+	// Make sure at least the command was passed.
+	if len(flag.Args()) < 1 {
+		printUsageAndExit()
+	}
+
+	// Get the command.
+	command := flag.Args()[0]
+	if !validCommands[command] {
+		fmt.Printf("Unknown command '%s'.\n", command)
+		return
+	}
+
+	// If we are cleaning, just delete the output directory.
+	if command == "clean" {
+		jbuildCommands.Clean(workspaceDir)
+		return
+	}
+
+	// If we aren't cleaning, get more arguments.
+	if len(flag.Args()) < 2 {
+		fmt.Println("Usage: jbuild [flags] build|test|run|clean [target [targets...]]")
+		return
+	}
+
+	// Get the current processing target.
+	targetArgs := flag.Args()[1:]
+
+	// Convert the targets into their canonical format, i.e. the long format.
+	canonicalTargetSpecs := make([]*config.TargetSpec, 0, len(targetArgs))
+	for _, target := range targetArgs {
+		canonicalTargets, err := config.CanonicalTargetSpec(workspaceDir, cwd, target)
 		if err != nil {
 			log.Fatalf("Invalid target name '%s': %v", target, err)
 		}
 
-		canonicalTargetSpecs[i] = canonicalTarget
+		canonicalTargetSpecs = append(canonicalTargetSpecs, canonicalTargets...)
 	}
 
-	/// Load any special, meta targets.
-	expandedTargetSpecs := make([]*config.TargetSpec, 0, len(canonicalTargetSpecs))
-	for _, targetSpec := range canonicalTargetSpecs {
-		if targetSpec.Name == "all" {
-			expandedTargets, err := config.ListTargetNames(targetSpec, command)
-			if err != nil {
-				log.Fatalf("Could not expand target '%s': %v", targetSpec, err)
-			}
-
-			for _, expandedSpec := range expandedTargets {
-				expandedTargetSpecs = append(expandedTargetSpecs, expandedSpec)
-			}
-
-			cPrint("Expanding %s to %d targets.\n", targetSpec, len(expandedTargets))
-		} else if targetSpec.Name == "..." {
-			expandedTargets, err := config.ListTargetNamesRecursive(targetSpec, command)
-			if err != nil {
-				log.Fatalf("Could not expand target '%s': %v", targetSpec, err)
-			}
-
-			for _, expandedSpec := range expandedTargets {
-				expandedTargetSpecs = append(expandedTargetSpecs, expandedSpec)
-			}
-		} else {
-			expandedTargetSpecs = append(expandedTargetSpecs, targetSpec)
-		}
+	// If more than one spec was specified and we are running, then error.
+	if len(canonicalTargetSpecs) > 1 && command == "run" {
+		log.Fatalf("Multiple targets specified with run command.")
 	}
 
 	/// Now that we have a list of target specs, we can go and load the targets.
 	/// This involves going to each target file
-	var firstTargetSpecified *config.Target = nil
 	targetsSpecified := config.TargetSet{}
 	targetsToProcess := config.TargetSet{}
-	for _, targetSpec := range expandedTargetSpecs {
+	for _, targetSpec := range canonicalTargetSpecs {
+		// Load the target at the given specification.
 		target, err := config.LoadTarget(targetSpec)
 		if err != nil {
 			log.Fatalf("Could not load target '%s': %v", targetSpec, err)
 		}
 
-		// If the target is not runnable, but we were told to run, then fail.
-		if !target.IsBinary() && command == "run" {
-			fmt.Printf("Cannot run target of type %s (%s)\n", target.Type, target)
-			return
-		}
-
-		if !target.IsTest() && command == "test" {
-			fmt.Printf("Cannot test target of type %s (%s)\n", target.Type, target)
-			return
-		}
-
-		if len(targetsSpecified) == 0 {
-			firstTargetSpecified = target
-		}
-
+		// Make sure this target has no cycles.
 		target.CheckForDependencyCycles()
-		targetsToProcess.Add(target)
-		targetsSpecified.Add(target)
-		for _, dep := range target.AllDependencies() {
-			targetsToProcess.Add(dep)
+
+		// If the target type doesn't match the command, then discard it.
+		if !target.IsBinary() && command == "run" {
+			log.Warningf("Ignoring target %s (type %s)", target, target.Type)
+		} else if !target.IsTest() && command == "test" {
+			log.Warningf("Ignoring target %s (type %s)", target, target.Type)
+		} else {
+			// Process this target, and all of it's dependencies.
+			targetsSpecified.Add(target)
+			targetsToProcess.Add(target)
+			for _, dep := range target.AllDependencies() {
+				targetsToProcess.Add(dep)
+			}
 		}
+	}
+
+	// If there are no targets to process, print a message and exit.
+	if len(targetsToProcess) == 0 {
+		log.Fatalf("No targets to process for command %s", command)
 	}
 
 	// First, build all targets.
@@ -183,7 +141,8 @@ func main() {
 
 	// If we were running, there should only be one argument. Just run it.
 	if command == "run" {
-		jbuildCommands.Run(firstTargetSpecified, runFlags)
+		runTarget, _ := config.LoadTarget(canonicalTargetSpecs[0])
+		jbuildCommands.Run(runTarget, flag.Args()[2:])
 	} else if command == "test" {
 		jbuildCommands.RunTests(targetsSpecified)
 	}

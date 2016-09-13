@@ -76,7 +76,10 @@ func Start() {
 		}
 
 		// Finish the function.
-		doUpdate(progressBars[0])
+		if len(progressBars) > 0 {
+			doUpdate(progressBars[0])
+		}
+
 		progressBarUpdateFunction.Done()
 	}()
 }
