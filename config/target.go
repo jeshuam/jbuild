@@ -20,6 +20,12 @@ var (
 	targetCache = make(map[string]*Target)
 )
 
+type TargetSet map[*Target]bool
+
+func (this TargetSet) Add(target *Target) {
+	this[target] = true
+}
+
 // A target object
 type TargetSpec struct {
 	Path, Name, Workspace string

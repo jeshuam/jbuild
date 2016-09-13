@@ -104,10 +104,10 @@ func runTest(target *config.Target, results chan testResult) {
 	})
 }
 
-func RunTests(targetsToTest []*config.Target) {
+func RunTests(targetsToTest config.TargetSet) {
 	// Run the tests once, for each command, and collect the results.
 	rawResults := make(chan testResult)
-	for _, target := range targetsToTest {
+	for target := range targetsToTest {
 		for i := 0; i < int(*testRuns); i++ {
 			go runTest(target, rawResults)
 		}

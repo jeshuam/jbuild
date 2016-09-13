@@ -159,8 +159,8 @@ func main() {
 	/// Now that we have a list of target specs, we can go and load the targets.
 	/// This involves going to each target file
 	var firstTargetSpecified *config.Target = nil
-	targetsSpecified := make(map[*config.Target]bool, 0)
-	targetsToProcess := make(map[*config.Target]bool, 0)
+	targetsSpecified := config.TargetSet{}
+	targetsToProcess := config.TargetSet{}
 	for _, targetSpec := range expandedTargetSpecs {
 		target, err := config.LoadTarget(targetSpec)
 		if err != nil {
@@ -183,10 +183,10 @@ func main() {
 		}
 
 		target.CheckForDependencyCycles()
-		targetsToProcess[target] = true
-		targetsSpecified[target] = true
+		targetsToProcess.Add(target)
+		targetsSpecified.Add(target)
 		for _, dep := range target.AllDependencies() {
-			targetsToProcess[dep] = true
+			targetsToProcess.Add(dep)
 		}
 	}
 
@@ -214,7 +214,7 @@ func main() {
 	// If we are using simple progress bars, then pre-set the total number of ops.
 	if *simpleProgress {
 		totalOps := 0
-		for target, _ := range targetsToProcess {
+		for target := range targetsToProcess {
 			totalOps += target.TotalOps()
 		}
 
@@ -224,7 +224,7 @@ func main() {
 	/// Now we have a list of targets we want to process, the next step is to
 	/// actually process them! To process them, we will use a series of processors
 	/// depending on the type of the target.
-	newTargetsToProcess := make(map[*config.Target]bool, 0)
+	newTargetsToProcess := config.TargetSet{}
 	targetChannel := make(chan processor.ProcessingResult)
 	nCompletedTargets := 0
 	nTargetsToProcess := len(targetsToProcess)
@@ -239,12 +239,12 @@ func main() {
 					log.Fatalf("Error while processing %s: %v", target, err)
 				}
 			} else {
-				newTargetsToProcess[target] = true
+				newTargetsToProcess.Add(target)
 			}
 		}
 
 		targetsToProcess = newTargetsToProcess
-		newTargetsToProcess = map[*config.Target]bool{}
+		newTargetsToProcess = config.TargetSet{}
 
 		// Wait for some process to respond.
 		result := <-targetChannel
@@ -270,13 +270,6 @@ func main() {
 	}
 
 	if command == "test" {
-		log.Info("Testing...")
-		fmt.Printf("\n")
-		testTargets := make([]*config.Target, 0, len(targetsSpecified))
-		for target := range targetsSpecified {
-			testTargets = append(testTargets, target)
-		}
-
-		jbuildCommands.RunTests(testTargets)
+		jbuildCommands.RunTests(targetsSpecified)
 	}
 }
