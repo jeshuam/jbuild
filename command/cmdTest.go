@@ -60,6 +60,13 @@ func loadTestResult(target *config.Target) *testResult {
 		return nil
 	}
 
+	// Check to see if the test executable was changed since the cache was made.
+	cacheStat, _ := os.Stat(cacheFileName)
+	outputStat, _ := os.Stat(target.Output[0])
+	if outputStat.ModTime().After(cacheStat.ModTime()) {
+		return nil
+	}
+
 	// Try to open the file; we should fail if the file exists but is not
 	// openable.
 	cacheFile, err := os.Open(cacheFileName)

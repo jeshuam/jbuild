@@ -60,6 +60,46 @@ func splitTargetSpec(targetSpec string) (string, string) {
 	return targetPath, targetName
 }
 
+func expandAllTargetsInTree(workspaceDir, path string) ([]*TargetSpec, error) {
+	buildFiles, err := zglob.Glob(filepath.Join(workspaceDir, path, "**", *buildFilename))
+	if err != nil {
+		return nil, err
+	}
+
+	finalSpecs := make([]*TargetSpec, 0)
+	for _, buildFile := range buildFiles {
+		buildRelPath, _ := filepath.Rel(workspaceDir, buildFile)
+		buildFilePath, _ := filepath.Split(buildRelPath)
+		targets, err := expandAllTargetsInDir(workspaceDir, buildFilePath)
+		if err != nil {
+			return nil, err
+		}
+
+		finalSpecs = append(finalSpecs, targets...)
+	}
+
+	return finalSpecs, nil
+}
+
+func expandAllTargetsInDir(workspaceDir, path string) ([]*TargetSpec, error) {
+	buildFilepath := filepath.Join(workspaceDir, path, *buildFilename)
+	targetsJSON, err := LoadBuildFile(buildFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	targets := make([]*TargetSpec, 0, len(targetsJSON))
+	for targetName := range targetsJSON {
+		newTargetSpec := new(TargetSpec)
+		newTargetSpec.Workspace = workspaceDir
+		newTargetSpec.Path = path
+		newTargetSpec.Name = targetName
+		targets = append(targets, newTargetSpec)
+	}
+
+	return targets, nil
+}
+
 // Convert the given target into it's canonical form. There are 2 ways to
 // specify a target:
 //
@@ -74,7 +114,7 @@ func CanonicalTargetSpec(workspaceDir, cwd, target string) ([]*TargetSpec, error
 	targetPath, targetName := splitTargetSpec(target)
 
 	// Make sure the target conforms to a regex.
-	match, err := regexp.MatchString("^(//)?[0-9A-Za-z_]+([/0-9A-Za-z_]+)?(:[0-9.A-Za-z_]+)?$", target)
+	match, err := regexp.MatchString("^(//)?[0-9A-Za-z_.]+([/0-9A-Za-z_.]+)?(:[0-9A-Za-z_]+)?$", target)
 	if err != nil {
 		log.Fatalf("Target regex matching failed: %v", err)
 	}
@@ -107,19 +147,20 @@ func CanonicalTargetSpec(workspaceDir, cwd, target string) ([]*TargetSpec, error
 		targetPath = strings.TrimPrefix(targetPath, "//")
 	}
 
+	// Final special case: if the target name is a special value, then expand the
+	// target into multiple targets.
+	if targetName == "all" {
+		return expandAllTargetsInDir(workspaceDir, targetPath)
+	} else if strings.HasSuffix(targetPath, "...") {
+		targetPathWithoutDots, _ := filepath.Split(targetPath)
+		return expandAllTargetsInTree(workspaceDir, targetPathWithoutDots)
+	}
+
 	// Build the final target.
 	targetSpec := new(TargetSpec)
 	targetSpec.Path = targetPath
 	targetSpec.Name = targetName
 	targetSpec.Workspace = workspaceDir
-
-	// Final special case: if the target name is a special value, then expand the
-	// target into multiple targets.
-	if targetSpec.Name == "all" {
-		return ListTargetNames(targetSpec)
-	} else if targetSpec.Name == "..." {
-		return ListTargetNamesRecursive(targetSpec)
-	}
 
 	return []*TargetSpec{targetSpec}, nil
 }
@@ -438,51 +479,6 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 	}
 
 	return target, depSpecs
-}
-
-func ListTargetNamesRecursive(targetSpec *TargetSpec) ([]*TargetSpec, error) {
-	buildFiles, err := zglob.Glob(filepath.Join(targetSpec.Workspace, targetSpec.PathSystem(), "**", *buildFilename))
-	if err != nil {
-		return nil, err
-	}
-
-	finalSpecs := make([]*TargetSpec, 0)
-	for _, buildFile := range buildFiles {
-		spec := new(TargetSpec)
-		spec.Workspace = targetSpec.Workspace
-		spec.Path, err = filepath.Rel(targetSpec.Workspace, filepath.Dir(buildFile))
-		if err != nil {
-			return nil, err
-		}
-
-		targets, err := ListTargetNames(spec)
-		if err != nil {
-			return nil, err
-		}
-
-		finalSpecs = append(finalSpecs, targets...)
-	}
-
-	return finalSpecs, nil
-}
-
-func ListTargetNames(targetSpec *TargetSpec) ([]*TargetSpec, error) {
-	buildFilepath := path.Join(targetSpec.Workspace, targetSpec.Path, *buildFilename)
-	targetsJSON, err := LoadBuildFile(buildFilepath)
-	if err != nil {
-		return nil, err
-	}
-
-	targets := make([]*TargetSpec, 0, len(targetsJSON))
-	for targetName := range targetsJSON {
-		newTargetSpec := new(TargetSpec)
-		newTargetSpec.Workspace = targetSpec.Workspace
-		newTargetSpec.Path = targetSpec.Path
-		newTargetSpec.Name = targetName
-		targets = append(targets, newTargetSpec)
-	}
-
-	return targets, nil
 }
 
 // Load the given target spec and all related dependencies into Target objects.

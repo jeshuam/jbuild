@@ -9,26 +9,17 @@ import (
 	"github.com/jeshuam/jbuild/config"
 	"github.com/jeshuam/jbuild/processor"
 	"github.com/jeshuam/jbuild/progress"
-	"github.com/op/go-logging"
 )
 
 var (
-	useProgress    = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
+	UseProgress    = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
 	simpleProgress = flag.Bool("use_simple_progress", true, "Use the simple progress system rather than multiple bars.")
 
 	threads = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
 )
 
-func init() {
-	if !*useProgress {
-		logging.SetLevel(logging.DEBUG, "jbuild")
-	} else {
-		logging.SetLevel(logging.CRITICAL, "jbuild")
-	}
-}
-
 func setupProgressBars(targetsToBuild config.TargetSet) {
-	if *useProgress {
+	if *UseProgress {
 		if *simpleProgress {
 			// For simple progress bars, manually set the maximum number of ops.
 			totalOps := 0
@@ -42,6 +33,8 @@ func setupProgressBars(targetsToBuild config.TargetSet) {
 			fmt.Printf("\n\n")
 			progress.StartComplex()
 		}
+	} else {
+		progress.Disable()
 	}
 }
 
@@ -95,5 +88,8 @@ func BuildTargets(targetsToBuild config.TargetSet) {
 	// Keep looping until all targets are built. By the time this is called, any
 	// cycles should have been found already.
 	buildTargets(targetsToBuild, taskQueue)
-	progress.Finish()
+
+	if *UseProgress {
+		progress.Finish()
+	}
 }

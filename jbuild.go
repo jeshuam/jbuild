@@ -50,6 +50,11 @@ func main() {
 
 	// Setup the logger.
 	logging.SetFormatter(format)
+	if !*jbuildCommands.UseProgress {
+		logging.SetLevel(logging.DEBUG, "jbuild")
+	} else {
+		logging.SetLevel(logging.CRITICAL, "jbuild")
+	}
 
 	// First, see if we are in a workspace.
 	cwd, err := os.Getwd()
@@ -135,6 +140,8 @@ func main() {
 	if len(targetsToProcess) == 0 {
 		log.Fatalf("No targets to process for command %s", command)
 	}
+
+	log.Infof("Processing %d targets: %s\n", len(targetsToProcess), targetsToProcess)
 
 	// First, build all targets.
 	jbuildCommands.BuildTargets(targetsToProcess)
