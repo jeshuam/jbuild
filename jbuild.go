@@ -62,7 +62,9 @@ func main() {
 		log.Fatalf("Could not get cwd: %v", err)
 	}
 
-	workspaceDir := findWorkspaceDir(cwd)
+	if common.WorkspaceDir == "" {
+		common.WorkspaceDir = findWorkspaceDir(cwd)
+	}
 
 	// Make sure at least the command was passed.
 	if len(flag.Args()) < 1 {
@@ -78,7 +80,7 @@ func main() {
 
 	// If we are cleaning, just delete the output directory.
 	if command == "clean" {
-		jbuildCommands.Clean(workspaceDir)
+		jbuildCommands.Clean(common.WorkspaceDir)
 		return
 	}
 
@@ -94,7 +96,7 @@ func main() {
 	// Convert the targets into their canonical format, i.e. the long format.
 	canonicalTargetSpecs := make([]*config.TargetSpec, 0, len(targetArgs))
 	for _, target := range targetArgs {
-		canonicalTargets, err := config.CanonicalTargetSpec(workspaceDir, cwd, target)
+		canonicalTargets, err := config.CanonicalTargetSpec(common.WorkspaceDir, cwd, target)
 		if err != nil {
 			log.Fatalf("Invalid target name '%s': %v", target, err)
 		}

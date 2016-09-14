@@ -33,7 +33,7 @@ func (this TargetSet) Contains(target *Target) bool {
 
 // A target object
 type TargetSpec struct {
-	Path, Name, Workspace string
+	Path, Name string
 }
 
 func (this *TargetSpec) String() string {
@@ -46,6 +46,10 @@ func (this *TargetSpec) PathSystem() string {
 
 func (this *TargetSpec) OutputPath() string {
 	return filepath.Join(common.OutputDirectory, this.PathSystem())
+}
+
+func (this *TargetSpec) WorkspacePath() string {
+	return filepath.Join(common.WorkspaceDir, this.PathSystem())
 }
 
 func splitTargetSpec(targetSpec string) (string, string) {
@@ -91,7 +95,6 @@ func expandAllTargetsInDir(workspaceDir, path string) ([]*TargetSpec, error) {
 	targets := make([]*TargetSpec, 0, len(targetsJSON))
 	for targetName := range targetsJSON {
 		newTargetSpec := new(TargetSpec)
-		newTargetSpec.Workspace = workspaceDir
 		newTargetSpec.Path = path
 		newTargetSpec.Name = targetName
 		targets = append(targets, newTargetSpec)
@@ -160,7 +163,6 @@ func CanonicalTargetSpec(workspaceDir, cwd, target string) ([]*TargetSpec, error
 	targetSpec := new(TargetSpec)
 	targetSpec.Path = targetPath
 	targetSpec.Name = targetName
-	targetSpec.Workspace = workspaceDir
 
 	return []*TargetSpec{targetSpec}, nil
 }
@@ -244,7 +246,7 @@ func (this *Target) Libs() []string {
 func (this *Target) LibsOrdered() []string {
 	libs := make([]string, 0)
 	for _, lib := range this.Libs() {
-		libs = append(libs, filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), lib))
+		libs = append(libs, filepath.Join(this.Spec.WorkspacePath(), lib))
 	}
 
 	for _, dep := range this.Deps {
@@ -309,7 +311,7 @@ func (this *Target) TotalOps() int {
 func (this *Target) HeaderFilesChangedAfter(file os.FileInfo) bool {
 	if strings.HasPrefix(this.Type, "c++") {
 		for _, hdr := range this.Hdrs() {
-			hdrPath := filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), hdr)
+			hdrPath := filepath.Join(this.Spec.WorkspacePath(), hdr)
 			hdrStat, _ := os.Stat(hdrPath)
 			if hdrStat != nil && hdrStat.ModTime().After(file.ModTime()) {
 				log.Debugf("file %s has changed after %s\n", hdrPath, file.Name())
@@ -445,7 +447,6 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 			depSpec := new(TargetSpec)
 			depSpec.Path = depPath
 			depSpec.Name = depName
-			depSpec.Workspace = targetSpec.Workspace
 			depSpecs = append(depSpecs, depSpec)
 		}
 	}
@@ -455,7 +456,7 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 		globs := loadArrayFromJson(root, key)
 		finalFiles := make([]string, 0)
 		for _, glob := range globs {
-			glob = path.Join(targetSpec.Workspace, targetSpec.PathSystem(), glob)
+			glob = path.Join(targetSpec.WorkspacePath(), glob)
 			files, err := zglob.Glob(glob)
 
 			// If there was an error, then just return the glob by itself.
@@ -463,7 +464,7 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 				finalFiles = append(finalFiles, glob)
 			} else {
 				// Otherwise, convert globs into actual paths.
-				rel, _ := filepath.Rel(filepath.Join(target.Spec.Workspace, target.Spec.Path), filepath.Dir(glob))
+				rel, _ := filepath.Rel(filepath.Join(target.Spec.WorkspacePath()), filepath.Dir(glob))
 				for _, file := range files {
 					finalFiles = append(finalFiles, filepath.Join(rel, filepath.Base(file)))
 				}
@@ -517,7 +518,7 @@ func LoadTarget(targetSpec *TargetSpec) (*Target, error) {
 
 	if !inCache {
 		// Load all of the targets in the given BUILD file.
-		buildFilepath := path.Join(targetSpec.Workspace, targetSpec.Path, *buildFilename)
+		buildFilepath := path.Join(targetSpec.WorkspacePath(), *buildFilename)
 		targetsJSON, err := LoadBuildFile(buildFilepath)
 		if err != nil {
 			return nil, err

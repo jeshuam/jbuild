@@ -16,7 +16,7 @@ func compileCommand(target *config.Target, src, obj string) *exec.Cmd {
 	// (mainly because cl.exe is really weird).
 	flags := target.CompileFlags()
 	for _, include := range target.Includes() {
-		includePath := filepath.Join(target.Spec.Workspace, target.Spec.Path, include)
+		includePath := filepath.Join(target.Spec.WorkspacePath(), include)
 		flags = append(flags, "-I"+includePath)
 	}
 
@@ -26,7 +26,7 @@ func compileCommand(target *config.Target, src, obj string) *exec.Cmd {
 			flags = append(flags, dep.CompileFlags()...)
 
 			for _, include := range dep.Includes() {
-				includePath := filepath.Join(dep.Spec.Workspace, dep.Spec.Path, include)
+				includePath := filepath.Join(dep.Spec.WorkspacePath(), include)
 				flags = append(flags, "-I"+includePath)
 			}
 		} else if strings.HasPrefix(dep.Type, "genrule") {
@@ -41,7 +41,7 @@ func compileCommand(target *config.Target, src, obj string) *exec.Cmd {
 		flags = append(flags, []string{"/c", "/Fo" + obj, src, "/EHsc"}...)
 	} else {
 		flags = append(flags, []string{
-			"-I" + target.Spec.Workspace,
+			"-I" + common.WorkspaceDir,
 			"-I" + filepath.Join(common.OutputDirectory, "gen"),
 			"-I/usr/include",
 			"-fPIC",

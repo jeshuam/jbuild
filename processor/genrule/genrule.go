@@ -18,10 +18,6 @@ import (
 type GenruleProcessor struct {
 }
 
-func inputDir(target *config.Target) string {
-	return filepath.Join(target.Spec.Workspace, target.Spec.PathSystem())
-}
-
 func inputFile(target *config.Target) (string, error) {
 	var inputFile string
 	if len(target.Options.In) > 0 {
@@ -32,7 +28,7 @@ func inputFile(target *config.Target) (string, error) {
 		return "", errors.New(fmt.Sprintf("Missing input file for genrule %s", target.Spec))
 	}
 
-	return filepath.Join(inputDir(target), inputFile), nil
+	return filepath.Join(target.Spec.WorkspacePath(), inputFile), nil
 }
 
 func outputDir(target *config.Target) string {
