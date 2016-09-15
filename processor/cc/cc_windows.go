@@ -98,7 +98,7 @@ func prepareEnvironment(target *config.Target, cmd *exec.Cmd) {
 		filepath.Join(vcInstallDir, "include"),
 		filepath.Join(ucrtSdkDir, "Include", ucrtSdkVersion, "ucrt"),
 		filepath.Join(netFxSdkDir, "Include"),
-		target.Spec.Workspace,
+		common.WorkspaceDir,
 		filepath.Join(common.OutputDirectory, "gen")))
 
 	// Set LIBDIR.
