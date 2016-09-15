@@ -1,6 +1,7 @@
 package progress
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -97,6 +98,7 @@ func Finish() {
 
 	close(progressBarUpdate)
 	progressBarUpdateFunction.Wait()
+	fmt.Printf("\n")
 }
 
 func Disable() {

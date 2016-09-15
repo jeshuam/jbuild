@@ -12,6 +12,7 @@ import (
 
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/progress"
+	"github.com/mattn/go-zglob"
 )
 
 var (
@@ -19,9 +20,20 @@ var (
 	targetCache = make(map[string]*Target)
 )
 
+type TargetSet map[*Target]bool
+
+func (this TargetSet) Add(target *Target) {
+	this[target] = true
+}
+
+func (this TargetSet) Contains(target *Target) bool {
+	_, ok := this[target]
+	return ok
+}
+
 // A target object
 type TargetSpec struct {
-	Path, Name, Workspace string
+	Path, Name string
 }
 
 func (this *TargetSpec) String() string {
@@ -36,6 +48,10 @@ func (this *TargetSpec) OutputPath() string {
 	return filepath.Join(common.OutputDirectory, this.PathSystem())
 }
 
+func (this *TargetSpec) WorkspacePath() string {
+	return filepath.Join(common.WorkspaceDir, this.PathSystem())
+}
+
 func splitTargetSpec(targetSpec string) (string, string) {
 	// Split the target into path and target.
 	parts := strings.Split(targetSpec, ":")
@@ -48,6 +64,45 @@ func splitTargetSpec(targetSpec string) (string, string) {
 	return targetPath, targetName
 }
 
+func expandAllTargetsInTree(workspaceDir, path string) ([]*TargetSpec, error) {
+	buildFiles, err := zglob.Glob(filepath.Join(workspaceDir, path, "**", *buildFilename))
+	if err != nil {
+		return nil, err
+	}
+
+	finalSpecs := make([]*TargetSpec, 0)
+	for _, buildFile := range buildFiles {
+		buildRelPath, _ := filepath.Rel(workspaceDir, buildFile)
+		buildFilePath, _ := filepath.Split(buildRelPath)
+		targets, err := expandAllTargetsInDir(workspaceDir, buildFilePath)
+		if err != nil {
+			return nil, err
+		}
+
+		finalSpecs = append(finalSpecs, targets...)
+	}
+
+	return finalSpecs, nil
+}
+
+func expandAllTargetsInDir(workspaceDir, path string) ([]*TargetSpec, error) {
+	buildFilepath := filepath.Join(workspaceDir, path, *buildFilename)
+	targetsJSON, err := LoadBuildFile(buildFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	targets := make([]*TargetSpec, 0, len(targetsJSON))
+	for targetName := range targetsJSON {
+		newTargetSpec := new(TargetSpec)
+		newTargetSpec.Path = path
+		newTargetSpec.Name = targetName
+		targets = append(targets, newTargetSpec)
+	}
+
+	return targets, nil
+}
+
 // Convert the given target into it's canonical form. There are 2 ways to
 // specify a target:
 //
@@ -57,12 +112,12 @@ func splitTargetSpec(targetSpec string) (string, string) {
 // target_name may be optionally excluded if the target name is the same as the
 // directory in which the target lives. The directory can be disregarded
 // completely, but in this case the target must be provided.
-func CanonicalTargetSpec(workspaceDir, cwd, target string) (*TargetSpec, error) {
+func CanonicalTargetSpec(workspaceDir, cwd, target string) ([]*TargetSpec, error) {
 	// Split the target into path and target.
 	targetPath, targetName := splitTargetSpec(target)
 
 	// Make sure the target conforms to a regex.
-	match, err := regexp.MatchString("^(//)?[0-9A-Za-z_]+([/0-9A-Za-z_]+)?(:[0-9A-Za-z_]+)?$", target)
+	match, err := regexp.MatchString("^(//)?[0-9A-Za-z_.]+([/0-9A-Za-z_.]+)?(:[0-9A-Za-z_]+)?$", target)
 	if err != nil {
 		log.Fatalf("Target regex matching failed: %v", err)
 	}
@@ -95,12 +150,21 @@ func CanonicalTargetSpec(workspaceDir, cwd, target string) (*TargetSpec, error) 
 		targetPath = strings.TrimPrefix(targetPath, "//")
 	}
 
+	// Final special case: if the target name is a special value, then expand the
+	// target into multiple targets.
+	if targetName == "all" {
+		return expandAllTargetsInDir(workspaceDir, targetPath)
+	} else if strings.HasSuffix(targetPath, "...") {
+		targetPathWithoutDots, _ := filepath.Split(targetPath)
+		return expandAllTargetsInTree(workspaceDir, targetPathWithoutDots)
+	}
+
 	// Build the final target.
 	targetSpec := new(TargetSpec)
 	targetSpec.Path = targetPath
 	targetSpec.Name = targetName
-	targetSpec.Workspace = workspaceDir
-	return targetSpec, nil
+
+	return []*TargetSpec{targetSpec}, nil
 }
 
 type TargetOptions struct {
@@ -111,6 +175,10 @@ type TargetOptions struct {
 	Includes     []string // Extra directories to include.
 	Libs         []string // A list of pre-compiled libraries to include.
 	Data         []string // A list of files which should be included with the output.
+
+	// Genrule options.
+	In  string // Input to the genrule.
+	Out string // Output from the genrule.
 }
 
 // Representation of a single Target.
@@ -179,7 +247,7 @@ func (this *Target) Libs() []string {
 func (this *Target) LibsOrdered() []string {
 	libs := make([]string, 0)
 	for _, lib := range this.Libs() {
-		libs = append(libs, filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), lib))
+		libs = append(libs, filepath.Join(this.Spec.WorkspacePath(), lib))
 	}
 
 	for _, dep := range this.Deps {
@@ -249,14 +317,22 @@ func (this *Target) TotalOps() int {
 // Return true if any of the header files within the target or it's dependencies
 // have changed.
 func (this *Target) HeaderFilesChangedAfter(file os.FileInfo) bool {
-	for _, hdr := range this.Hdrs() {
-		hdrPath := filepath.Join(this.Spec.Workspace, this.Spec.PathSystem(), hdr)
-		hdrStat, _ := os.Stat(hdrPath)
-		if hdrStat != nil && hdrStat.ModTime().After(file.ModTime()) {
-			log.Debugf("file %s has changed after %s\n", hdrPath, file.Name())
+	if strings.HasPrefix(this.Type, "c++") {
+		for _, hdr := range this.Hdrs() {
+			hdrPath := filepath.Join(this.Spec.WorkspacePath(), hdr)
+			hdrStat, _ := os.Stat(hdrPath)
+			if hdrStat != nil && hdrStat.ModTime().After(file.ModTime()) {
+				log.Debugf("file %s has changed after %s\n", hdrPath, file.Name())
+				return true
+			} else {
+				// log.Debugf("file %s has not changed after %s\n", hdrPath, file.Name())
+			}
+		}
+	} else if strings.HasPrefix(this.Type, "genrule") {
+		outPath := filepath.Join(common.OutputDirectory, "gen", this.Spec.PathSystem(), this.Options.Out)
+		outStat, _ := os.Stat(outPath)
+		if outStat != nil && outStat.ModTime().After(file.ModTime()) {
 			return true
-		} else {
-			// log.Debugf("file %s has not changed after %s\n", hdrPath, file.Name())
 		}
 	}
 
@@ -347,6 +423,15 @@ func loadArrayFromJson(json map[string]interface{}, key string) []string {
 	return out
 }
 
+func loadStringFromJson(json map[string]interface{}, key string) string {
+	item, ok := json[key]
+	if ok {
+		return item.(string)
+	}
+
+	return ""
+}
+
 func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, []*TargetSpec) {
 	target := new(Target)
 	target.Spec = targetSpec
@@ -370,7 +455,6 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 			depSpec := new(TargetSpec)
 			depSpec.Path = depPath
 			depSpec.Name = depName
-			depSpec.Workspace = targetSpec.Workspace
 			depSpecs = append(depSpecs, depSpec)
 		}
 	}
@@ -380,15 +464,15 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 		globs := loadArrayFromJson(root, key)
 		finalFiles := make([]string, 0)
 		for _, glob := range globs {
-			glob = path.Join(targetSpec.Workspace, targetSpec.PathSystem(), glob)
-			files, err := filepath.Glob(glob)
+			glob = path.Join(targetSpec.WorkspacePath(), glob)
+			files, err := zglob.Glob(glob)
 
 			// If there was an error, then just return the glob by itself.
 			if err != nil {
 				finalFiles = append(finalFiles, glob)
 			} else {
 				// Otherwise, convert globs into actual paths.
-				rel, _ := filepath.Rel(filepath.Join(target.Spec.Workspace, target.Spec.Path), filepath.Dir(glob))
+				rel, _ := filepath.Rel(filepath.Join(target.Spec.WorkspacePath()), filepath.Dir(glob))
 				for _, file := range files {
 					finalFiles = append(finalFiles, filepath.Join(rel, filepath.Base(file)))
 				}
@@ -413,6 +497,10 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 	target.Options.LinkFlags = loadArrayFromJson(json, "link_flags")
 	target.Options.Includes = loadArrayFromJson(json, "includes")
 
+	// Load options for genrules.
+	target.Options.In = loadStringFromJson(json, "in")
+	target.Options.Out = loadStringFromJson(json, "out")
+
 	// Load the platform specific options.
 	ops, ok := json[runtime.GOOS]
 	if ok {
@@ -424,6 +512,10 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 		target.PlatformOptions.CompileFlags = loadArrayFromJson(platformOptions, "compile_flags")
 		target.PlatformOptions.LinkFlags = loadArrayFromJson(platformOptions, "link_flags")
 		target.PlatformOptions.Includes = loadArrayFromJson(platformOptions, "includes")
+
+		// Load options for genrules.
+		target.PlatformOptions.In = loadStringFromJson(platformOptions, "in")
+		target.PlatformOptions.Out = loadStringFromJson(platformOptions, "out")
 	}
 
 	return target, depSpecs
@@ -436,7 +528,7 @@ func LoadTarget(targetSpec *TargetSpec) (*Target, error) {
 
 	if !inCache {
 		// Load all of the targets in the given BUILD file.
-		buildFilepath := path.Join(targetSpec.Workspace, targetSpec.Path, *buildFilename)
+		buildFilepath := path.Join(targetSpec.WorkspacePath(), *buildFilename)
 		targetsJSON, err := LoadBuildFile(buildFilepath)
 		if err != nil {
 			return nil, err
@@ -457,9 +549,9 @@ func LoadTarget(targetSpec *TargetSpec) (*Target, error) {
 			return nil, errors.New("Missing required field 'type'")
 		}
 
-		if len(target.Srcs()) == 0 && len(target.Hdrs()) == 0 && len(depSpecs) == 0 {
-			return nil, errors.New(fmt.Sprintf("No src/hdr files or deps found for target %s!", target))
-		}
+		// if len(target.Srcs()) == 0 && len(target.Hdrs()) == 0 && len(depSpecs) == 0 {
+		// 	return nil, errors.New(fmt.Sprintf("No src/hdr files or deps found for target %s!", target))
+		// }
 
 		// Save the target to the cache.
 		targetCache[targetSpec.String()] = target

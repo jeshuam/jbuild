@@ -53,7 +53,7 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 
 		// Work out the full path to the source file. This will need to be provided
 		// to the compiler.
-		srcPath := filepath.Join(target.Spec.Workspace, target.Spec.PathSystem(), srcFile)
+		srcPath := filepath.Join(target.Spec.WorkspacePath(), srcFile)
 		objPath := filepath.Join(target.Spec.OutputPath(), srcFile+".o")
 		objs[i] = objPath
 
