@@ -110,6 +110,7 @@ type TargetOptions struct {
 	LinkFlags    []string
 	Includes     []string // Extra directories to include.
 	Libs         []string // A list of pre-compiled libraries to include.
+	Data         []string // A list of files which should be included with the output.
 }
 
 // Representation of a single Target.
@@ -199,6 +200,13 @@ func (this *Target) OutputOrdered() []string {
 	}
 
 	return outputs
+}
+
+func (this *Target) Data() []string {
+	data := make([]string, 0)
+	data = append(data, this.Options.Data...)
+	data = append(data, this.PlatformOptions.Data...)
+	return data
 }
 
 func (this *Target) String() string {
@@ -400,6 +408,7 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 	target.Options.Srcs = loadGlobs(json, "srcs")
 	target.Options.Hdrs = loadGlobs(json, "hdrs")
 	target.Options.Libs = loadGlobs(json, "libs")
+	target.Options.Data = loadGlobs(json, "data")
 	target.Options.CompileFlags = loadArrayFromJson(json, "compile_flags")
 	target.Options.LinkFlags = loadArrayFromJson(json, "link_flags")
 	target.Options.Includes = loadArrayFromJson(json, "includes")
@@ -411,6 +420,7 @@ func makeTarget(json map[string]interface{}, targetSpec *TargetSpec) (*Target, [
 		target.PlatformOptions.Srcs = loadGlobs(platformOptions, "srcs")
 		target.PlatformOptions.Hdrs = loadGlobs(platformOptions, "hdrs")
 		target.PlatformOptions.Libs = loadGlobs(platformOptions, "libs")
+		target.PlatformOptions.Data = loadGlobs(platformOptions, "data")
 		target.PlatformOptions.CompileFlags = loadArrayFromJson(platformOptions, "compile_flags")
 		target.PlatformOptions.LinkFlags = loadArrayFromJson(platformOptions, "link_flags")
 		target.PlatformOptions.Includes = loadArrayFromJson(platformOptions, "includes")

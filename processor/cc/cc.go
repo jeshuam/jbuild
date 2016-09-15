@@ -174,6 +174,24 @@ func (p CCProcessor) Process(target *config.Target, taskQueue chan common.CmdSpe
 		return err
 	}
 
+	// Copy the data to the output directory.
+	for _, data := range target.Data() {
+		dataPath := filepath.Join(target.Spec.Workspace, target.Spec.PathSystem(), data)
+		dataOutPath := filepath.Join(target.Spec.OutputPath(), data)
+		dataStat, _ := os.Stat(dataPath)
+		dataOutStat, _ := os.Stat(dataOutPath)
+		if dataOutStat != nil && dataStat.ModTime().After(dataOutStat.ModTime()) {
+			os.Remove(dataOutPath)
+		}
+
+		if !common.FileExists(dataOutPath) {
+			err := os.Link(dataPath, dataOutPath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Save the output of this processing command.
 	target.ProgressBar.Finish()
 	target.Output = append(target.Output, binary)

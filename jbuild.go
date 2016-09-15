@@ -78,9 +78,22 @@ func main() {
 	// Get the command.
 	command := flag.Args()[0]
 
+	/// First, find the root of the workspace
+	// Get the current working directory.
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Could not get cwd: %v", err)
+	}
+
+	// Find the workspace directory.
+	workspaceDir, _, err := config.FindWorkspaceFile(cwd)
+	if err != nil {
+		log.Fatalf("ERROR: %v", err)
+	}
+
 	// If we are cleaning, just delete the output directory.
 	if command == "clean" {
-		cPrint("$ rm -rf %s", common.OutputDirectory)
+		cPrint("$ rm -rf %s", filepath.Join(workspaceDir, common.OutputDirectory))
 		err := os.RemoveAll(common.OutputDirectory)
 		if err != nil {
 			fmt.Printf("error: %s\n", err)
@@ -108,19 +121,6 @@ func main() {
 	// If we are running, there should only be a single target.
 	if command == "run" {
 		targetArgs = []string{targetArgs[0]}
-	}
-
-	/// First, find the root of the workspace
-	// Get the current working directory.
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Could not get cwd: %v", err)
-	}
-
-	// Find the workspace directory.
-	workspaceDir, _, err := config.FindWorkspaceFile(cwd)
-	if err != nil {
-		log.Fatalf("ERROR: %v", err)
 	}
 
 	// If the output directory flag was relative, make it absolute relative to
@@ -236,6 +236,7 @@ func main() {
 	// If we were running, there should only be one argument. Just run it.
 	if command == "run" {
 		cmd := exec.Command(firstTargetSpecified.Output[0], runFlags...)
+		cmd.Dir = firstTargetSpecified.Spec.OutputPath()
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
