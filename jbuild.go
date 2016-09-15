@@ -78,19 +78,6 @@ func main() {
 		return
 	}
 
-	/// First, find the root of the workspace
-	// Get the current working directory.
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Could not get cwd: %v", err)
-	}
-
-	// Find the workspace directory.
-	workspaceDir, _, err := config.FindWorkspaceFile(cwd)
-	if err != nil {
-		log.Fatalf("ERROR: %v", err)
-	}
-
 	// If we are cleaning, just delete the output directory.
 	if command == "clean" {
 		jbuildCommands.Clean(common.WorkspaceDir)

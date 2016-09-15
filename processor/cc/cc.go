@@ -176,7 +176,7 @@ func (p CCProcessor) Process(target *config.Target, taskQueue chan common.CmdSpe
 
 	// Copy the data to the output directory.
 	for _, data := range target.Data() {
-		dataPath := filepath.Join(target.Spec.Workspace, target.Spec.PathSystem(), data)
+		dataPath := filepath.Join(target.Spec.WorkspacePath(), data)
 		dataOutPath := filepath.Join(target.Spec.OutputPath(), data)
 		dataStat, _ := os.Stat(dataPath)
 		dataOutStat, _ := os.Stat(dataOutPath)
