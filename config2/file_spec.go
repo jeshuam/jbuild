@@ -60,13 +60,16 @@ func MakeFileSpec(rawSpec, cwd string) interfaces.FileSpec {
 
 	// If the spec isn't absolute, we need to make it relative.
 	if !strings.HasPrefix(rawSpec, "//") {
-		rawSpec, _ = filepath.Rel(common.WorkspaceDir, filepath.Join(cwd, spec.path))
+		rawSpec, _ = filepath.Rel(
+			common.WorkspaceDir, filepath.Join(cwd, spec.path))
 	}
 
 	// Split the string into it's file and dir parts.
 	rawSpec = strings.Trim(rawSpec, "/")
-	spec.path, spec.file = filepath.Split(strings.Replace(rawSpec, "/", pathSeparator, -1))
-	spec.path = strings.Trim(strings.Replace(spec.path, pathSeparator, "/", -1), "/")
+	spec.path, spec.file = filepath.Split(
+		strings.Replace(rawSpec, "/", pathSeparator, -1))
+	spec.path = strings.Trim(strings.Replace(
+		spec.path, pathSeparator, "/", -1), "/")
 
 	// Check to see whether this file exists and is a file. If it doesn't, then
 	// we don't have a FileSpec.
@@ -92,7 +95,9 @@ func MakeFileSpecGlob(rawSpecGlob, cwd string) []interfaces.Spec {
 	// Expand the globs.
 	globs, _ := Glob(rawSpecGlob)
 	for _, glob := range globs {
-		specs = append(specs, MakeFileSpec("//"+strings.Replace(glob, pathSeparator, "/", -1), ""))
+		specs = append(
+			specs,
+			MakeFileSpec("//"+strings.Replace(glob, pathSeparator, "/", -1), ""))
 	}
 
 	return specs

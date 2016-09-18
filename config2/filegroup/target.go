@@ -1,7 +1,6 @@
 package filegroup
 
 import (
-	// "errors"
 	"fmt"
 
 	"github.com/deckarep/golang-set"
@@ -52,8 +51,16 @@ func (this *Target) Process(*progress.ProgressBar, chan common.CmdSpec) error {
 	return nil
 }
 
+func (this *Target) Run([]string) {
+
+}
+
 func (this *Target) TotalOps() int {
 	return 0
+}
+
+func (this *Target) Changed() bool {
+	return false
 }
 
 func (this *Target) ExtractAllFiles() []interfaces.FileSpec {

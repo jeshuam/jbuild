@@ -13,6 +13,9 @@ var (
 	// A cache from file spec strings --> targets. This will allow the same target
 	// to be loaded multiple times with no performance degradations.
 	TargetCache = make(map[string]interfaces.Target, 0)
+
+	// A cache of file spec --> file spec object.
+	SpecCache = make(map[string]interfaces.Spec, 0)
 )
 
 func GetDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {

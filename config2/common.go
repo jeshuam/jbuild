@@ -48,9 +48,11 @@ func LoadTargetSpecs(json map[string]interface{}, key, cwd string) ([]interfaces
 			continue
 		}
 
-		targetSpec, targetErr := MakeTargetSpec(rawSpec, cwd)
-		if targetSpec != nil {
-			specs = append(specs, targetSpec)
+		targetSpecs, targetErr := MakeTargetSpec(rawSpec, cwd)
+		if targetSpecs != nil {
+			for _, spec := range targetSpecs {
+				specs = append(specs, spec)
+			}
 			continue
 		}
 

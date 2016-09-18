@@ -44,12 +44,9 @@ func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue c
 	results := make(chan error, len(target.AllSrcs()))
 	nCompiled := 0
 
-	fmt.Printf("Srcs = %s\n", target.Srcs)
 	for i, srcFile := range target.AllSrcs() {
 		// Display the source file we are building.
 		progressBar.SetSuffix(srcFile.String())
-
-		// Make the output directory for this file.
 
 		// Work out the full path to the source file. This will need to be provided
 		// to the compiler.
@@ -67,7 +64,7 @@ func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue c
 		srcStat, _ := os.Stat(srcPath)
 		objStat, _ := os.Stat(objPath)
 		srcChanged := true
-		depsChanged := true
+		depsChanged := false
 		if objStat != nil {
 			srcChanged = !objStat.ModTime().After(srcStat.ModTime())
 		}
@@ -116,13 +113,13 @@ func linkObjects(target *Target, progressBar *progress.ProgressBar, taskQueue ch
 	}
 
 	// Work out the output filepath.
-	// dependenciesChanged := target.IsExecutable() && target.DependenciesChanged()
+	dependenciesChanged := target.IsExecutable() && target.Changed()
 	outputPath := filepath.Join(target.Spec.OutputPath(), outputName)
-	// if nCompiled == 0 && common.FileExists(outputPath) && !dependenciesChanged {
-	// 	progressBar.Increment()
-	// 	target.Changed = false
-	// 	return outputPath, nil
-	// }
+	if nCompiled == 0 && common.FileExists(outputPath) && !dependenciesChanged {
+		progressBar.Increment()
+		target._changed = false
+		return outputPath, nil
+	}
 
 	// Make the error channel.
 	// target.Changed = true

@@ -3,9 +3,12 @@ package cc
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/deckarep/golang-set"
+	"github.com/fatih/color"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config2/filegroup"
 	"github.com/jeshuam/jbuild/config2/interfaces"
@@ -40,6 +43,7 @@ type Target struct {
 	}
 
 	_processed bool
+	_changed   bool
 }
 
 func (this *Target) String() string {
@@ -132,6 +136,10 @@ func (this *Target) AllSrcs() []interfaces.FileSpec {
 	return this.extractAllSpecs(this.Srcs)
 }
 
+func (this *Target) AllHdrs() []interfaces.FileSpec {
+	return this.extractAllSpecs(this.Hdrs)
+}
+
 func (this *Target) AllLibs() []interfaces.FileSpec {
 	allLibs := make([]interfaces.FileSpec, 0, len(this.Libs))
 
@@ -164,6 +172,31 @@ func (this *Target) DepOutputs() []string {
 	}
 
 	return output
+}
+
+func (this *Target) Changed() bool {
+	// If the output file doesn't exist, then we must have changed.
+	var outputName string
+	if this.IsLibrary() {
+		outputName = libraryName(this.Spec.Name())
+	} else if this.IsExecutable() {
+		outputName = binaryName(this.Spec.Name())
+	}
+
+	outputFile := filepath.Join(this.Spec.OutputPath(), outputName)
+	if !common.FileExists(outputFile) {
+		return true
+	}
+
+	outputStat, _ := os.Stat(outputFile)
+	for _, hdr := range this.AllHdrs() {
+		hdrStat, _ := os.Stat(hdr.FilePath())
+		if hdrStat.ModTime().After(outputStat.ModTime()) {
+			return true
+		}
+	}
+
+	return this._changed
 }
 
 func (this *Target) Process(progressBar *progress.ProgressBar, workQueue chan common.CmdSpec) error {
@@ -228,6 +261,15 @@ func (this *Target) Process(progressBar *progress.ProgressBar, workQueue chan co
 	this.Output.File = binary
 	this._processed = true
 	return nil
+}
+
+func (this *Target) Run(args []string) {
+	cmd := exec.Command(this.Output.File, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	color.New(color.FgHiBlue, color.Bold).Printf("\n$ %s\n", strings.Join(cmd.Args, " "))
+	cmd.Run()
 }
 
 func (this *Target) TotalOps() int {

@@ -24,4 +24,8 @@ type Target interface {
 	TotalOps() int
 
 	Type() string
+
+	Changed() bool
+
+	Run(args []string)
 }

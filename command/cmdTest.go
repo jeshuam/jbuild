@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -13,7 +14,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/jeshuam/jbuild/common"
-	"github.com/jeshuam/jbuild/config"
+	"github.com/jeshuam/jbuild/config2/interfaces"
 	"github.com/op/go-logging"
 )
 
@@ -30,7 +31,7 @@ var (
 
 type testResult struct {
 	TestBinary string
-	TargetSpec config.TargetSpec
+	TargetSpec string
 	Passed     bool
 	Output     string
 	Duration   time.Duration
@@ -54,17 +55,17 @@ func (this *testResult) save() {
 	}
 }
 
-func loadTestResult(target *config.Target) *testResult {
+func loadTestResult(target interfaces.TargetSpec) *testResult {
 	// Don't load anything if the file doesn't exist.
-	cacheFileName := target.Output[0] + ".result"
+	cacheFileName := filepath.Join(target.OutputPath(), target.Name()) + ".result"
 	if !common.FileExists(cacheFileName) {
 		return nil
 	}
 
 	// Check to see if the test executable was changed since the cache was made.
 	cacheStat, _ := os.Stat(cacheFileName)
-	outputStat, _ := os.Stat(target.Output[0])
-	if outputStat.ModTime().After(cacheStat.ModTime()) {
+	outputStat, _ := os.Stat(filepath.Join(target.OutputPath(), target.Name()))
+	if outputStat != nil && outputStat.ModTime().After(cacheStat.ModTime()) {
 		return nil
 	}
 
@@ -90,7 +91,7 @@ func loadTestResult(target *config.Target) *testResult {
 	return result
 }
 
-func runTest(target *config.Target, results chan testResult) {
+func runTest(target interfaces.TargetSpec, results chan testResult) {
 	// If we aren't being forced to run tests, then try to load a cached test
 	// result file.
 	if !*forceRunTests && *testRuns == 1 {
@@ -103,21 +104,21 @@ func runTest(target *config.Target, results chan testResult) {
 
 	// Either we are being forced to run tests, or this test has not been cached
 	// recently. Run the test!
-	cmd := exec.Command(target.Output[0])
+	cmd := exec.Command(filepath.Join(target.OutputPath(), target.Name()))
 	concurrentTestSemaphore <- true
 	common.RunCommand(cmd, nil, func(output string, success bool, d time.Duration) {
-		result := testResult{target.Output[0], *target.Spec, success, output, d, false}
+		result := testResult{filepath.Join(target.OutputPath(), target.Name()), target.String(), success, output, d, false}
 		result.save()
 		results <- result
 		<-concurrentTestSemaphore
 	})
 }
 
-func runTests(targetsToTest config.TargetSet) chan testResult {
+func runTests(targetsToTest map[string]interfaces.TargetSpec) chan testResult {
 	rawResults := make(chan testResult)
 	for target := range targetsToTest {
 		for i := 0; i < int(*testRuns); i++ {
-			go runTest(target, rawResults)
+			go runTest(targetsToTest[target], rawResults)
 		}
 	}
 
@@ -128,7 +129,7 @@ func collateTestResults(rawResults chan testResult, testRuns int) map[string][]t
 	results := make(map[string][]testResult, 0)
 	for i := 0; i < testRuns; i++ {
 		result := <-rawResults
-		resultSpec := result.TargetSpec.String()
+		resultSpec := result.TargetSpec
 		results[resultSpec] = append(results[resultSpec], result)
 	}
 
@@ -195,7 +196,7 @@ func displayResultsForTarget(target string, results []testResult) {
 	}
 }
 
-func RunTests(targetsToTest config.TargetSet) {
+func RunTests(targetsToTest map[string]interfaces.TargetSpec) {
 	// Run the tests once, for each command, and collect the results.
 	rawResults := runTests(targetsToTest)
 

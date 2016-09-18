@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	// "reflect"
 	"strings"
 
 	"github.com/jeshuam/jbuild/common"
@@ -73,31 +72,16 @@ func (this *TargetSpecImpl) Type() string {
 //                            TargetSpec Methods                              //
 ////////////////////////////////////////////////////////////////////////////////
 
-func (this *TargetSpecImpl) init() error {
-	// See if the target is in the cache. If it is, just use that.
-	_, ok := util.TargetCache[this.String()]
+func (this *TargetSpecImpl) init(json map[string]interface{}) error {
+	// If the target has already been loaded, then just return it.
+	cachedTarget, ok := util.TargetCache[this.String()]
 	if ok {
-		this.target = util.TargetCache[this.String()]
+		this.target = cachedTarget
 		return nil
 	}
 
-	// Try to load the BUILD file corresponding to this spec. If there is no BUILD
-	// file, then there is nothing else to do.
-	buildFile, err := LoadBuildFile(filepath.Join(this.Path(), BuildFileName))
-	if err != nil {
-		return err
-	}
-
-	// If this file is a target, then load it. Otherwise, we have nothing else
-	// to do.
-	targetJsonInterface, ok := buildFile[this.name]
-	if !ok {
-		return errors.New(fmt.Sprintf("Unknown target %s", this))
-	}
-
 	// Extract the type from the target.
-	targetJson := targetJsonInterface.(map[string]interface{})
-	targetTypeInterface, ok := targetJson["type"]
+	targetTypeInterface, ok := json["type"]
 	if !ok {
 		return errors.New(fmt.Sprintf("Target %s missing required 'type' field."))
 	}
@@ -116,17 +100,54 @@ func (this *TargetSpecImpl) init() error {
 	util.TargetCache[this.String()] = this.target
 
 	// Load the target.
-	return LoadTargetFromJson(this, this.Target(), targetJson)
+	return LoadTargetFromJson(this, this.Target(), json)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 //                       TargetSpec Utility Functions                         //
 ////////////////////////////////////////////////////////////////////////////////
 
+func expandAllTargetsInTree(workspaceDir, path string) ([]interfaces.TargetSpec, error) {
+	buildFiles, err := Glob(filepath.Join(workspaceDir, path, "**", BuildFileName))
+	if err != nil {
+		return nil, err
+	}
+
+	finalSpecs := make([]interfaces.TargetSpec, 0)
+	for _, buildFile := range buildFiles {
+		buildRelPath, _ := filepath.Rel(workspaceDir, buildFile)
+		buildFilePath, _ := filepath.Split(buildRelPath)
+		targets, err := expandAllTargetsInDir(workspaceDir, buildFilePath)
+		if err != nil {
+			return nil, err
+		}
+
+		finalSpecs = append(finalSpecs, targets...)
+	}
+
+	return finalSpecs, nil
+}
+
+func expandAllTargetsInDir(workspaceDir, path string) ([]interfaces.TargetSpec, error) {
+	buildFilepath := filepath.Join(workspaceDir, path, BuildFileName)
+	targetsJSON, err := LoadBuildFile(buildFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	targets := make([]interfaces.TargetSpec, 0, len(targetsJSON))
+	for targetName := range targetsJSON {
+		specs, _ := MakeTargetSpec("//"+strings.Replace(path, pathSeparator, "/", -1)+":"+targetName, "")
+		targets = append(targets, specs...)
+	}
+
+	return targets, nil
+}
+
 // MakeTargetSpec constructs and returns a valid TargetSpec object, or nil if
 // the given spec doesn't refer to a valid target. rawSpec can be absolute or
 // relative to `cwd`.
-func MakeTargetSpec(rawSpec string, cwd string) (interfaces.TargetSpec, error) {
+func MakeTargetSpec(rawSpec string, cwd string) ([]interfaces.TargetSpec, error) {
 	spec := new(TargetSpecImpl)
 
 	// Split the string into it's file and dir parts.
@@ -147,6 +168,22 @@ func MakeTargetSpec(rawSpec string, cwd string) (interfaces.TargetSpec, error) {
 		spec.path, _ = filepath.Rel(common.WorkspaceDir, filepath.Join(cwd, rawPath))
 	}
 
+	// Replace any last OS-level separators. Now we can see if it has been cached!
+	spec.path = strings.Replace(spec.path, pathSeparator, "/", -1)
+	cachedSpec, ok := util.SpecCache[spec.String()]
+	if ok {
+		return []interfaces.TargetSpec{cachedSpec.(interfaces.TargetSpec)}, nil
+	}
+
+	// Final special case: if the target name is a special value, then expand the
+	// target into multiple targets.
+	if spec.name == "all" {
+		return expandAllTargetsInDir(common.WorkspaceDir, spec.Path())
+	} else if strings.HasSuffix(spec.path, "...") {
+		targetPathWithoutDots, _ := filepath.Split(spec.Dir())
+		return expandAllTargetsInTree(common.WorkspaceDir, targetPathWithoutDots)
+	}
+
 	// Check to see whether the target exists. This requires that the BUILD file
 	// for this directory is parsed.
 	buildFile, err := LoadBuildFile(filepath.Join(spec.Path(), BuildFileName))
@@ -154,16 +191,17 @@ func MakeTargetSpec(rawSpec string, cwd string) (interfaces.TargetSpec, error) {
 		return nil, err
 	}
 
-	_, ok := buildFile[spec.Name()]
+	targetJson, ok := buildFile[spec.Name()]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("Unknown target spec %s", rawSpec))
 	}
 
 	// Otherwise, initialize the target spec and return it.
-	err = spec.init()
+	err = spec.init(targetJson.(map[string]interface{}))
 	if err != nil {
 		return nil, err
 	}
 
-	return spec, nil
+	util.SpecCache[spec.String()] = spec
+	return []interfaces.TargetSpec{spec}, nil
 }

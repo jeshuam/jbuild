@@ -6,8 +6,9 @@ import (
 	"runtime"
 
 	"github.com/jeshuam/jbuild/common"
-	"github.com/jeshuam/jbuild/config"
-	"github.com/jeshuam/jbuild/processor"
+	"github.com/jeshuam/jbuild/config2"
+	"github.com/jeshuam/jbuild/config2/interfaces"
+	"github.com/jeshuam/jbuild/config2/util"
 	"github.com/jeshuam/jbuild/progress"
 )
 
@@ -18,13 +19,13 @@ var (
 	Threads = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
 )
 
-func setupProgressBars(targetsToBuild config.TargetSet) {
+func setupProgressBars(targetsToBuild map[string]interfaces.TargetSpec) {
 	if *UseProgress {
 		if *SimpleProgress {
 			// For simple progress bars, manually set the maximum number of ops.
 			totalOps := 0
-			for target := range targetsToBuild {
-				totalOps += target.TotalOps()
+			for targetSpec := range targetsToBuild {
+				totalOps += targetsToBuild[targetSpec].Target().TotalOps()
 			}
 
 			progress.SetTotalOps(totalOps)
@@ -38,24 +39,32 @@ func setupProgressBars(targetsToBuild config.TargetSet) {
 	}
 }
 
-func buildTargets(targetsToBuild config.TargetSet, taskQueue chan common.CmdSpec) {
+func buildTargets(targetsToBuild map[string]interfaces.TargetSpec, taskQueue chan common.CmdSpec) {
 	var (
-		results = make(chan processor.ProcessingResult)
+		results = make(chan config2.ProcessingResult)
 
-		targetsStarted = config.TargetSet{}
-		targetsBuilt   = config.TargetSet{}
+		targetsStarted = make(map[string]bool, 0)
+		targetsBuilt   = make(map[string]bool, 0)
 	)
 
 	for len(targetsBuilt) < len(targetsToBuild) {
-		for target, _ := range targetsToBuild {
-			if !targetsStarted.Contains(target) && target.ReadyToProcess() {
-				log.Infof("Processing %s...", target)
-				err := processor.Process(target, results, taskQueue)
-				if err != nil {
-					log.Fatalf("Error while processing %s: %v", target, err)
-				}
+		for specName, _ := range targetsToBuild {
+			spec := targetsToBuild[specName]
+			_, targetStarted := targetsStarted[specName]
+			if !targetStarted && util.ReadyToProcess(spec) {
+				log.Infof("Processing %s...", specName)
+				progressBar := progress.AddBar(spec.Target().TotalOps(), specName)
 
-				targetsStarted.Add(target)
+				go func() {
+					err := spec.Target().Process(progressBar, taskQueue)
+					if err != nil {
+						log.Fatalf("Error while processing %s: %v", specName, err)
+					}
+
+					results <- config2.ProcessingResult{spec, err}
+				}()
+
+				targetsStarted[specName] = true
 			}
 		}
 
@@ -64,13 +73,13 @@ func buildTargets(targetsToBuild config.TargetSet, taskQueue chan common.CmdSpec
 		if result.Err != nil {
 			log.Fatal(result.Err)
 		} else {
-			targetsBuilt.Add(result.Target)
-			log.Infof("Finished processing %s!", result.Target)
+			targetsBuilt[result.Spec.String()] = true
+			log.Infof("Finished processing %s!", result.Spec)
 		}
 	}
 }
 
-func BuildTargets(targetsToBuild config.TargetSet) {
+func BuildTargets(targetsToBuild map[string]interfaces.TargetSpec) {
 	// Make a task queue, which runs commands that are passed to it.
 	taskQueue := make(chan common.CmdSpec)
 	for i := 0; i < *Threads; i++ {
