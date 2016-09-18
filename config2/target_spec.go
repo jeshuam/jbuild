@@ -28,98 +28,56 @@ func init() {
 		"Name of the file containing the target spec definitions.")
 }
 
-// A TargetSpec is a single unit within the build system; this could be a target
-// (e.g. a C++ library) which is referenced inside a BUILD file, or it could
-// just be an ordinary file.
-type TargetSpec struct {
-	// The relative path to the file from the workspace root. Should always use
-	// the "/" character as the path separator. This path should not include a
-	// trailing "/" character.
-	path  string
-	_type string
-
-	// The name of the file (or target) at the given workspace path.
-	name string
-
-	// The target this spec refers to. It may be nil for files. Will not be set
-	// until Load() has been called.
-	isTarget bool
+type TargetSpecImpl struct {
+	path   string
+	name   string
+	_type  string
+	target interfaces.Target
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//                              TargetSpec Getters                            //
+//                          Interface Implementation                          //
 ////////////////////////////////////////////////////////////////////////////////
 
-func (this *TargetSpec) Dir() string {
+func (this *TargetSpecImpl) Dir() string {
 	return this.path
 }
 
-func (this *TargetSpec) Name() string {
+func (this *TargetSpecImpl) Path() string {
+	return filepath.Join(
+		common.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
+}
+
+func (this *TargetSpecImpl) String() string {
+	return "//" + this.Dir() + ":" + this.Name()
+}
+
+func (this *TargetSpecImpl) Name() string {
 	return this.name
 }
 
-func (this *TargetSpec) Type() string {
-	return this._type
-}
-
-func (this *TargetSpec) Path() string {
-	if !this.IsTarget() {
-		return filepath.Join(
-			common.WorkspaceDir,
-			strings.Replace(this.path, "/", pathSeparator, -1),
-			this.name)
-	} else {
-		return filepath.Join(
-			common.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
-	}
-}
-
-func (this *TargetSpec) OutputPath() string {
-	if !this.IsTarget() {
-		return filepath.Join(
-			common.OutputDirectory,
-			strings.Replace(this.path, "/", pathSeparator, -1),
-			this.name)
-	} else {
-		return filepath.Join(
-			common.OutputDirectory, strings.Replace(this.path, "/", pathSeparator, -1))
-	}
-}
-
-func (this *TargetSpec) IsTarget() bool {
-	return this.isTarget
-}
-
-func (this *TargetSpec) Target() interfaces.Target {
+func (this *TargetSpecImpl) Target() interfaces.Target {
 	return util.TargetCache[this.String()]
 }
 
-func (this *TargetSpec) String() string {
-	if this.IsTarget() {
-		return "//" + this.path + ":" + this.name
-	} else {
-		return "//" + this.path + "/" + this.name
-	}
+func (this *TargetSpecImpl) OutputPath() string {
+	return filepath.Join(
+		common.OutputDirectory, strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
-func (this *TargetSpec) Validate() error {
-	return util.TargetCache[this.String()].Validate()
+func (this *TargetSpecImpl) Type() string {
+	return this._type
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 //                            TargetSpec Methods                              //
 ////////////////////////////////////////////////////////////////////////////////
 
-func (this *TargetSpec) Init() error {
-	// If this isn't a target, then stop.
-	if !this.IsTarget() {
-		this._type = "file"
-		return nil
-	}
-
+func (this *TargetSpecImpl) init() error {
 	// See if the target is in the cache. If it is, just use that.
 	_, ok := util.TargetCache[this.String()]
 	if ok {
+		this.target = util.TargetCache[this.String()]
 		return nil
 	}
 
@@ -146,60 +104,66 @@ func (this *TargetSpec) Init() error {
 
 	// Based on the type, create a new target.
 	this._type = targetTypeInterface.(string)
-	var target interfaces.Target
 	if strings.HasPrefix(this._type, "c++") {
-		target = new(cc.Target)
+		this.target = new(cc.Target)
 	} else if strings.HasPrefix(this._type, "filegroup") {
-		target = new(filegroup.Target)
+		this.target = new(filegroup.Target)
 	} else {
 		return errors.New(fmt.Sprintf("Target %s has unknown type %s", this, this._type))
 	}
 
 	// Cache the target.
-	util.TargetCache[this.String()] = target
+	util.TargetCache[this.String()] = this.target
 
 	// Load the target.
-	return LoadTargetFromJson(this, target, targetJson)
+	return LoadTargetFromJson(this, this.Target(), targetJson)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 //                       TargetSpec Utility Functions                         //
 ////////////////////////////////////////////////////////////////////////////////
 
-// Make a file spec object from the given path. The TargetSpec returned will not
-// be valid if an error has been returned.
-func MakeTargetSpec(path string) *TargetSpec {
-	spec := new(TargetSpec)
+// MakeTargetSpec constructs and returns a valid TargetSpec object, or nil if
+// the given spec doesn't refer to a valid target. rawSpec can be absolute or
+// relative to `cwd`.
+func MakeTargetSpec(rawSpec string, cwd string) (interfaces.TargetSpec, error) {
+	spec := new(TargetSpecImpl)
 
-	// If the path is not absolute (there is no // at the start), then we need
-	// to figure out where it is relative to the current directory.
-	if !strings.HasPrefix(path, "//") {
-		path, _ = filepath.Rel(
-			common.WorkspaceDir, filepath.Join(common.CurrentDir, path))
-	}
-
-	// If a file exists with the given path, then it must be a file. Unless it's
-	// a directory, in which case it's meant to be a target.
-	fullPath := filepath.Join(common.WorkspaceDir, path)
-	if common.FileExists(fullPath) && !common.IsDir(fullPath) {
-		spec.path = filepath.Dir(path)
-		spec.name = filepath.Base(path)
-		spec.isTarget = false
+	// Split the string into it's file and dir parts.
+	rawSpecParts := strings.Split(rawSpec, ":")
+	rawPath := rawSpecParts[0]
+	if len(rawSpecParts) == 2 {
+		spec.name = rawSpecParts[1]
 	} else {
-		parts := strings.SplitN(path, ":", 2)
-		spec.path = parts[0]
-		if len(parts) == 2 {
-			spec.name = parts[1]
-		} else {
-			pathParts := strings.Split(spec.path, "/")
-			spec.name = pathParts[len(pathParts)-1]
-		}
-
-		spec.isTarget = true
+		rawPathParts := strings.Split(rawPath, "/")
+		spec.name = rawPathParts[len(rawPathParts)-1]
 	}
 
-	// Trim any trailing or proceeding slashes from the path name.
-	spec.path = strings.Trim(strings.Trim(spec.path, "/"), pathSeparator)
-	spec.path = strings.Replace(spec.path, pathSeparator, "/", -1)
-	return spec
+	// If the spec is absolute, then we can just save the path directly.
+	if strings.HasPrefix(rawSpec, "//") {
+		spec.path = strings.Trim(rawPath, "/")
+	} else {
+		// Otherwise, we need to figure out the absolute path.
+		spec.path, _ = filepath.Rel(common.WorkspaceDir, filepath.Join(cwd, rawPath))
+	}
+
+	// Check to see whether the target exists. This requires that the BUILD file
+	// for this directory is parsed.
+	buildFile, err := LoadBuildFile(filepath.Join(spec.Path(), BuildFileName))
+	if err != nil {
+		return nil, err
+	}
+
+	_, ok := buildFile[spec.Name()]
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("Unknown target spec %s", rawSpec))
+	}
+
+	// Otherwise, initialize the target spec and return it.
+	err = spec.init()
+	if err != nil {
+		return nil, err
+	}
+
+	return spec, nil
 }

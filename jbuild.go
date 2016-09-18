@@ -98,21 +98,20 @@ func main() {
 	targetArgs := flag.Args()[1:]
 
 	// Save 2 lists: a set of targets specified, and a set of targets to process.
-	targetsSpecified := make(map[string]interfaces.Spec)
-	targetsToBuild := make(map[string]interfaces.Spec)
+	targetsSpecified := make(map[string]interfaces.TargetSpec)
+	targetsToBuild := make(map[string]interfaces.TargetSpec)
 
 	// Use config v2.
 	fmt.Printf("Using ConfigV2\n")
 	for _, target := range targetArgs {
-		spec := config2.MakeTargetSpec(target)
-		targetsSpecified[spec.String()] = spec
-		targetsToBuild[spec.String()] = spec
-
-		err := spec.Init()
+		spec, err := config2.MakeTargetSpec(target, common.CurrentDir)
 		if err != nil {
 			fmt.Printf("Failed: %s", err)
 			return
 		}
+
+		targetsSpecified[spec.String()] = spec
+		targetsToBuild[spec.String()] = spec
 
 		err = util.CheckForDependencyCycles(spec)
 		if err != nil {
@@ -120,7 +119,7 @@ func main() {
 			return
 		}
 
-		err = spec.Validate()
+		err = spec.Target().Validate()
 		if err != nil {
 			fmt.Printf("%s", err)
 			return

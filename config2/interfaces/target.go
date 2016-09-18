@@ -13,8 +13,8 @@ type Target interface {
 	Validate() error
 
 	// Return a list of targets on which this target depends.
-	Dependencies() []Spec
-	DirectDependencies() []Spec
+	Dependencies() []TargetSpec
+	DirectDependencies() []TargetSpec
 
 	Processed() bool
 

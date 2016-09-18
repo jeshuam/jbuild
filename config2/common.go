@@ -3,13 +3,11 @@ package config2
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
 
 	"github.com/fatih/camelcase"
-	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config2/cc"
 	"github.com/jeshuam/jbuild/config2/filegroup"
 	"github.com/jeshuam/jbuild/config2/interfaces"
@@ -31,51 +29,42 @@ type ProcessingResult struct {
 
 // Load a list of FileSpecs from a JSON map. The values are all globs by
 // default.
-func LoadTargetSpecs(json map[string]interface{}, key, base string) ([]interfaces.Spec, error) {
+func LoadTargetSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.Spec, error) {
 	// First, load the array of strings from the JSON object.
-	globs := LoadStrings(json, key)
+	rawSpecs := LoadStrings(json, key)
 
 	// Place to store the final result.
-	targetSpecs := make([]interfaces.Spec, 0, len(globs))
+	specs := make([]interfaces.Spec, 0, len(rawSpecs))
 
 	// Now expand each glob. Note that things might not expand if they aren't
 	// actually globs; that's OK. Start by making the target spec. There is no
 	// need to actually load anything; we just want to know what the absolute
 	// path relative to the workspace is.
-	for _, glob := range globs {
-		globSpec := glob
-		if !strings.HasPrefix(glob, "//") {
-			globSpec = "//" + strings.Replace(filepath.Join(base, glob), pathSeparator, "/", -1)
+	for _, rawSpec := range rawSpecs {
+		// Try to load a set of globs.
+		globSpecs := MakeFileSpecGlob(rawSpec, cwd)
+		if len(globSpecs) > 0 {
+			specs = append(specs, globSpecs...)
+			continue
 		}
 
-		// Try to load the globs. If that doesn't work, then it must just be a
-		// normal target.
-		globFiles, err := Glob(filepath.Join(common.WorkspaceDir, base, glob))
-		if err != nil {
-			targetSpecs = append(targetSpecs, MakeTargetSpec(globSpec))
-		} else {
-			// Add all of the glob files found.
-			for _, globFile := range globFiles {
-				globFileRel, err := filepath.Rel(common.WorkspaceDir, globFile)
-				if err != nil {
-					return nil, err
-				}
-
-				globFile = strings.Replace(globFileRel, pathSeparator, "/", -1)
-				targetSpecs = append(targetSpecs, MakeTargetSpec("//"+globFile))
-			}
+		targetSpec, targetErr := MakeTargetSpec(rawSpec, cwd)
+		if targetSpec != nil {
+			specs = append(specs, targetSpec)
+			continue
 		}
+
+		dirSpec := MakeDirSpec(rawSpec, cwd)
+		if dirSpec != nil {
+			specs = append(specs, dirSpec)
+			continue
+		}
+
+		// If we got here, it wasn't a valid spec.
+		return nil, targetErr
 	}
 
-	// Initialize all of the target specs.
-	for _, targetSpec := range targetSpecs {
-		err := targetSpec.Init()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return targetSpecs, nil
+	return specs, nil
 }
 
 // Load a list of strings from the given JSON map.
@@ -91,7 +80,7 @@ func LoadStrings(json map[string]interface{}, key string) []string {
 	return strings
 }
 
-func LoadTargetFromJson(spec interfaces.Spec, target interfaces.Target, targetJson map[string]interface{}) error {
+func LoadTargetFromJson(spec interfaces.TargetSpec, target interfaces.Target, targetJson map[string]interface{}) error {
 	var targetType reflect.Type
 	var targetValue reflect.Value
 	switch target.(type) {
@@ -138,18 +127,18 @@ func LoadTargetFromJson(spec interfaces.Spec, target interfaces.Target, targetJs
 
 		switch fieldType {
 		case reflect.TypeOf([]interfaces.Spec{}):
-			targetSpecs, err := LoadTargetSpecs(targetJson, fieldName, spec.Dir())
+			targetSpecs, err := LoadTargetSpecs(targetJson, fieldName, spec.Path())
 			if err != nil {
 				return err
 			}
 
-			platformTargetSpecs, err := LoadTargetSpecs(platformOptionsJson, fieldName, spec.Dir())
+			platformTargetSpecs, err := LoadTargetSpecs(platformOptionsJson, fieldName, spec.Path())
 			if err != nil {
 				return err
 			}
 
-			allTargetSpecs := append(targetSpecs, platformTargetSpecs...)
-			targetField.Set(reflect.ValueOf(allTargetSpecs))
+			targetSpecs = append(targetSpecs, platformTargetSpecs...)
+			targetField.Set(reflect.ValueOf(targetSpecs))
 
 		case reflect.TypeOf([]string{}):
 			options := LoadStrings(targetJson, fieldName)

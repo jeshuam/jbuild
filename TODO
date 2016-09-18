@@ -1,0 +1,3 @@
+TODO:
+
+- Make the loader go through the json, not the struct.

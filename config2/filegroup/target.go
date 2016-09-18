@@ -32,14 +32,14 @@ func (this *Target) Validate() error {
 	return nil
 }
 
-func (this *Target) DirectDependencies() []interfaces.Spec {
-	deps := make([]interfaces.Spec, 0, len(this.Files))
+func (this *Target) DirectDependencies() []interfaces.TargetSpec {
+	deps := make([]interfaces.TargetSpec, 0, len(this.Files))
 	deps = append(deps, util.GetDirectDependencies(this.Files)...)
 	return deps
 }
 
-func (this *Target) Dependencies() []interfaces.Spec {
-	deps := make([]interfaces.Spec, 0, len(this.Files))
+func (this *Target) Dependencies() []interfaces.TargetSpec {
+	deps := make([]interfaces.TargetSpec, 0, len(this.Files))
 	deps = append(deps, util.GetDependencies(this.Files)...)
 	return deps
 }
@@ -56,13 +56,14 @@ func (this *Target) TotalOps() int {
 	return 0
 }
 
-func (this *Target) ExtractAllFiles() []interfaces.Spec {
-	files := make([]interfaces.Spec, 0, len(this.Files))
-	for _, file := range this.Files {
-		if file.IsTarget() {
-			files = append(files, file.Target().(*Target).ExtractAllFiles()...)
-		} else {
-			files = append(files, file)
+func (this *Target) ExtractAllFiles() []interfaces.FileSpec {
+	files := make([]interfaces.FileSpec, 0, len(this.Files))
+	for _, fileSpec := range this.Files {
+		switch fileSpec.(type) {
+		case interfaces.FileSpec:
+			files = append(files, fileSpec.(interfaces.FileSpec))
+		case interfaces.TargetSpec:
+			files = append(files, fileSpec.(interfaces.TargetSpec).Target().(*Target).ExtractAllFiles()...)
 		}
 	}
 

@@ -15,12 +15,12 @@ var (
 	TargetCache = make(map[string]interfaces.Target, 0)
 )
 
-func GetDependencies(specs []interfaces.Spec) []interfaces.Spec {
-	deps := make([]interfaces.Spec, 0, len(specs))
+func GetDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
+	deps := make([]interfaces.TargetSpec, 0, len(specs))
 	for _, spec := range specs {
 		target, ok := TargetCache[spec.String()]
 		if ok {
-			deps = append(deps, spec)
+			deps = append(deps, spec.(interfaces.TargetSpec))
 			deps = append(deps, target.Dependencies()...)
 		}
 	}
@@ -28,12 +28,12 @@ func GetDependencies(specs []interfaces.Spec) []interfaces.Spec {
 	return deps
 }
 
-func GetDirectDependencies(specs []interfaces.Spec) []interfaces.Spec {
-	deps := make([]interfaces.Spec, 0, len(specs))
+func GetDirectDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
+	deps := make([]interfaces.TargetSpec, 0, len(specs))
 	for _, spec := range specs {
 		_, ok := TargetCache[spec.String()]
 		if ok {
-			deps = append(deps, spec)
+			deps = append(deps, spec.(interfaces.TargetSpec))
 		}
 	}
 
@@ -41,11 +41,11 @@ func GetDirectDependencies(specs []interfaces.Spec) []interfaces.Spec {
 }
 
 func EnsureDependenciesAreOfType(specs []interfaces.Spec, types mapset.Set) error {
-	for _, spec := range specs {
-		if !types.Contains(spec.Type()) {
-			return errors.New(fmt.Sprintf("Invalid type %s: options are %s", spec.Type(), types))
-		}
-	}
+	// for _, spec := range specs {
+	// 	if !types.Contains(spec.Type()) {
+	// 		return errors.New(fmt.Sprintf("Invalid type %s: options are %s", spec.Type(), types))
+	// 	}
+	// }
 
 	return nil
 }
@@ -97,7 +97,7 @@ func CheckForDependencyCycles(spec interfaces.Spec) error {
 	return nil
 }
 
-func ReadyToProcess(spec interfaces.Spec) bool {
+func ReadyToProcess(spec interfaces.TargetSpec) bool {
 	for _, dep := range spec.Target().Dependencies() {
 		if !dep.Target().Processed() {
 			return false

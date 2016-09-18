@@ -23,7 +23,7 @@ const (
 
 type Target struct {
 	// Input arguments.
-	Spec         interfaces.Spec
+	Spec         interfaces.TargetSpec
 	OutputType   TargetType
 	Srcs         []interfaces.Spec
 	Hdrs         []interfaces.Spec
@@ -77,16 +77,16 @@ func (this *Target) Validate() error {
 	return nil
 }
 
-func (this *Target) DirectDependencies() []interfaces.Spec {
-	deps := make([]interfaces.Spec, 0, len(this.Srcs)+len(this.Hdrs)+len(this.Deps))
+func (this *Target) DirectDependencies() []interfaces.TargetSpec {
+	deps := make([]interfaces.TargetSpec, 0, len(this.Srcs)+len(this.Hdrs)+len(this.Deps))
 	deps = append(deps, util.GetDirectDependencies(this.Srcs)...)
 	deps = append(deps, util.GetDirectDependencies(this.Hdrs)...)
 	deps = append(deps, util.GetDirectDependencies(this.Deps)...)
 	return deps
 }
 
-func (this *Target) Dependencies() []interfaces.Spec {
-	deps := make([]interfaces.Spec, 0, len(this.Srcs)+len(this.Hdrs)+len(this.Deps))
+func (this *Target) Dependencies() []interfaces.TargetSpec {
+	deps := make([]interfaces.TargetSpec, 0, len(this.Srcs)+len(this.Hdrs)+len(this.Deps))
 	deps = append(deps, util.GetDependencies(this.Srcs)...)
 	deps = append(deps, util.GetDependencies(this.Hdrs)...)
 	deps = append(deps, util.GetDependencies(this.Deps)...)
@@ -114,29 +114,40 @@ func (this *Target) IsExecutable() bool {
 	return this.IsTest() || this.IsBinary()
 }
 
-func (this *Target) extractAllSpecs(specs []interfaces.Spec) []interfaces.Spec {
-	allSpecs := make([]interfaces.Spec, 0, len(specs))
+func (this *Target) extractAllSpecs(specs []interfaces.Spec) []interfaces.FileSpec {
+	allSpecs := make([]interfaces.FileSpec, 0, len(specs))
 	for _, spec := range specs {
-		if spec.IsTarget() {
-			allSpecs = append(allSpecs, spec.Target().(*filegroup.Target).ExtractAllFiles()...)
-		} else {
-			allSpecs = append(allSpecs, spec)
+		switch spec.(type) {
+		case interfaces.FileSpec:
+			allSpecs = append(allSpecs, spec.(interfaces.FileSpec))
+		case interfaces.TargetSpec:
+			allSpecs = append(allSpecs, spec.(interfaces.TargetSpec).Target().(*filegroup.Target).ExtractAllFiles()...)
 		}
 	}
 
 	return allSpecs
 }
 
-func (this *Target) AllSrcs() []interfaces.Spec {
+func (this *Target) AllSrcs() []interfaces.FileSpec {
 	return this.extractAllSpecs(this.Srcs)
 }
 
-func (this *Target) AllLibs() []interfaces.Spec {
-	allLibs := this.Libs
+func (this *Target) AllLibs() []interfaces.FileSpec {
+	allLibs := make([]interfaces.FileSpec, 0, len(this.Libs))
+
+	for _, lib := range this.Libs {
+		allLibs = append(allLibs, lib.(interfaces.FileSpec))
+	}
+
 	for _, dep := range this.Dependencies() {
-		if dep.IsTarget() && strings.HasPrefix(dep.Target().Type(), "c++") {
-			for _, lib := range dep.Target().(*Target).Libs {
-				allLibs = append(allLibs, lib)
+		switch dep.(type) {
+		case interfaces.TargetSpec:
+			target := dep.(interfaces.TargetSpec).Target()
+			switch target.(type) {
+			case *Target:
+				for _, lib := range target.(*Target).Libs {
+					allLibs = append(allLibs, lib.(interfaces.FileSpec))
+				}
 			}
 		}
 	}
@@ -188,11 +199,12 @@ func (this *Target) Process(progressBar *progress.ProgressBar, workQueue chan co
 	for _, data := range this.Data {
 		// Data files are either plain files or filegroup targets. Make a list of
 		// all files that this data item references, and do the copy in one go.
-		dataSpecs := make([]interfaces.Spec, 0, 1)
-		if !data.IsTarget() {
-			dataSpecs = append(dataSpecs, data)
-		} else {
-			dataSpecs = data.Target().(*filegroup.Target).ExtractAllFiles()
+		dataSpecs := make([]interfaces.FileSpec, 0, 1)
+		switch data.(type) {
+		case interfaces.TargetSpec:
+			dataSpecs = data.(interfaces.TargetSpec).Target().(*filegroup.Target).ExtractAllFiles()
+		case interfaces.FileSpec:
+			dataSpecs = append(dataSpecs, data.(interfaces.FileSpec))
 		}
 
 		for _, dataSpec := range dataSpecs {

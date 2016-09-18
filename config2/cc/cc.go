@@ -44,14 +44,17 @@ func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue c
 	results := make(chan error, len(target.AllSrcs()))
 	nCompiled := 0
 
+	fmt.Printf("Srcs = %s\n", target.Srcs)
 	for i, srcFile := range target.AllSrcs() {
 		// Display the source file we are building.
 		progressBar.SetSuffix(srcFile.String())
 
+		// Make the output directory for this file.
+
 		// Work out the full path to the source file. This will need to be provided
 		// to the compiler.
-		srcPath := srcFile.Path()
-		objPath := srcFile.OutputPath() + ".o"
+		srcPath := srcFile.FilePath()
+		objPath := filepath.Join(srcFile.OutputPath(), srcFile.File()) + ".o"
 		objs[i] = objPath
 
 		// Make the directory of the obj if needed.

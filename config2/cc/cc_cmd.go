@@ -125,7 +125,7 @@ func linkCommand(target *Target, objs []string, output string) *exec.Cmd {
 		// Add libs. This has to be done in order.
 		log.Warningf("ALL LIBS = %s\n", target.AllLibs())
 		for _, lib := range target.AllLibs() {
-			flags = append(flags, lib.Path())
+			flags = append(flags, lib.FilePath())
 		}
 
 		// We have to go through the outputs in reverse order to make sure that we
