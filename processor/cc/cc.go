@@ -67,7 +67,7 @@ func compileFiles(target *config.Target, taskQueue chan common.CmdSpec) ([]strin
 		srcStat, _ := os.Stat(srcPath)
 		objStat, _ := os.Stat(objPath)
 		srcChanged := true
-		depsChanged := true
+		depsChanged := false
 		if objStat != nil {
 			srcChanged = !objStat.ModTime().After(srcStat.ModTime())
 			depsChanged = target.HeaderFilesChangedAfter(objStat)

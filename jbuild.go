@@ -8,7 +8,11 @@ import (
 
 	jbuildCommands "github.com/jeshuam/jbuild/command"
 	"github.com/jeshuam/jbuild/common"
-	"github.com/jeshuam/jbuild/config"
+	// "github.com/jeshuam/jbuild/config"
+	"github.com/jeshuam/jbuild/config2"
+	"github.com/jeshuam/jbuild/config2/interfaces"
+	"github.com/jeshuam/jbuild/config2/util"
+	"github.com/jeshuam/jbuild/progress"
 	"github.com/op/go-logging"
 )
 
@@ -27,7 +31,7 @@ var (
 
 func findWorkspaceDir(cwd string) string {
 	// Find the workspace directory.
-	workspaceDir, _, err := config.FindWorkspaceFile(cwd)
+	workspaceDir, _, err := config2.FindWorkspaceFile(cwd)
 	if err != nil {
 		log.Fatalf("ERROR: %v", err)
 	}
@@ -50,11 +54,11 @@ func main() {
 
 	// Setup the logger.
 	logging.SetFormatter(format)
-	if !*jbuildCommands.UseProgress {
-		logging.SetLevel(logging.DEBUG, "jbuild")
-	} else {
-		logging.SetLevel(logging.CRITICAL, "jbuild")
-	}
+	// if !*jbuildCommands.UseProgress {
+	// 	logging.SetLevel(logging.DEBUG, "jbuild")
+	// } else {
+	// 	logging.SetLevel(logging.CRITICAL, "jbuild")
+	// }
 
 	// First, see if we are in a workspace.
 	cwd, err := os.Getwd()
@@ -80,7 +84,7 @@ func main() {
 
 	// If we are cleaning, just delete the output directory.
 	if command == "clean" {
-		jbuildCommands.Clean(common.WorkspaceDir)
+		// jbuildCommands.Clean(common.WorkspaceDir)
 		return
 	}
 
@@ -93,66 +97,169 @@ func main() {
 	// Get the current processing target.
 	targetArgs := flag.Args()[1:]
 
-	// Convert the targets into their canonical format, i.e. the long format.
-	canonicalTargetSpecs := make([]*config.TargetSpec, 0, len(targetArgs))
+	// Save 2 lists: a set of targets specified, and a set of targets to process.
+	targetsSpecified := make(map[string]interfaces.Spec)
+	targetsToBuild := make(map[string]interfaces.Spec)
+
+	// Use config v2.
+	fmt.Printf("Using ConfigV2\n")
 	for _, target := range targetArgs {
-		canonicalTargets, err := config.CanonicalTargetSpec(common.WorkspaceDir, cwd, target)
+		spec := config2.MakeTargetSpec(target)
+		targetsSpecified[spec.String()] = spec
+		targetsToBuild[spec.String()] = spec
+
+		err := spec.Init()
 		if err != nil {
-			log.Fatalf("Invalid target name '%s': %v", target, err)
+			fmt.Printf("Failed: %s", err)
+			return
 		}
 
-		canonicalTargetSpecs = append(canonicalTargetSpecs, canonicalTargets...)
-	}
-
-	// If more than one spec was specified and we are running, then error.
-	if len(canonicalTargetSpecs) > 1 && command == "run" {
-		log.Fatalf("Multiple targets specified with run command.")
-	}
-
-	/// Now that we have a list of target specs, we can go and load the targets.
-	/// This involves going to each target file
-	targetsSpecified := config.TargetSet{}
-	targetsToProcess := config.TargetSet{}
-	for _, targetSpec := range canonicalTargetSpecs {
-		// Load the target at the given specification.
-		target, err := config.LoadTarget(targetSpec)
+		err = util.CheckForDependencyCycles(spec)
 		if err != nil {
-			log.Fatalf("Could not load target '%s': %v", targetSpec, err)
+			fmt.Printf("%s", err)
+			return
 		}
 
-		// Make sure this target has no cycles.
-		target.CheckForDependencyCycles()
+		err = spec.Validate()
+		if err != nil {
+			fmt.Printf("%s", err)
+			return
+		}
 
-		// If the target type doesn't match the command, then discard it.
-		if !target.IsBinary() && command == "run" {
-			log.Warningf("Ignoring target %s (type %s)", target, target.Type)
-		} else if !target.IsTest() && command == "test" {
-			log.Warningf("Ignoring target %s (type %s)", target, target.Type)
+		for _, spec := range spec.Target().Dependencies() {
+			targetsToBuild[spec.String()] = spec
+		}
+	}
+
+	// Display each of the targets in the target cache (it's a good list!).
+	for targetSpec := range util.TargetCache {
+		fmt.Printf("Loaded %s\n", targetSpec)
+	}
+
+	for spec := range targetsToBuild {
+		if util.ReadyToProcess(targetsToBuild[spec]) {
+			fmt.Printf("Ready: %s\n", spec)
+		}
+	}
+
+	// Build the targets.
+	taskQueue := make(chan common.CmdSpec)
+	for i := 0; i < *jbuildCommands.Threads; i++ {
+		go func() {
+			for {
+				task := <-taskQueue
+				common.RunCommand(task.Cmd, task.Result, task.Complete)
+			}
+		}()
+	}
+
+	if *jbuildCommands.UseProgress {
+		if *jbuildCommands.SimpleProgress {
+			// For simple progress bars, manually set the maximum number of ops.
+			totalOps := 0
+			for specName := range targetsToBuild {
+				totalOps += targetsToBuild[specName].Target().TotalOps()
+			}
+
+			progress.SetTotalOps(totalOps)
+			progress.Start()
 		} else {
-			// Process this target, and all of it's dependencies.
-			targetsSpecified.Add(target)
-			targetsToProcess.Add(target)
-			for _, dep := range target.AllDependencies() {
-				targetsToProcess.Add(dep)
+			fmt.Printf("\n\n")
+			progress.StartComplex()
+		}
+	} else {
+		progress.Disable()
+	}
+
+	var (
+		results = make(chan config2.ProcessingResult)
+
+		targetsStarted = make(map[string]bool, 0)
+		targetsBuilt   = make(map[string]bool, 0)
+	)
+
+	for len(targetsBuilt) < len(targetsToBuild) {
+		for specName, _ := range targetsToBuild {
+			spec := targetsToBuild[specName]
+			_, targetStarted := targetsStarted[specName]
+			if !targetStarted && util.ReadyToProcess(spec) {
+				log.Infof("Processing %s...", specName)
+				progressBar := progress.AddBar(spec.Target().TotalOps(), specName)
+
+				go func() {
+					err := spec.Target().Process(progressBar, taskQueue)
+					if err != nil {
+						log.Fatalf("Error while processing %s: %v", specName, err)
+					}
+
+					results <- config2.ProcessingResult{spec, err}
+				}()
+
+				targetsStarted[specName] = true
 			}
 		}
+
+		// Get results from running targets.
+		result := <-results
+		if result.Err != nil {
+			log.Fatal(result.Err)
+		} else {
+			targetsBuilt[result.Spec.String()] = true
+			log.Infof("Finished processing %s!", result.Spec)
+		}
 	}
 
-	// If there are no targets to process, print a message and exit.
-	if len(targetsToProcess) == 0 {
-		log.Fatalf("No targets to process for command %s", command)
-	}
+	// jbuildCommands.BuildTargets(targetsToBuild)
 
-	log.Infof("Processing %d targets: %s\n", len(targetsToProcess), targetsToProcess)
+	return
 
-	// First, build all targets.
-	jbuildCommands.BuildTargets(targetsToProcess)
+	// Convert the targets into their canonical format, i.e. the long format.
+	// canonicalTargetSpecs := make([]*config.TargetSpec, 0, len(targetArgs))
+	// for _, target := range targetArgs {
+	// 	canonicalTargets, err := config.CanonicalTargetSpec(common.WorkspaceDir, cwd, target)
+	// 	if err != nil {
+	// 		log.Fatalf("Invalid target name '%s': %v", target, err)
+	// 	}
 
-	// If we were running, there should only be one argument. Just run it.
-	if command == "run" {
-		runTarget, _ := config.LoadTarget(canonicalTargetSpecs[0])
-		jbuildCommands.Run(runTarget, flag.Args()[2:])
-	} else if command == "test" {
-		jbuildCommands.RunTests(targetsSpecified)
-	}
+	// 	canonicalTargetSpecs = append(canonicalTargetSpecs, canonicalTargets...)
+	// }
+
+	// // If more than one spec was specified and we are running, then error.
+	// if len(canonicalTargetSpecs) > 1 && command == "run" {
+	// 	log.Fatalf("Multiple targets specified with run command.")
+	// }
+
+	// /// Now that we have a list of target specs, we can go and load the targets.
+	// /// This involves going to each target file
+	// targetsSpecified := config.TargetSet{}
+	// targetsToProcess := config.TargetSet{}
+	// for _, targetSpec := range canonicalTargetSpecs {
+	// 	// Load the target at the given specification.
+	// 	target, err := config.LoadTarget(targetSpec)
+	// 	if err != nil {
+	// 		log.Fatalf("Could not load target '%s': %v", targetSpec, err)
+	// 	}
+
+	// 	// Make sure this target has no cycles.
+	// 	target.CheckForDependencyCycles()
+
+	// 	// If the target type doesn't match the command, then discard it.
+	// 	if !target.IsBinary() && command == "run" {
+	// 		log.Warningf("Ignoring target %s (type %s)", target, target.Type)
+	// 	} else if !target.IsTest() && command == "test" {
+	// 		log.Warningf("Ignoring target %s (type %s)", target, target.Type)
+	// 	} else {
+	// 		// Process this target, and all of it's dependencies.
+	// 		targetsSpecified.Add(target)
+	// 		targetsToProcess.Add(target)
+	// 		for _, dep := range target.AllDependencies() {
+	// 			targetsToProcess.Add(dep)
+	// 		}
+	// 	}
+	// }
+
+	// // If there are no targets to process, print a message and exit.
+	// if len(targetsToProcess) == 0 {
+	// 	log.Fatalf("No targets to process for command %s", command)
+	// }
 }

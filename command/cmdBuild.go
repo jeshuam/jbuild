@@ -13,14 +13,14 @@ import (
 
 var (
 	UseProgress    = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
-	simpleProgress = flag.Bool("use_simple_progress", true, "Use the simple progress system rather than multiple bars.")
+	SimpleProgress = flag.Bool("use_simple_progress", true, "Use the simple progress system rather than multiple bars.")
 
-	threads = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
+	Threads = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
 )
 
 func setupProgressBars(targetsToBuild config.TargetSet) {
 	if *UseProgress {
-		if *simpleProgress {
+		if *SimpleProgress {
 			// For simple progress bars, manually set the maximum number of ops.
 			totalOps := 0
 			for target := range targetsToBuild {
@@ -73,7 +73,7 @@ func buildTargets(targetsToBuild config.TargetSet, taskQueue chan common.CmdSpec
 func BuildTargets(targetsToBuild config.TargetSet) {
 	// Make a task queue, which runs commands that are passed to it.
 	taskQueue := make(chan common.CmdSpec)
-	for i := 0; i < *threads; i++ {
+	for i := 0; i < *Threads; i++ {
 		go func() {
 			for {
 				task := <-taskQueue

@@ -12,16 +12,21 @@ import (
 
 var (
 	log = logging.MustGetLogger("jbuild")
-)
 
-func FileExists(filepath string) bool {
-	_, err := os.Stat(filepath)
-	if err == nil {
-		return true
+	FileExists = func(filepath string) bool {
+		_, err := os.Stat(filepath)
+		if err == nil {
+			return true
+		}
+
+		return false
 	}
 
-	return false
-}
+	IsDir = func(filepath string) bool {
+		stat, _ := os.Stat(filepath)
+		return stat != nil && stat.IsDir()
+	}
+)
 
 type CmdSpec struct {
 	Cmd      *exec.Cmd
