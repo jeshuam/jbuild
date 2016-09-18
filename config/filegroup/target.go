@@ -5,8 +5,8 @@ import (
 
 	"github.com/deckarep/golang-set"
 	"github.com/jeshuam/jbuild/common"
-	"github.com/jeshuam/jbuild/config2/interfaces"
-	"github.com/jeshuam/jbuild/config2/util"
+	"github.com/jeshuam/jbuild/config/interfaces"
+	"github.com/jeshuam/jbuild/config/util"
 	"github.com/jeshuam/jbuild/progress"
 )
 

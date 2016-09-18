@@ -10,9 +10,9 @@ import (
 	"github.com/deckarep/golang-set"
 	"github.com/fatih/color"
 	"github.com/jeshuam/jbuild/common"
-	"github.com/jeshuam/jbuild/config2/filegroup"
-	"github.com/jeshuam/jbuild/config2/interfaces"
-	"github.com/jeshuam/jbuild/config2/util"
+	"github.com/jeshuam/jbuild/config/filegroup"
+	"github.com/jeshuam/jbuild/config/interfaces"
+	"github.com/jeshuam/jbuild/config/util"
 	"github.com/jeshuam/jbuild/progress"
 )
 

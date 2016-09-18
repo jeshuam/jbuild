@@ -1,4 +1,4 @@
-package config2
+package config
 
 import (
 	"errors"
@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/fatih/camelcase"
-	"github.com/jeshuam/jbuild/config2/cc"
-	"github.com/jeshuam/jbuild/config2/filegroup"
-	"github.com/jeshuam/jbuild/config2/interfaces"
+	"github.com/jeshuam/jbuild/config/cc"
+	"github.com/jeshuam/jbuild/config/filegroup"
+	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/mattn/go-zglob"
 )
 

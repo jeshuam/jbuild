@@ -8,9 +8,9 @@ import (
 
 	jbuildCommands "github.com/jeshuam/jbuild/command"
 	"github.com/jeshuam/jbuild/common"
-	"github.com/jeshuam/jbuild/config2"
-	"github.com/jeshuam/jbuild/config2/interfaces"
-	"github.com/jeshuam/jbuild/config2/util"
+	"github.com/jeshuam/jbuild/config"
+	"github.com/jeshuam/jbuild/config/interfaces"
+	"github.com/jeshuam/jbuild/config/util"
 	"github.com/op/go-logging"
 )
 
@@ -29,7 +29,7 @@ var (
 
 func findWorkspaceDir(cwd string) string {
 	// Find the workspace directory.
-	workspaceDir, _, err := config2.FindWorkspaceFile(cwd)
+	workspaceDir, _, err := config.FindWorkspaceFile(cwd)
 	if err != nil {
 		log.Fatalf("ERROR: %v", err)
 	}
@@ -95,7 +95,7 @@ func main() {
 	targetsSpecified := make(map[string]interfaces.TargetSpec)
 	targetsToBuild := make(map[string]interfaces.TargetSpec)
 	for _, target := range targetArgs {
-		specs, err := config2.MakeTargetSpec(target, common.CurrentDir)
+		specs, err := config.MakeTargetSpec(target, common.CurrentDir)
 		if err != nil {
 			fmt.Printf("Failed: %s", err)
 			return

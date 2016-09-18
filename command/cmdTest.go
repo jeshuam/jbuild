@@ -14,7 +14,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/jeshuam/jbuild/common"
-	"github.com/jeshuam/jbuild/config2/interfaces"
+	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/op/go-logging"
 )
 

@@ -1,11 +1,11 @@
-package config2
+package config
 
 import (
 	"path/filepath"
 	"strings"
 
 	"github.com/jeshuam/jbuild/common"
-	"github.com/jeshuam/jbuild/config2/interfaces"
+	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/op/go-logging"
 )
 

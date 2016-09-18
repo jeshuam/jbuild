@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/deckarep/golang-set"
-	"github.com/jeshuam/jbuild/config2/interfaces"
+	"github.com/jeshuam/jbuild/config/interfaces"
 )
 
 var (

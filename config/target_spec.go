@@ -1,4 +1,4 @@
-package config2
+package config
 
 import (
 	"errors"
@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/jeshuam/jbuild/common"
-	"github.com/jeshuam/jbuild/config2/cc"
-	"github.com/jeshuam/jbuild/config2/filegroup"
-	"github.com/jeshuam/jbuild/config2/interfaces"
-	"github.com/jeshuam/jbuild/config2/util"
+	"github.com/jeshuam/jbuild/config/cc"
+	"github.com/jeshuam/jbuild/config/filegroup"
+	"github.com/jeshuam/jbuild/config/interfaces"
+	"github.com/jeshuam/jbuild/config/util"
 )
 
 var (
