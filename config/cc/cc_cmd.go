@@ -72,7 +72,12 @@ func linkCommand(target *Target, objs []string, output string) *exec.Cmd {
 			linker = "link.exe"
 		}
 	} else {
-		linker = "ar"
+		if target.IsExecutable() {
+			linker = "clang++"
+		} else {
+			linker = "ar"
+		}
+
 	}
 
 	// Make the flags.
