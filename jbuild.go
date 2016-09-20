@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"runtime/pprof"
 	"strings"
 
 	"github.com/jeshuam/jbuild/args"
@@ -33,19 +32,9 @@ func printUsage() {
 	fmt.Println("Usage: jbuild [flags] build|test|run|clean [target [targets...]]")
 }
 
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-
 func main() {
 	// Parse flags.
 	flag.Parse()
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
 
 	// Setup logging.
 	logging.SetFormatter(format)
@@ -150,8 +139,15 @@ func main() {
 
 	// Further process the targets.
 	if command == "run" {
+		log.Infof("Running '%s'", firstTargetSpecified)
 		firstTargetSpecified.Target().Run(flag.Args()[2:])
 	} else if command == "test" {
+		if len(targetsSpecified) == 1 {
+			log.Infof("Testing 1 target")
+		} else {
+			log.Infof("Testing %d targets", len(targetsSpecified))
+		}
+
 		jbuildCommands.RunTests(targetsSpecified)
 	}
 }
