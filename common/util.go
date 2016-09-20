@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/jeshuam/jbuild/args"
 	"github.com/op/go-logging"
 )
 
@@ -36,7 +37,7 @@ type CmdSpec struct {
 
 func RunCommand(cmd *exec.Cmd, result chan error, complete func(string, bool, time.Duration)) {
 	// Print the command.
-	if DryRun {
+	if args.DryRun {
 		log.Infof("DRY_RUN: %s", cmd.Args)
 		complete("", true, 0)
 		result <- nil

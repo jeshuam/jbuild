@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/interfaces"
 )
@@ -22,7 +23,7 @@ func (this *DirSpecImpl) Dir() string {
 
 func (this *DirSpecImpl) Path() string {
 	return filepath.Join(
-		common.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
+		args.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
 func (this *DirSpecImpl) String() string {
@@ -44,7 +45,7 @@ func MakeDirSpec(rawSpec, cwd string) interfaces.DirSpec {
 		spec.path = strings.Trim(rawSpec, "/")
 	} else {
 		// Otherwise, we need to figure out the absolute path.
-		spec.path, _ = filepath.Rel(common.WorkspaceDir, filepath.Join(cwd, rawSpec))
+		spec.path, _ = filepath.Rel(args.WorkspaceDir, filepath.Join(cwd, rawSpec))
 	}
 
 	// Check to see whether this file exists and is a file. If it doesn't, then

@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jeshuam/jbuild/common"
+	"github.com/jeshuam/jbuild/args"
 )
 
 func compileCommand(target *Target, src, obj string) *exec.Cmd {
-	compiler := *ccCompiler
+	compiler := args.CCCompiler
 
 	// Build up the command line. This varies depending on the compiler type
 	// (mainly because cl.exe is really weird).
@@ -43,8 +43,8 @@ func compileCommand(target *Target, src, obj string) *exec.Cmd {
 		flags = append(flags, []string{"/c", "/Fo" + obj, src, "/EHsc"}...)
 	} else {
 		flags = append(flags, []string{
-			"-I" + common.WorkspaceDir,
-			"-I" + filepath.Join(common.OutputDirectory, "gen"),
+			"-I" + args.WorkspaceDir,
+			"-I" + filepath.Join(args.OutputDir, "gen"),
 			"-I/usr/include",
 			"-fPIC",
 			"-fcolor-diagnostics",
@@ -65,18 +65,14 @@ func compileCommand(target *Target, src, obj string) *exec.Cmd {
 func linkCommand(target *Target, objs []string, output string) *exec.Cmd {
 	// Work out which linker to use.
 	var linker string
-	if *ccCompiler == "cl.exe" {
+	if args.CCCompiler == "cl.exe" {
 		if strings.HasSuffix(output, ".lib") {
 			linker = "lib.exe"
 		} else {
 			linker = "link.exe"
 		}
 	} else {
-		if *ccStaticLinking && target.IsLibrary() {
-			linker = "ar"
-		} else {
-			linker = *ccCompiler
-		}
+		linker = "ar"
 	}
 
 	// Make the flags.

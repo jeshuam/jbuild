@@ -1,22 +1,17 @@
 package cc
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/jeshuam/jbuild/args"
 	"golang.org/x/sys/windows/registry"
-
-	"github.com/jeshuam/jbuild/common"
 )
 
 var (
-	// Windows specific variables.
-	vcVersion = flag.String("vc_version2", "14.0", "The Visual Studio version to use.")
-
 	vcInstallDir, ucrtSdkDir, ucrtSdkVersion, netFxSdkDir string
 )
 
@@ -42,9 +37,9 @@ func windowsReadRegistryKey(key, name string) (string, error) {
 
 func windowsLoadSdkDir() {
 	// Load the Windows SDK directory from the registry.
-	val, err := windowsReadRegistryKey(`SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7`, *vcVersion)
+	val, err := windowsReadRegistryKey(`SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7`, args.VCVersion)
 	if err != nil {
-		val, err = windowsReadRegistryKey(`SOFTWARE\Microsoft\VisualStudio\SxS\VC7`, *vcVersion)
+		val, err = windowsReadRegistryKey(`SOFTWARE\Microsoft\VisualStudio\SxS\VC7`, args.VCVersion)
 		if err != nil {
 			log.Fatal("Could not find Visual Studio install directory.")
 		}
@@ -97,8 +92,8 @@ func prepareEnvironment(target *Target, cmd *exec.Cmd) {
 		filepath.Join(vcInstallDir, "include"),
 		filepath.Join(ucrtSdkDir, "Include", ucrtSdkVersion, "ucrt"),
 		filepath.Join(netFxSdkDir, "Include"),
-		common.WorkspaceDir,
-		filepath.Join(common.OutputDirectory, "gen")))
+		args.WorkspaceDir,
+		filepath.Join(args.OutputDir, "gen")))
 
 	// Set LIBDIR.
 	env = append(env, fmt.Sprintf(
@@ -113,11 +108,7 @@ func prepareEnvironment(target *Target, cmd *exec.Cmd) {
 }
 
 func libraryName(name string) string {
-	if *ccStaticLinking {
-		return name + ".lib"
-	}
-
-	return name + ".dll"
+	return name + ".lib"
 }
 
 func isSharedLib(path string) bool {

@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/op/go-logging"
@@ -28,7 +29,7 @@ func (this *FileSpecImpl) Dir() string {
 
 func (this *FileSpecImpl) Path() string {
 	return filepath.Join(
-		common.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
+		args.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
 func (this *FileSpecImpl) String() string {
@@ -45,7 +46,7 @@ func (this *FileSpecImpl) FilePath() string {
 
 func (this *FileSpecImpl) OutputPath() string {
 	return filepath.Join(
-		common.OutputDirectory, strings.Replace(this.path, "/", pathSeparator, -1))
+		args.OutputDir, strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,7 +62,7 @@ func MakeFileSpec(rawSpec, cwd string) interfaces.FileSpec {
 	// If the spec isn't absolute, we need to make it relative.
 	if !strings.HasPrefix(rawSpec, "//") {
 		rawSpec, _ = filepath.Rel(
-			common.WorkspaceDir, filepath.Join(cwd, spec.path))
+			args.WorkspaceDir, filepath.Join(cwd, spec.path))
 	}
 
 	// Split the string into it's file and dir parts.
@@ -89,7 +90,7 @@ func MakeFileSpecGlob(rawSpecGlob, cwd string) []interfaces.Spec {
 	// If the spec is absolute, then we can just save the path directly.
 	if !strings.HasPrefix(rawSpecGlob, "//") {
 		rawSpecGlob, _ = filepath.Rel(
-			common.WorkspaceDir, filepath.Join(cwd, strings.Trim(rawSpecGlob, "/")))
+			args.WorkspaceDir, filepath.Join(cwd, strings.Trim(rawSpecGlob, "/")))
 	}
 
 	// Expand the globs.

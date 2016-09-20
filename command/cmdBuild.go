@@ -1,10 +1,9 @@
 package command
 
 import (
-	"flag"
 	"fmt"
-	"runtime"
 
+	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
 	"github.com/jeshuam/jbuild/config/interfaces"
@@ -12,16 +11,9 @@ import (
 	"github.com/jeshuam/jbuild/progress"
 )
 
-var (
-	UseProgress    = flag.Bool("progress_bars", true, "Whether or not to use progress bars.")
-	SimpleProgress = flag.Bool("use_simple_progress", true, "Use the simple progress system rather than multiple bars.")
-
-	Threads = flag.Int("threads", runtime.NumCPU()+1, "Number of processing threads to use.")
-)
-
 func setupProgressBars(targetsToBuild map[string]interfaces.TargetSpec) {
-	if *UseProgress {
-		if *SimpleProgress {
+	if !args.ShowLog {
+		if args.UseSimpleProgress {
 			// For simple progress bars, manually set the maximum number of ops.
 			totalOps := 0
 			for targetSpec := range targetsToBuild {
@@ -82,7 +74,7 @@ func buildTargets(targetsToBuild map[string]interfaces.TargetSpec, taskQueue cha
 func BuildTargets(targetsToBuild map[string]interfaces.TargetSpec) {
 	// Make a task queue, which runs commands that are passed to it.
 	taskQueue := make(chan common.CmdSpec)
-	for i := 0; i < *Threads; i++ {
+	for i := 0; i < args.Threads; i++ {
 		go func() {
 			for {
 				task := <-taskQueue
@@ -98,7 +90,7 @@ func BuildTargets(targetsToBuild map[string]interfaces.TargetSpec) {
 	// cycles should have been found already.
 	buildTargets(targetsToBuild, taskQueue)
 
-	if *UseProgress {
+	if !args.ShowLog {
 		progress.Finish()
 	}
 }

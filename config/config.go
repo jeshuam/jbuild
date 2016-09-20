@@ -1,10 +1,8 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"github.com/client9/xson/hjson"
 	"github.com/jeshuam/jbuild/common"
@@ -24,25 +22,6 @@ func makeBuildFileError(file, msg string) *buildFileError {
 	err.File = file
 	err.Msg = msg
 	return err
-}
-
-func FindWorkspaceFile(cwd string) (string, string, error) {
-	workspaceFile := "WORKSPACE"
-
-	path_parts := strings.Split(cwd, pathSeparator)
-	for i := len(path_parts); i > 0; i-- {
-		workspaceDir := strings.Join(path_parts[:i], pathSeparator)
-		workspaceFilePath := workspaceDir + pathSeparator + workspaceFile
-
-		// Check this path for a WORKSPACE file. If it exists, return.
-		if common.FileExists(workspaceFilePath) {
-			return workspaceDir, workspaceFile, nil
-		}
-	}
-
-	// Could not find file; this is fatal.
-	msg := fmt.Sprintf("Could not find %s file starting at %s", workspaceFile, cwd)
-	return "", "", errors.New(msg)
 }
 
 // Load a BUILD file at the given path. Will return a generic map representing

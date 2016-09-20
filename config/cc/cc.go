@@ -2,11 +2,9 @@ package cc
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/jeshuam/jbuild/common"
@@ -16,27 +14,7 @@ import (
 
 var (
 	log = logging.MustGetLogger("jbuild")
-
-	ccThreads       = flag.Int("cc_threads2", runtime.NumCPU()+1, "Number of threads to use when performing C++ operations.")
-	ccCompiler      = flag.String("cc_compiler2", "", "The C++ compiler to use.")
-	ccStaticLinking = flag.Bool("cc_static_linking2", true, "Whether or not to use static linking.")
-
-	defaultCompilers = map[string]string{
-		"windows": "cl.exe",
-	}
 )
-
-func init() {
-	// Set the default compiler.
-	if *ccCompiler == "" {
-		compiler, ok := defaultCompilers[runtime.GOOS]
-		if !ok {
-			compiler = "clang++"
-		}
-
-		*ccCompiler = compiler
-	}
-}
 
 // Compile the source files within the given target.
 func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue chan common.CmdSpec) ([]string, int, error) {

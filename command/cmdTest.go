@@ -2,31 +2,24 @@ package command
 
 import (
 	"encoding/gob"
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/op/go-logging"
 )
 
 var (
-	log = logging.MustGetLogger("jbuild")
-
-	forceRunTests = flag.Bool("force_run_tests", false, "Whether or not we should for tests to run.")
-	testRuns      = flag.Uint("test_runs", 1, "Number of times to run each test.")
-	testOutput    = flag.String("test_output", "errors", "The verbosity of test output to show. Can be all|errors|none.")
-	testThreads   = flag.Int("test_threads", runtime.NumCPU()/3, "Number of threads to use when running tests.")
-
-	concurrentTestSemaphore = make(chan bool, *testThreads)
+	log                     = logging.MustGetLogger("jbuild")
+	concurrentTestSemaphore = make(chan bool, args.TestThreads)
 )
 
 type testResult struct {
@@ -94,7 +87,7 @@ func loadTestResult(target interfaces.TargetSpec) *testResult {
 func runTest(target interfaces.TargetSpec, results chan testResult) {
 	// If we aren't being forced to run tests, then try to load a cached test
 	// result file.
-	if !*forceRunTests && *testRuns == 1 {
+	if !args.ForceRunTests && args.TestRuns == 1 {
 		result := loadTestResult(target)
 		if result != nil {
 			results <- *result
@@ -117,7 +110,7 @@ func runTest(target interfaces.TargetSpec, results chan testResult) {
 func runTests(targetsToTest map[string]interfaces.TargetSpec) chan testResult {
 	rawResults := make(chan testResult)
 	for target := range targetsToTest {
-		for i := 0; i < int(*testRuns); i++ {
+		for i := 0; i < int(args.TestRuns); i++ {
 			go runTest(targetsToTest[target], rawResults)
 		}
 	}
@@ -190,7 +183,7 @@ func displayResultsForTarget(target string, results []testResult) {
 	// show test output for passed tests.
 	barrier := strings.Repeat("=", 80)
 	if len(results) == 1 {
-		if (nFails > 0 && *testOutput != "none") || (nFails == 0 && *testOutput == "all") {
+		if (nFails > 0 && args.TestOutput != "none") || (nFails == 0 && args.TestOutput == "all") {
 			fmt.Printf("\n%s\n%s%s\n\n", barrier, results[0].Output, barrier)
 		}
 	}
@@ -202,7 +195,7 @@ func RunTests(targetsToTest map[string]interfaces.TargetSpec) {
 
 	// Collect all of the results into a result map, mapping target names to a
 	// list of results.
-	results := collateTestResults(rawResults, len(targetsToTest)*int(*testRuns))
+	results := collateTestResults(rawResults, len(targetsToTest)*int(args.TestRuns))
 
 	// Display the results to the screen.
 	resultKeySorted := make([]string, 0, len(results))

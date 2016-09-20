@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"path/filepath"
 	"strings"
 
+	"github.com/jeshuam/jbuild/args"
 	jbuildCommands "github.com/jeshuam/jbuild/command"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config"
@@ -27,41 +27,29 @@ var (
 	}
 )
 
-func findWorkspaceDir(cwd string) string {
-	// Find the workspace directory.
-	workspaceDir, _, err := config.FindWorkspaceFile(cwd)
-	if err != nil {
-		log.Fatalf("ERROR: %v", err)
-	}
-
-	// If the output directory flag was relative, make it absolute relative to
-	// the workspace directory.
-	if !filepath.IsAbs(common.OutputDirectory) {
-		common.OutputDirectory = filepath.Join(workspaceDir, common.OutputDirectory)
-	}
-
-	return workspaceDir
-}
-
 func printUsageAndExit() {
 	log.Fatalf("Usage: jbuild [flags] build|test|run|clean [target [targets...]]")
 }
 
 func main() {
+	// Parse flags.
 	flag.Parse()
 
-	// Setup the logger.
+	// Setup logging.
 	logging.SetFormatter(format)
-	if !*jbuildCommands.UseProgress {
+	if args.ShowLog {
 		logging.SetLevel(logging.DEBUG, "jbuild")
 	} else {
 		logging.SetLevel(logging.CRITICAL, "jbuild")
 	}
 
-	// First, see if we are in a workspace.
-	if common.WorkspaceDir == "" {
-		common.WorkspaceDir = findWorkspaceDir(common.CurrentDir)
+	// Load flags.
+	log.Debug("Loading flags...")
+	if err := args.Load(); err != nil {
+		log.Fatal(err.Error())
 	}
+
+	log.Debug("Done loading flags!")
 
 	// Make sure at least the command was passed.
 	if len(flag.Args()) < 1 {

@@ -2,13 +2,12 @@ package config
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/jeshuam/jbuild/common"
+	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/config/cc"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/interfaces"
@@ -16,16 +15,9 @@ import (
 )
 
 var (
-	BuildFileName string
-
 	// Some useful global shortcut variables.
 	pathSeparator = string(os.PathSeparator)
 )
-
-func init() {
-	flag.StringVar(&BuildFileName, "build_filename_v2", "BUILD",
-		"Name of the file containing the target spec definitions.")
-}
 
 type TargetSpecImpl struct {
 	path   string
@@ -44,7 +36,7 @@ func (this *TargetSpecImpl) Dir() string {
 
 func (this *TargetSpecImpl) Path() string {
 	return filepath.Join(
-		common.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
+		args.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
 func (this *TargetSpecImpl) String() string {
@@ -61,7 +53,7 @@ func (this *TargetSpecImpl) Target() interfaces.Target {
 
 func (this *TargetSpecImpl) OutputPath() string {
 	return filepath.Join(
-		common.OutputDirectory, strings.Replace(this.path, "/", pathSeparator, -1))
+		args.OutputDir, strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
 func (this *TargetSpecImpl) Type() string {
@@ -108,7 +100,7 @@ func (this *TargetSpecImpl) init(json map[string]interface{}) error {
 ////////////////////////////////////////////////////////////////////////////////
 
 func expandAllTargetsInTree(workspaceDir, path string) ([]interfaces.TargetSpec, error) {
-	buildFiles, err := Glob(filepath.Join(workspaceDir, path, "**", BuildFileName))
+	buildFiles, err := Glob(filepath.Join(workspaceDir, path, "**", args.BuildFilename))
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +121,7 @@ func expandAllTargetsInTree(workspaceDir, path string) ([]interfaces.TargetSpec,
 }
 
 func expandAllTargetsInDir(workspaceDir, path string) ([]interfaces.TargetSpec, error) {
-	buildFilepath := filepath.Join(workspaceDir, path, BuildFileName)
+	buildFilepath := filepath.Join(workspaceDir, path, args.BuildFilename)
 	targetsJSON, err := LoadBuildFile(buildFilepath)
 	if err != nil {
 		return nil, err
@@ -165,7 +157,7 @@ func MakeTargetSpec(rawSpec string, cwd string) ([]interfaces.TargetSpec, error)
 		spec.path = strings.Trim(rawPath, "/")
 	} else {
 		// Otherwise, we need to figure out the absolute path.
-		spec.path, _ = filepath.Rel(common.WorkspaceDir, filepath.Join(cwd, rawPath))
+		spec.path, _ = filepath.Rel(args.WorkspaceDir, filepath.Join(cwd, rawPath))
 	}
 
 	// Replace any last OS-level separators. Now we can see if it has been cached!
@@ -178,15 +170,15 @@ func MakeTargetSpec(rawSpec string, cwd string) ([]interfaces.TargetSpec, error)
 	// Final special case: if the target name is a special value, then expand the
 	// target into multiple targets.
 	if spec.name == "all" {
-		return expandAllTargetsInDir(common.WorkspaceDir, spec.Path())
+		return expandAllTargetsInDir(args.WorkspaceDir, spec.Path())
 	} else if strings.HasSuffix(spec.path, "...") {
 		targetPathWithoutDots, _ := filepath.Split(spec.Dir())
-		return expandAllTargetsInTree(common.WorkspaceDir, targetPathWithoutDots)
+		return expandAllTargetsInTree(args.WorkspaceDir, targetPathWithoutDots)
 	}
 
 	// Check to see whether the target exists. This requires that the BUILD file
 	// for this directory is parsed.
-	buildFile, err := LoadBuildFile(filepath.Join(spec.Path(), BuildFileName))
+	buildFile, err := LoadBuildFile(filepath.Join(spec.Path(), args.BuildFilename))
 	if err != nil {
 		return nil, err
 	}

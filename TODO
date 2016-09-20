@@ -1,3 +1,4 @@
 TODO:
 
 - Make the loader go through the json, not the struct.
+- define configurations in the WORKSPACE file (basically model targets that will be applied, so you could have a released/debug configuration for each different target type)
