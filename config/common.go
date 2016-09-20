@@ -41,15 +41,23 @@ func LoadTargetSpecs(json map[string]interface{}, key, cwd string) ([]interfaces
 	// need to actually load anything; we just want to know what the absolute
 	// path relative to the workspace is.
 	for _, rawSpec := range rawSpecs {
-		// Try to load a set of globs.
-		globSpecs := MakeFileSpecGlob(rawSpec, cwd)
-		if len(globSpecs) > 0 {
-			specs = append(specs, globSpecs...)
-			continue
+		// Try to load a set of globs, but only if they are prefixed by glob:.
+		if strings.HasPrefix(rawSpec, "glob:") {
+			globSpecs := MakeFileSpecGlob(strings.TrimLeft(rawSpec, "glob:"), cwd)
+			if len(globSpecs) > 0 {
+				specs = append(specs, globSpecs...)
+				continue
+			}
+		} else {
+			fileSpec := MakeFileSpec(rawSpec, cwd)
+			if fileSpec != nil {
+				specs = append(specs, fileSpec)
+				continue
+			}
 		}
 
 		targetSpecs, targetErr := MakeTargetSpec(rawSpec, cwd)
-		if targetSpecs != nil {
+		if len(targetSpecs) > 0 {
 			for _, spec := range targetSpecs {
 				specs = append(specs, spec)
 			}

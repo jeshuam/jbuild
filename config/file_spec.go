@@ -7,6 +7,7 @@ import (
 	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/interfaces"
+	"github.com/jeshuam/jbuild/config/util"
 	"github.com/op/go-logging"
 )
 
@@ -61,8 +62,8 @@ func MakeFileSpec(rawSpec, cwd string) interfaces.FileSpec {
 
 	// If the spec isn't absolute, we need to make it relative.
 	if !strings.HasPrefix(rawSpec, "//") {
-		rawSpec, _ = filepath.Rel(
-			args.WorkspaceDir, filepath.Join(cwd, spec.path))
+		specPath, _ := filepath.Rel(args.WorkspaceDir, cwd)
+		rawSpec = util.OSPathToWSPath(filepath.Join(specPath, rawSpec))
 	}
 
 	// Split the string into it's file and dir parts.
@@ -91,14 +92,14 @@ func MakeFileSpecGlob(rawSpecGlob, cwd string) []interfaces.Spec {
 	if !strings.HasPrefix(rawSpecGlob, "//") {
 		rawSpecGlob, _ = filepath.Rel(
 			args.WorkspaceDir, filepath.Join(cwd, strings.Trim(rawSpecGlob, "/")))
+		rawSpecGlob = filepath.Join(args.WorkspaceDir, rawSpecGlob)
 	}
 
 	// Expand the globs.
 	globs, _ := Glob(rawSpecGlob)
 	for _, glob := range globs {
-		specs = append(
-			specs,
-			MakeFileSpec("//"+strings.Replace(glob, pathSeparator, "/", -1), ""))
+		globRel, _ := filepath.Rel(args.WorkspaceDir, glob)
+		specs = append(specs, MakeFileSpec(util.OSPathToWSPath(globRel), ""))
 	}
 
 	return specs

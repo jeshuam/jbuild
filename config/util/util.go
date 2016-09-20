@@ -3,6 +3,7 @@ package util
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/deckarep/golang-set"
@@ -21,10 +22,10 @@ var (
 func GetDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
 	deps := make([]interfaces.TargetSpec, 0, len(specs))
 	for _, spec := range specs {
-		target, ok := TargetCache[spec.String()]
-		if ok {
+		switch spec.(type) {
+		case interfaces.TargetSpec:
 			deps = append(deps, spec.(interfaces.TargetSpec))
-			deps = append(deps, target.Dependencies()...)
+			deps = append(deps, spec.(interfaces.TargetSpec).Target().Dependencies()...)
 		}
 	}
 
@@ -34,8 +35,8 @@ func GetDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
 func GetDirectDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
 	deps := make([]interfaces.TargetSpec, 0, len(specs))
 	for _, spec := range specs {
-		_, ok := TargetCache[spec.String()]
-		if ok {
+		switch spec.(type) {
+		case interfaces.TargetSpec:
 			deps = append(deps, spec.(interfaces.TargetSpec))
 		}
 	}
@@ -108,4 +109,9 @@ func ReadyToProcess(spec interfaces.TargetSpec) bool {
 	}
 
 	return true
+}
+
+func OSPathToWSPath(path string) string {
+	return "//" + strings.Trim(
+		strings.Replace(path, string(os.PathSeparator), "/", -1), "/")
 }

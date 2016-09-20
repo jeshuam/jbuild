@@ -121,6 +121,7 @@ func expandAllTargetsInTree(workspaceDir, path string) ([]interfaces.TargetSpec,
 }
 
 func expandAllTargetsInDir(workspaceDir, path string) ([]interfaces.TargetSpec, error) {
+	log.Debugf("Scanning for all targets in '%s'", util.OSPathToWSPath(path))
 	buildFilepath := filepath.Join(workspaceDir, path, args.BuildFilename)
 	targetsJSON, err := LoadBuildFile(buildFilepath)
 	if err != nil {
@@ -129,7 +130,13 @@ func expandAllTargetsInDir(workspaceDir, path string) ([]interfaces.TargetSpec, 
 
 	targets := make([]interfaces.TargetSpec, 0, len(targetsJSON))
 	for targetName := range targetsJSON {
-		specs, _ := MakeTargetSpec("//"+strings.Replace(path, pathSeparator, "/", -1)+":"+targetName, "")
+		targetPath := util.OSPathToWSPath(path) + ":" + targetName
+		log.Debugf("Found target '%s'", targetPath)
+		specs, err := MakeTargetSpec(targetPath, "")
+		if err != nil {
+			return nil, err
+		}
+
 		targets = append(targets, specs...)
 	}
 
@@ -170,8 +177,10 @@ func MakeTargetSpec(rawSpec string, cwd string) ([]interfaces.TargetSpec, error)
 	// Final special case: if the target name is a special value, then expand the
 	// target into multiple targets.
 	if spec.name == "all" {
-		return expandAllTargetsInDir(args.WorkspaceDir, spec.Path())
+		log.Infof("Expanding target '%s'", spec)
+		return expandAllTargetsInDir(args.WorkspaceDir, spec.Dir())
 	} else if strings.HasSuffix(spec.path, "...") {
+		log.Infof("Expanding target '//%s'", spec.Dir())
 		targetPathWithoutDots, _ := filepath.Split(spec.Dir())
 		return expandAllTargetsInTree(args.WorkspaceDir, targetPathWithoutDots)
 	}

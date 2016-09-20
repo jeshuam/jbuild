@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"runtime/pprof"
 	"strings"
 
 	"github.com/jeshuam/jbuild/args"
@@ -27,13 +29,23 @@ var (
 	}
 )
 
-func printUsageAndExit() {
-	log.Fatalf("Usage: jbuild [flags] build|test|run|clean [target [targets...]]")
+func printUsage() {
+	fmt.Println("Usage: jbuild [flags] build|test|run|clean [target [targets...]]")
 }
+
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 func main() {
 	// Parse flags.
 	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	// Setup logging.
 	logging.SetFormatter(format)
@@ -53,25 +65,33 @@ func main() {
 
 	// Make sure at least the command was passed.
 	if len(flag.Args()) < 1 {
-		printUsageAndExit()
+		log.Error("No command passed on command-line")
+		printUsage()
+		return
 	}
 
 	// Get the command.
 	command := flag.Args()[0]
 	if !validCommands[command] {
-		fmt.Printf("Unknown command '%s'.\n", command)
+		log.Errorf("Unknown command '%s'", command)
+		printUsage()
 		return
 	}
 
 	// If we are cleaning, just delete the output directory.
 	if command == "clean" {
-		// jbuildCommands.Clean(common.WorkspaceDir)
+		log.Infof("Cleaning output directory '%s'", args.OutputDir)
+		if err := os.RemoveAll(args.OutputDir); err != nil {
+			log.Fatalf("Could not clean output directory: '%s'", err)
+		}
+
 		return
 	}
 
 	// If we aren't cleaning, get more arguments.
 	if len(flag.Args()) < 2 {
-		fmt.Println("Usage: jbuild [flags] build|test|run|clean [target [targets...]]")
+		log.Error("No targets specified on the command-line")
+		printUsage()
 		return
 	}
 
@@ -83,41 +103,41 @@ func main() {
 	targetsSpecified := make(map[string]interfaces.TargetSpec)
 	targetsToBuild := make(map[string]interfaces.TargetSpec)
 	for _, target := range targetArgs {
+		log.Infof("Loading target(s) '%s'", target)
 		specs, err := config.MakeTargetSpec(target, common.CurrentDir)
 		if err != nil {
-			fmt.Printf("Failed: %s", err)
-			return
+			log.Fatalf("Failed to load target '%s': %s", target, err)
 		}
 
 		for _, spec := range specs {
+			log.Infof("Processing target spec '%s'", spec)
+
 			// Make sure this spec is valid.
 			if command == "test" && !strings.HasSuffix(spec.Type(), "test") {
-				log.Warningf("Ignoring non-test target %s\n", spec)
+				log.Warningf("Ignoring non-test target '%s'\n", spec)
 				continue
 			} else if command == "run" && !strings.HasSuffix(spec.Type(), "binary") {
-				log.Warningf("Ignoring non-binary target %s\n", spec)
+				log.Warningf("Ignoring non-binary target '%s'\n", spec)
 				continue
 			}
 
+			log.Infof("Check '%s' for cycles", spec)
+			if err := util.CheckForDependencyCycles(spec); err != nil {
+				log.Fatalf("Error: %s", err)
+			}
+
+			log.Infof("Validating '%s'", spec)
+			if err := spec.Target().Validate(); err != nil {
+				log.Fatalf("Error: %s", err)
+			}
+
+			// Save the target.
 			if len(targetsSpecified) == 0 {
 				firstTargetSpecified = spec
 			}
 
 			targetsSpecified[spec.String()] = spec
 			targetsToBuild[spec.String()] = spec
-
-			err = util.CheckForDependencyCycles(spec)
-			if err != nil {
-				fmt.Printf("%s", err)
-				return
-			}
-
-			err = spec.Target().Validate()
-			if err != nil {
-				fmt.Printf("%s", err)
-				return
-			}
-
 			for _, spec := range spec.Target().Dependencies() {
 				targetsToBuild[spec.String()] = spec
 			}
@@ -125,6 +145,7 @@ func main() {
 	}
 
 	// Build the targets.
+	log.Info("Building targets...")
 	jbuildCommands.BuildTargets(targetsToBuild)
 
 	// Further process the targets.
