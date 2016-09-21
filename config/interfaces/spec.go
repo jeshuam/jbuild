@@ -12,6 +12,9 @@ type Spec interface {
 	// String should return a string representation of this spec. This value must
 	// be unique within each workspace.
 	String() string
+
+	// Return the type of the spec or contained target. Should be unique.
+	Type() string
 }
 
 type FileSpec interface {
@@ -45,8 +48,4 @@ type TargetSpec interface {
 	// OutputPath should return the fully-qualified OS path to the output
 	// directory for this target.
 	OutputPath() string
-
-	// Type should return the type of the target as specified in the BUILD file.
-	// This should be the second part of the type specification only.
-	Type() string
 }

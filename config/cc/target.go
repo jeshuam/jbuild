@@ -14,7 +14,8 @@ import (
 type TargetType int
 
 const (
-	Binary TargetType = iota
+	Unknown TargetType = iota
+	Binary
 	Test
 	Library
 )
@@ -22,14 +23,14 @@ const (
 type Target struct {
 	Spec         interfaces.TargetSpec
 	Type         TargetType
-	Srcs         []interfaces.Spec
-	Hdrs         []interfaces.Spec
-	Deps         []interfaces.TargetSpec
-	Data         []interfaces.Spec
+	Srcs         []interfaces.Spec       `types:"file,filegroup"`
+	Hdrs         []interfaces.Spec       `types:"file,filegroup"`
+	Deps         []interfaces.TargetSpec `types:"c++/library"`
+	Data         []interfaces.Spec       `types:"file,filegroup"`
 	CompileFlags []string
 	LinkFlags    []string
 	Includes     []interfaces.DirSpec
-	Libs         []interfaces.Spec
+	Libs         []interfaces.Spec `types:"file,filegroup"`
 
 	// Working arguments.
 	_outputFile string
@@ -55,9 +56,9 @@ func (this *Target) GetType() string {
 		return "c++/test"
 	case Library:
 		return "c++/library"
+	default:
+		return "c++/unknown"
 	}
-
-	return ""
 }
 
 func (this *Target) Processed() bool {

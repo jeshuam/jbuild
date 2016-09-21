@@ -37,6 +37,10 @@ func (this *FileSpecImpl) String() string {
 	return "//" + this.Dir() + "/" + this.File()
 }
 
+func (this *FileSpecImpl) Type() string {
+	return "file"
+}
+
 func (this *FileSpecImpl) File() string {
 	return this.file
 }

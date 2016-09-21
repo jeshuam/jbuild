@@ -13,7 +13,7 @@ import (
 // have a filegroup which is a collection of filegroups.
 type Target struct {
 	Type  string
-	Files []interfaces.Spec
+	Files []interfaces.Spec `types:"file,filegroup"`
 }
 
 ////////////////////////////////////////////////////////////////////////////////

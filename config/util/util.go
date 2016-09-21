@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/deckarep/golang-set"
 	"github.com/jeshuam/jbuild/config/interfaces"
 )
 
@@ -42,16 +41,6 @@ func GetDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
 	}
 
 	return deps
-}
-
-func EnsureDependenciesAreOfType(specs []interfaces.Spec, types mapset.Set) error {
-	// for _, spec := range specs {
-	// 	if !types.Contains(spec.Type()) {
-	// 		return errors.New(fmt.Sprintf("Invalid type %s: options are %s", spec.Type(), types))
-	// 	}
-	// }
-
-	return nil
 }
 
 func checkForDependencyCyclesRecurse(

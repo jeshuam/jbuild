@@ -43,6 +43,10 @@ func (this *TargetSpecImpl) String() string {
 	return "//" + this.Dir() + ":" + this.Name()
 }
 
+func (this *TargetSpecImpl) Type() string {
+	return this._type
+}
+
 func (this *TargetSpecImpl) Name() string {
 	return this.name
 }
@@ -54,10 +58,6 @@ func (this *TargetSpecImpl) Target() interfaces.Target {
 func (this *TargetSpecImpl) OutputPath() string {
 	return filepath.Join(
 		args.OutputDir, strings.Replace(this.path, "/", pathSeparator, -1))
-}
-
-func (this *TargetSpecImpl) Type() string {
-	return this._type
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/etgryphon/stringUp"
-	// "github.com/fatih/camelcase"
 	"github.com/jeshuam/jbuild/config/cc"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/interfaces"
@@ -143,17 +142,31 @@ func loadJson(
 
 	// If this field doesn't exist, throw an error.
 	if !fieldValue.IsValid() {
-		return errors.New(fmt.Sprintf("Unknown field '%s'", key))
+		return errors.New(fmt.Sprintf("Unknown field '%s' in '%s'", key, spec))
 	}
 
 	// This field is valid, let's load it.
 	fieldType, _ := targetType.FieldByName(fieldName)
+	allowedTypes := make(map[string]bool)
+	allowedTypesRaw := strings.Split(fieldType.Tag.Get("types"), ",")
+	for _, allowedType := range allowedTypesRaw {
+		allowedTypes[allowedType] = true
+	}
 
 	switch fieldType.Type {
 	case reflect.TypeOf([]interfaces.Spec{}):
 		specs, err := loadSpecs(json, key, spec.Path())
 		if err != nil {
 			return err
+		}
+
+		// Make sure all specs are valid types.
+		for _, newSpec := range specs {
+			if !allowedTypes[newSpec.Type()] {
+				return errors.New(
+					fmt.Sprintf("Invalid spec type '%s' (%s) in field '%s' of '%s', allowed = %s",
+						newSpec.Type(), newSpec, key, spec, allowedTypesRaw))
+			}
 		}
 
 		currentVal := fieldValue.Interface().([]interfaces.Spec)
@@ -176,6 +189,15 @@ func loadJson(
 			return err
 		}
 
+		// Make sure all targetSpecs are valid types.
+		for _, targetSpec := range targetSpecs {
+			if !allowedTypes[targetSpec.Type()] {
+				return errors.New(
+					fmt.Sprintf("Invalid spec type '%s' (%s) in field '%s' of '%s', allowed = %s",
+						targetSpec.Type(), targetSpec, key, spec, allowedTypesRaw))
+			}
+		}
+
 		currentVal := fieldValue.Interface().([]interfaces.TargetSpec)
 		currentVal = append(currentVal, targetSpecs...)
 		fieldValue.Set(reflect.ValueOf(currentVal))
@@ -191,17 +213,20 @@ func loadJson(
 	case reflect.TypeOf(cc.Binary):
 		switch spec.Type() {
 		case "c++/binary":
+			log.Infof("found binary!")
 			fieldValue.Set(reflect.ValueOf(cc.Binary))
 		case "c++/library":
+			log.Infof("found library!")
 			fieldValue.Set(reflect.ValueOf(cc.Library))
 		case "c++/test":
+			log.Infof("found test!")
 			fieldValue.Set(reflect.ValueOf(cc.Test))
 		default:
-			return errors.New(fmt.Sprintf("Invalid C++ target type %s", spec.Type()))
+			return errors.New(fmt.Sprintf("Invalid C++ target type '%s' for '%s'", spec.Type(), spec))
 		}
 
 	default:
-		return errors.New(fmt.Sprintf("Unknown field type %s", fieldType.Type, spec))
+		return errors.New(fmt.Sprintf("Unknown field type '%s' in '%s'", fieldType.Type, spec))
 	}
 
 	return nil
@@ -239,7 +264,7 @@ func LoadTargetFromJson(spec interfaces.TargetSpec, target interfaces.Target, ta
 	for jsonKey := range targetJson {
 		err := loadJson(targetType, targetValue, targetJson, jsonKey, spec)
 		if err != nil {
-			return errors.New(fmt.Sprintf("Error while loading %s: %s", spec, err))
+			return err
 		}
 	}
 
@@ -247,8 +272,7 @@ func LoadTargetFromJson(spec interfaces.TargetSpec, target interfaces.Target, ta
 	for jsonKey := range platformOptionsJson {
 		err := loadJson(targetType, targetValue, platformOptionsJson, jsonKey, spec)
 		if err != nil {
-			return errors.New(
-				fmt.Sprintf("Error while loading platform options for %s: %s", spec, err))
+			return err
 		}
 	}
 
