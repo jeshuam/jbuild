@@ -10,11 +10,7 @@ func prepareEnvironment(_ *Target, cmd *exec.Cmd) {
 }
 
 func libraryName(name string) string {
-	if *ccStaticLinking {
-		return name + ".a"
-	}
-
-	return "lib" + name + ".so"
+	return name + ".a"
 }
 
 func isSharedLib(path string) bool {
