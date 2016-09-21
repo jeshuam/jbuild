@@ -5,11 +5,15 @@ import (
 
 	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
-	"github.com/jeshuam/jbuild/config"
 	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/jeshuam/jbuild/config/util"
 	"github.com/jeshuam/jbuild/progress"
 )
+
+type processingResult struct {
+	Spec interfaces.Spec
+	Err  error
+}
 
 func setupProgressBars(targetsToBuild map[string]interfaces.TargetSpec) {
 	if !args.ShowLog {
@@ -33,7 +37,7 @@ func setupProgressBars(targetsToBuild map[string]interfaces.TargetSpec) {
 
 func buildTargets(targetsToBuild map[string]interfaces.TargetSpec, taskQueue chan common.CmdSpec) {
 	var (
-		results = make(chan config.ProcessingResult)
+		results = make(chan processingResult)
 
 		targetsStarted = make(map[string]bool, len(targetsToBuild))
 		targetsBuilt   = make(map[string]bool, len(targetsToBuild))
@@ -56,7 +60,7 @@ func buildTargets(targetsToBuild map[string]interfaces.TargetSpec, taskQueue cha
 						log.Fatalf("Error while processing %s: %v", specName, err)
 					}
 
-					results <- config.ProcessingResult{spec, err}
+					results <- processingResult{spec, err}
 				}()
 
 				targetsStarted[specName] = true
