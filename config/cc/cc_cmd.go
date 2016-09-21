@@ -13,29 +13,9 @@ func compileCommand(target *Target, src, obj string) *exec.Cmd {
 
 	// Build up the command line. This varies depending on the compiler type
 	// (mainly because cl.exe is really weird).
-	flags := target.CompileFlags
-	for _, include := range target.Includes {
-		includePath := filepath.Join(target.Spec.Path(), include)
-		flags = append(flags, "-I"+includePath)
-	}
-
-	// Include flags from dependencies.
-	for _, dep := range target.Dependencies() {
-		if strings.HasPrefix(dep.Target().Type(), "c++") {
-			depTarget := dep.Target().(*Target)
-			flags = append(flags, depTarget.CompileFlags...)
-
-			for _, include := range depTarget.Includes {
-				includePath := filepath.Join(dep.Path(), include)
-				flags = append(flags, "-I"+includePath)
-			}
-		} else if strings.HasPrefix(dep.Target().Type(), "genrule") {
-
-		} else if strings.HasPrefix(dep.Target().Type(), "filegroup") {
-
-		} else {
-			log.Fatalf("Invalid dependency from C++ --> %s (%s)", dep.Target().Type(), dep)
-		}
+	flags := target.compileFlags()
+	for _, include := range target.includes() {
+		flags = append(flags, "-I"+include.Path())
 	}
 
 	// Add compiler specific options.
@@ -89,27 +69,15 @@ func linkCommand(target *Target, objs []string, output string) *exec.Cmd {
 		flags = append(flags, []string{"-o", output}...)
 	}
 
-	// Add the objects to the commandline.
+	// Add the objects to the command-line.
 	flags = append(flags, objs...)
-	// if target.IsExecutable() {
-	// 	for _, lib := range target.Libs {
-	// 		flags = append(flags, lib)
-	// 	}
-	// }
 
 	// Link in libraries for binaries.
 	if target.IsExecutable() {
+		// Save the flags to a map to ensure we don't have duplicates. Order should
+		// not matter in this case.
 		extraFlags := make(map[string]bool, 0)
-		for _, dep := range target.Dependencies() {
-			if strings.HasPrefix(dep.Target().Type(), "c++") {
-				depTarget := dep.Target().(*Target)
-				for _, flag := range depTarget.LinkFlags {
-					extraFlags[flag] = true
-				}
-			}
-		}
-
-		for _, flag := range target.LinkFlags {
+		for _, flag := range target.linkFlags() {
 			extraFlags[flag] = true
 		}
 
@@ -118,16 +86,15 @@ func linkCommand(target *Target, objs []string, output string) *exec.Cmd {
 			flags = append(flags, flag)
 		}
 
-		// Add libs. This has to be done in order.
-		log.Warningf("ALL LIBS = %s\n", target.AllLibs())
-		for _, lib := range target.AllLibs() {
+		// Add static libs.
+		for _, lib := range target.libs() {
 			flags = append(flags, lib.FilePath())
 		}
 
 		// We have to go through the outputs in reverse order to make sure that we
 		// put core dependencies last in the list.
 		outputUsed := make(map[string]bool, 0)
-		outputOrderedDuplicates := target.DepOutputs()
+		outputOrderedDuplicates := target.depOutputs()
 		outputOrderedFiltered := make([]string, 0)
 		for i := len(outputOrderedDuplicates) - 1; i >= 0; i-- {
 			output := outputOrderedDuplicates[i]

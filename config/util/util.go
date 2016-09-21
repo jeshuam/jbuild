@@ -19,20 +19,20 @@ var (
 	SpecCache = make(map[string]interfaces.Spec, 0)
 )
 
-func GetDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
+func GetAllDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
 	deps := make([]interfaces.TargetSpec, 0, len(specs))
 	for _, spec := range specs {
 		switch spec.(type) {
 		case interfaces.TargetSpec:
 			deps = append(deps, spec.(interfaces.TargetSpec))
-			deps = append(deps, spec.(interfaces.TargetSpec).Target().Dependencies()...)
+			deps = append(deps, spec.(interfaces.TargetSpec).Target().AllDependencies()...)
 		}
 	}
 
 	return deps
 }
 
-func GetDirectDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
+func GetDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
 	deps := make([]interfaces.TargetSpec, 0, len(specs))
 	for _, spec := range specs {
 		switch spec.(type) {
@@ -77,7 +77,7 @@ func checkForDependencyCyclesRecurse(
 
 	// Look through each child of the current target and recurse to it, first
 	// adding this node to the visited list.
-	for _, dep := range target.DirectDependencies() {
+	for _, dep := range target.Dependencies() {
 		err := checkForDependencyCyclesRecurse(dep, visited, seq+1)
 		if err != nil {
 			return err
@@ -91,7 +91,7 @@ func CheckForDependencyCycles(spec interfaces.Spec) error {
 	visited := make([]string, 0, 1)
 	visited = append(visited, spec.String())
 	target := TargetCache[spec.String()]
-	for _, dep := range target.DirectDependencies() {
+	for _, dep := range target.Dependencies() {
 		err := checkForDependencyCyclesRecurse(dep, visited, 1)
 		if err != nil {
 			return err
@@ -102,7 +102,7 @@ func CheckForDependencyCycles(spec interfaces.Spec) error {
 }
 
 func ReadyToProcess(spec interfaces.TargetSpec) bool {
-	for _, dep := range spec.Target().Dependencies() {
+	for _, dep := range spec.Target().AllDependencies() {
 		if !dep.Target().Processed() {
 			return false
 		}

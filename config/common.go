@@ -77,6 +77,22 @@ func LoadTargetSpecs(json map[string]interface{}, key, cwd string) ([]interfaces
 	return specs, nil
 }
 
+// Load a list of DirSpecs from a JSON map.
+func LoadDirSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.DirSpec, error) {
+	rawSpecs := LoadStrings(json, key)
+	dirSpecs := make([]interfaces.DirSpec, 0, len(rawSpecs))
+	for _, rawSpec := range rawSpecs {
+		dirSpec := MakeDirSpec(rawSpec, cwd)
+		if dirSpec == nil {
+			return nil, errors.New(fmt.Sprintf("Could not make DirSpec '%s'", rawSpec))
+		}
+
+		dirSpecs = append(dirSpecs, dirSpec)
+	}
+
+	return dirSpecs, nil
+}
+
 // Load a list of strings from the given JSON map.
 func LoadStrings(json map[string]interface{}, key string) []string {
 	strings := make([]string, 0)
@@ -122,11 +138,6 @@ func LoadTargetFromJson(spec interfaces.TargetSpec, target interfaces.Target, ta
 			continue
 		}
 
-		// Ignore the output files.
-		if fieldName == "output" {
-			continue
-		}
-
 		// If the field name is "spec", this is a special case. We should store the
 		// target's spec here.
 		// TODO(jeshua): find a better way to exposing the spec to the target.
@@ -149,6 +160,20 @@ func LoadTargetFromJson(spec interfaces.TargetSpec, target interfaces.Target, ta
 
 			targetSpecs = append(targetSpecs, platformTargetSpecs...)
 			targetField.Set(reflect.ValueOf(targetSpecs))
+
+		case reflect.TypeOf([]interfaces.DirSpec{}):
+			dirSpecs, err := LoadDirSpecs(targetJson, fieldName, spec.Path())
+			if err != nil {
+				return err
+			}
+
+			platformDirSpecs, err := LoadDirSpecs(platformOptionsJson, fieldName, spec.Path())
+			if err != nil {
+				return err
+			}
+
+			dirSpecs = append(dirSpecs, platformDirSpecs...)
+			targetField.Set(reflect.ValueOf(dirSpecs))
 
 		case reflect.TypeOf([]string{}):
 			options := LoadStrings(targetJson, fieldName)

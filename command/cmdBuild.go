@@ -35,8 +35,8 @@ func buildTargets(targetsToBuild map[string]interfaces.TargetSpec, taskQueue cha
 	var (
 		results = make(chan config.ProcessingResult)
 
-		targetsStarted = make(map[string]bool, 0)
-		targetsBuilt   = make(map[string]bool, 0)
+		targetsStarted = make(map[string]bool, len(targetsToBuild))
+		targetsBuilt   = make(map[string]bool, len(targetsToBuild))
 	)
 
 	for len(targetsBuilt) < len(targetsToBuild) {
@@ -45,7 +45,10 @@ func buildTargets(targetsToBuild map[string]interfaces.TargetSpec, taskQueue cha
 			_, targetStarted := targetsStarted[specName]
 			if !targetStarted && util.ReadyToProcess(spec) {
 				log.Infof("Processing %s...", specName)
-				progressBar := progress.AddBar(spec.Target().TotalOps(), specName)
+				var progressBar *progress.ProgressBar
+				if spec.Target().TotalOps() > 0 {
+					progressBar = progress.AddBar(spec.Target().TotalOps(), specName)
+				}
 
 				go func() {
 					err := spec.Target().Process(progressBar, taskQueue)

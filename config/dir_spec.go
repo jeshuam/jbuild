@@ -50,6 +50,7 @@ func MakeDirSpec(rawSpec, cwd string) interfaces.DirSpec {
 
 	// Check to see whether this file exists and is a file. If it doesn't, then
 	// we don't have a FileSpec.
+	spec.path = strings.Trim(strings.Replace(spec.path, pathSeparator, "/", -1), "/")
 	if common.FileExists(spec.Path()) && common.IsDir(spec.Path()) {
 		log.Debugf("Loaded DirSpec: %s", spec)
 		return spec

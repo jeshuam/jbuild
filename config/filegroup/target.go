@@ -3,74 +3,89 @@ package filegroup
 import (
 	"fmt"
 
-	"github.com/deckarep/golang-set"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/jeshuam/jbuild/config/util"
 	"github.com/jeshuam/jbuild/progress"
 )
 
+// A Filegroup is just a list of files. Filegroups can be nested, so you can
+// have a filegroup which is a collection of filegroups.
 type Target struct {
 	Files []interfaces.Spec
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//                          Interface Implementation                          //
+////////////////////////////////////////////////////////////////////////////////
 func (this *Target) String() string {
-	return fmt.Sprintf("files=%s", this.Files)
+	return fmt.Sprintf("filegroup: files=%s", this.Files)
 }
 
 func (this *Target) Type() string {
 	return "filegroup"
 }
 
-func (this *Target) Validate() error {
-	err := util.EnsureDependenciesAreOfType(this.Files, mapset.NewSet("file", "filegroup"))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (this *Target) DirectDependencies() []interfaces.TargetSpec {
-	deps := make([]interfaces.TargetSpec, 0, len(this.Files))
-	deps = append(deps, util.GetDirectDependencies(this.Files)...)
-	return deps
-}
-
-func (this *Target) Dependencies() []interfaces.TargetSpec {
-	deps := make([]interfaces.TargetSpec, 0, len(this.Files))
-	deps = append(deps, util.GetDependencies(this.Files)...)
-	return deps
-}
-
 func (this *Target) Processed() bool {
 	return true
-}
-
-func (this *Target) Process(*progress.ProgressBar, chan common.CmdSpec) error {
-	return nil
-}
-
-func (this *Target) Run([]string) {
-
 }
 
 func (this *Target) TotalOps() int {
 	return 0
 }
 
-func (this *Target) Changed() bool {
-	return false
+func (this *Target) Dependencies() []interfaces.TargetSpec {
+	return util.GetDependencies(this.Files)
 }
 
-func (this *Target) ExtractAllFiles() []interfaces.FileSpec {
+func (this *Target) AllDependencies() []interfaces.TargetSpec {
+	return util.GetAllDependencies(this.Files)
+}
+
+func (this *Target) OutputFiles() []string {
+	output := make([]string, 0, len(this.files()))
+	for _, file := range this.files() {
+		output = append(output, file.FilePath())
+	}
+
+	return output
+}
+
+func (this *Target) Validate() error {
+	// TODO(jeshua): validate once JSON validation tags are implemented.
+	return nil
+}
+
+func (this *Target) Process(*progress.ProgressBar, chan common.CmdSpec) error {
+	return nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//                             Utility Functions                              //
+////////////////////////////////////////////////////////////////////////////////
+
+// Files returns a list of FileSpec objects contained within this filegroup.
+func (this *Target) files() []interfaces.FileSpec {
 	files := make([]interfaces.FileSpec, 0, len(this.Files))
 	for _, fileSpec := range this.Files {
 		switch fileSpec.(type) {
 		case interfaces.FileSpec:
 			files = append(files, fileSpec.(interfaces.FileSpec))
+		}
+	}
+
+	return files
+}
+
+// AllFiles returns a list of the FileSpec objects contained within this
+// filegroup and all contained filegroups.
+func (this *Target) AllFiles() []interfaces.FileSpec {
+	files := this.files()
+	for _, fileSpec := range this.Files {
+		switch fileSpec.(type) {
 		case interfaces.TargetSpec:
-			files = append(files, fileSpec.(interfaces.TargetSpec).Target().(*Target).ExtractAllFiles()...)
+			filegroup := fileSpec.(interfaces.TargetSpec).Target().(*Target)
+			files = append(files, filegroup.AllFiles()...)
 		}
 	}
 

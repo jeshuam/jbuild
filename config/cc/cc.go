@@ -18,11 +18,11 @@ var (
 
 // Compile the source files within the given target.
 func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue chan common.CmdSpec) ([]string, int, error) {
-	objs := make([]string, len(target.AllSrcs()))
-	results := make(chan error, len(target.AllSrcs()))
+	objs := make([]string, len(target.srcs()))
+	results := make(chan error, len(target.srcs()))
 	nCompiled := 0
 
-	for i, srcFile := range target.AllSrcs() {
+	for i, srcFile := range target.srcs() {
 		// Display the source file we are building.
 		progressBar.SetSuffix(srcFile.String())
 
@@ -78,7 +78,7 @@ func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue c
 
 func linkObjects(target *Target, progressBar *progress.ProgressBar, taskQueue chan common.CmdSpec, objects []string, nCompiled int) (string, error) {
 	// Throw and error if there are no source files and this isn't a library.
-	if target.IsBinary() && (len(target.AllSrcs()) == 0 && len(target.Deps) == 0) {
+	if target.IsBinary() && (len(target.srcs()) == 0 && len(target.Deps) == 0) {
 		return "", errors.New(fmt.Sprintf("No source files/deps found for binary %s", target))
 	}
 
@@ -91,9 +91,8 @@ func linkObjects(target *Target, progressBar *progress.ProgressBar, taskQueue ch
 	}
 
 	// Work out the output filepath.
-	dependenciesChanged := target.IsExecutable() && target.Changed()
 	outputPath := filepath.Join(target.Spec.OutputPath(), outputName)
-	if nCompiled == 0 && common.FileExists(outputPath) && !dependenciesChanged {
+	if nCompiled == 0 && common.FileExists(outputPath) {
 		progressBar.Increment()
 		target._changed = false
 		return outputPath, nil
@@ -105,6 +104,7 @@ func linkObjects(target *Target, progressBar *progress.ProgressBar, taskQueue ch
 
 	// Now, we need to build up the command to run.
 	cmd := linkCommand(target, objects, outputPath)
+	log.Infof("%s cmd = %s", target.Spec, cmd.Args)
 
 	// Run the command.
 	taskQueue <- common.CmdSpec{cmd, result, func(string, bool, time.Duration) {
@@ -117,4 +117,28 @@ func linkObjects(target *Target, progressBar *progress.ProgressBar, taskQueue ch
 	}
 
 	return outputPath, nil
+}
+
+func copyData(target *Target, progressBar *progress.ProgressBar) error {
+	for _, dataSpec := range target.data() {
+		inputFile := dataSpec.FilePath()
+		outputFile := filepath.Join(dataSpec.OutputPath(), dataSpec.File())
+		dataStat, _ := os.Stat(inputFile)
+		dataOutStat, _ := os.Stat(outputFile)
+		if dataOutStat != nil && dataStat.ModTime().After(dataOutStat.ModTime()) {
+			os.Remove(outputFile)
+		}
+
+		// If the output file doesn't exist, then copy it.
+		if !common.FileExists(outputFile) {
+			err := os.Link(inputFile, outputFile)
+			if err != nil {
+				return err
+			}
+		}
+
+		progressBar.Increment()
+	}
+
+	return nil
 }

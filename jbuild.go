@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/jeshuam/jbuild/args"
@@ -127,7 +128,7 @@ func main() {
 
 			targetsSpecified[spec.String()] = spec
 			targetsToBuild[spec.String()] = spec
-			for _, spec := range spec.Target().Dependencies() {
+			for _, spec := range spec.Target().AllDependencies() {
 				targetsToBuild[spec.String()] = spec
 			}
 		}
@@ -140,7 +141,11 @@ func main() {
 	// Further process the targets.
 	if command == "run" {
 		log.Infof("Running '%s'", firstTargetSpecified)
-		firstTargetSpecified.Target().Run(flag.Args()[2:])
+		cmd := exec.Command(firstTargetSpecified.Target().OutputFiles()[0], flag.Args()[2:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		cmd.Run()
 	} else if command == "test" {
 		if len(targetsSpecified) == 1 {
 			log.Infof("Testing 1 target")
