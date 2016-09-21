@@ -6,19 +6,14 @@ import (
 	"strings"
 
 	"github.com/jeshuam/jbuild/args"
+	"github.com/jeshuam/jbuild/config/util"
 )
 
 func compileCommand(target *Target, src, obj string) *exec.Cmd {
 	compiler := args.CCCompiler
 
-	// Build up the command line. This varies depending on the compiler type
-	// (mainly because cl.exe is really weird).
-	flags := target.compileFlags()
-	for _, include := range target.includes() {
-		flags = append(flags, "-I"+include.Path())
-	}
-
 	// Add compiler specific options.
+	flags := make([]string, 0)
 	if compiler == "cl.exe" {
 		flags = append(flags, []string{"/c", "/Fo" + obj, src, "/EHsc"}...)
 	} else {
@@ -31,8 +26,20 @@ func compileCommand(target *Target, src, obj string) *exec.Cmd {
 			"-c", "-o", obj, src}...)
 	}
 
+	// Build up the command line. This varies depending on the compiler type
+	// (mainly because cl.exe is really weird).
+	flags = append(flags, target.compileFlags()...)
+	for _, include := range target.includes() {
+		if compiler == "cl.exe" {
+			flags = append(flags, "/I"+include.Path())
+		} else {
+			flags = append(flags, "-I"+include.Path())
+		}
+
+	}
+
 	// Make the command.
-	command := exec.Command(compiler, flags...)
+	command := exec.Command(compiler, util.MakeUnique(flags)...)
 
 	// Prepare the command's environment. This will do different things depending
 	// on whether this is windows or linux.
@@ -79,15 +86,8 @@ func linkCommand(target *Target, objs []string, output string) *exec.Cmd {
 
 	// Link in libraries for binaries.
 	if target.IsExecutable() {
-		// Save the flags to a map to ensure we don't have duplicates. Order should
-		// not matter in this case.
-		extraFlags := make(map[string]bool, 0)
-		for _, flag := range target.linkFlags() {
-			extraFlags[flag] = true
-		}
-
 		// Add the extra flags.
-		for flag := range extraFlags {
+		for _, flag := range target.linkFlags() {
 			flags = append(flags, flag)
 		}
 
@@ -98,23 +98,14 @@ func linkCommand(target *Target, objs []string, output string) *exec.Cmd {
 
 		// We have to go through the outputs in reverse order to make sure that we
 		// put core dependencies last in the list.
-		outputUsed := make(map[string]bool, 0)
-		outputOrderedDuplicates := target.depOutputs()
-		outputOrderedFiltered := make([]string, 0)
-		for i := len(outputOrderedDuplicates) - 1; i >= 0; i-- {
-			output := outputOrderedDuplicates[i]
-			_, ok := outputUsed[output]
-			if !ok {
-				outputOrderedFiltered = append([]string{output}, outputOrderedFiltered...)
-				outputUsed[output] = true
-			}
+		depOutputs := target.depOutputs()
+		for i := len(depOutputs) - 1; i >= 0; i-- {
+			flags = append(flags, depOutputs[i])
 		}
-
-		flags = append(flags, outputOrderedFiltered...)
 	}
 
 	// Make the command.
-	command := exec.Command(linker, flags...)
+	command := exec.Command(linker, util.MakeUnique(flags)...)
 
 	// Prepare the environment.
 	prepareEnvironment(target, command)

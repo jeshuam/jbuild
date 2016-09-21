@@ -33,6 +33,7 @@ var (
 
 	// Display options.
 	ShowLog           bool
+	ShowCommands      bool
 	UseSimpleProgress bool
 
 	// Processing options.
@@ -75,6 +76,10 @@ func init() {
 	// Display options.
 	flag.BoolVar(&ShowLog, "show_log", false,
 		"If enabled, raw log messages will be shown rather than progress bars.")
+
+	flag.BoolVar(&ShowCommands, "show_commands", false,
+		"If enabled, the commands run will be printed to the display. These will "+
+			"only be visible if show_log is also enabled.")
 
 	flag.BoolVar(&UseSimpleProgress, "use_simple_progress", true,
 		"If enabled, use the simple (and reliable) progress bar system.")

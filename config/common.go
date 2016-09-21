@@ -7,7 +7,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/fatih/camelcase"
+	"github.com/etgryphon/stringUp"
+	// "github.com/fatih/camelcase"
 	"github.com/jeshuam/jbuild/config/cc"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/interfaces"
@@ -29,17 +30,15 @@ type ProcessingResult struct {
 
 // Load a list of FileSpecs from a JSON map. The values are all globs by
 // default.
-func LoadTargetSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.Spec, error) {
+func loadSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.Spec, error) {
 	// First, load the array of strings from the JSON object.
-	rawSpecs := LoadStrings(json, key)
+	rawSpecs := loadStrings(json, key)
 
 	// Place to store the final result.
 	specs := make([]interfaces.Spec, 0, len(rawSpecs))
 
-	// Now expand each glob. Note that things might not expand if they aren't
-	// actually globs; that's OK. Start by making the target spec. There is no
-	// need to actually load anything; we just want to know what the absolute
-	// path relative to the workspace is.
+	// Now try to load each spec. To do this, attempt to load each different spec
+	// type in turn. If none of them work, then this spec must be invalid.
 	for _, rawSpec := range rawSpecs {
 		// Try to load a set of globs, but only if they are prefixed by glob:.
 		if strings.HasPrefix(rawSpec, "glob:") {
@@ -56,30 +55,55 @@ func LoadTargetSpecs(json map[string]interface{}, key, cwd string) ([]interfaces
 			}
 		}
 
-		targetSpecs, targetErr := MakeTargetSpec(rawSpec, cwd)
-		if len(targetSpecs) > 0 {
-			for _, spec := range targetSpecs {
-				specs = append(specs, spec)
-			}
-			continue
-		}
-
 		dirSpec := MakeDirSpec(rawSpec, cwd)
 		if dirSpec != nil {
 			specs = append(specs, dirSpec)
 			continue
 		}
 
+		targetSpecs, err := MakeTargetSpec(rawSpec, cwd)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(targetSpecs) > 0 {
+			for _, spec := range targetSpecs {
+				specs = append(specs, spec)
+			}
+
+			continue
+		}
+
 		// If we got here, it wasn't a valid spec.
-		return nil, targetErr
+		return nil, errors.New(fmt.Sprintf("Could not identify type of spec '%s'", rawSpec))
 	}
 
 	return specs, nil
 }
 
+// Load a list of TargetSpecs from a JSON map.
+func loadTargetSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.TargetSpec, error) {
+	rawSpecs := loadStrings(json, key)
+	targetSpecs := make([]interfaces.TargetSpec, 0, len(rawSpecs))
+	for _, rawSpec := range rawSpecs {
+		targetSpec, err := MakeTargetSpec(rawSpec, cwd)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(targetSpec) == 0 {
+			return nil, errors.New(fmt.Sprintf("Could not make TargetSpec '%s'", rawSpec))
+		}
+
+		targetSpecs = append(targetSpecs, targetSpec...)
+	}
+
+	return targetSpecs, nil
+}
+
 // Load a list of DirSpecs from a JSON map.
-func LoadDirSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.DirSpec, error) {
-	rawSpecs := LoadStrings(json, key)
+func loadDirSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.DirSpec, error) {
+	rawSpecs := loadStrings(json, key)
 	dirSpecs := make([]interfaces.DirSpec, 0, len(rawSpecs))
 	for _, rawSpec := range rawSpecs {
 		dirSpec := MakeDirSpec(rawSpec, cwd)
@@ -93,8 +117,8 @@ func LoadDirSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.Di
 	return dirSpecs, nil
 }
 
-// Load a list of strings from the given JSON map.
-func LoadStrings(json map[string]interface{}, key string) []string {
+// loadStrings loads a list of strings from the given key.
+func loadStrings(json map[string]interface{}, key string) []string {
 	strings := make([]string, 0)
 	stringArray, ok := json[key]
 	if ok {
@@ -104,6 +128,88 @@ func LoadStrings(json map[string]interface{}, key string) []string {
 	}
 
 	return strings
+}
+
+func loadJson(
+	targetType reflect.Type,
+	targetValue reflect.Value,
+	json map[string]interface{},
+	key string,
+	spec interfaces.TargetSpec) error {
+
+	// If this is a platform specific options key, ignore it.
+	if key == "linux" || key == "windows" || key == "darwin" {
+		return nil
+	}
+
+	// Try to find a field of this name.
+	fieldName := stringUp.CamelCase(strings.Title(key))
+	fieldValue := targetValue.Elem().FieldByName(fieldName)
+
+	// If this field doesn't exist, throw an error.
+	if !fieldValue.IsValid() {
+		return errors.New(fmt.Sprintf("Unknown field '%s'", key))
+	}
+
+	// This field is valid, let's load it.
+	fieldType, _ := targetType.FieldByName(fieldName)
+
+	switch fieldType.Type {
+	case reflect.TypeOf([]interfaces.Spec{}):
+		specs, err := loadSpecs(json, key, spec.Path())
+		if err != nil {
+			return err
+		}
+
+		currentVal := fieldValue.Interface().([]interfaces.Spec)
+		currentVal = append(currentVal, specs...)
+		fieldValue.Set(reflect.ValueOf(currentVal))
+
+	case reflect.TypeOf([]interfaces.DirSpec{}):
+		dirSpecs, err := loadDirSpecs(json, key, spec.Path())
+		if err != nil {
+			return err
+		}
+
+		currentVal := fieldValue.Interface().([]interfaces.DirSpec)
+		currentVal = append(currentVal, dirSpecs...)
+		fieldValue.Set(reflect.ValueOf(currentVal))
+
+	case reflect.TypeOf([]interfaces.TargetSpec{}):
+		targetSpecs, err := loadTargetSpecs(json, key, spec.Path())
+		if err != nil {
+			return err
+		}
+
+		currentVal := fieldValue.Interface().([]interfaces.TargetSpec)
+		currentVal = append(currentVal, targetSpecs...)
+		fieldValue.Set(reflect.ValueOf(currentVal))
+
+	case reflect.TypeOf([]string{}):
+		currentVal := fieldValue.Interface().([]string)
+		currentVal = append(currentVal, loadStrings(json, key)...)
+		fieldValue.Set(reflect.ValueOf(currentVal))
+
+	case reflect.TypeOf("string"):
+		fieldValue.Set(reflect.ValueOf(json[key].(string)))
+
+	case reflect.TypeOf(cc.Binary):
+		switch spec.Type() {
+		case "c++/binary":
+			fieldValue.Set(reflect.ValueOf(cc.Binary))
+		case "c++/library":
+			fieldValue.Set(reflect.ValueOf(cc.Library))
+		case "c++/test":
+			fieldValue.Set(reflect.ValueOf(cc.Test))
+		default:
+			return errors.New(fmt.Sprintf("Invalid C++ target type %s", spec.Type()))
+		}
+
+	default:
+		return errors.New(fmt.Sprintf("Unknown field type %s", fieldType.Type, spec))
+	}
+
+	return nil
 }
 
 func LoadTargetFromJson(spec interfaces.TargetSpec, target interfaces.Target, targetJson map[string]interface{}) error {
@@ -121,81 +227,37 @@ func LoadTargetFromJson(spec interfaces.TargetSpec, target interfaces.Target, ta
 	}
 
 	// Load platform specific options.
-	platformOptionsJsonInterface, ok := targetJson[runtime.GOOS]
 	platformOptionsJson := make(map[string]interface{})
+	platformOptionsJsonInterface, ok := targetJson[runtime.GOOS]
 	if ok {
 		platformOptionsJson = platformOptionsJsonInterface.(map[string]interface{})
 	}
 
-	// Populate the target. Do this by going through each attribute in the struct
-	for i := 0; i < targetType.NumField(); i++ {
-		fieldName := strings.ToLower(strings.Join(camelcase.Split(targetType.Field(i).Name), "_"))
-		fieldType := targetType.Field(i).Type
-		targetField := targetValue.Elem().Field(i)
+	// If the target has a Spec field, then populate it.
+	specFieldValue := targetValue.Elem().FieldByName("Spec")
+	if specFieldValue.IsValid() {
+		specFieldValue.Set(reflect.ValueOf(spec))
+	}
 
-		// If the field starts with an _, ignore it.
-		if strings.HasPrefix(fieldName, "_") {
-			continue
-		}
-
-		// If the field name is "spec", this is a special case. We should store the
-		// target's spec here.
-		// TODO(jeshua): find a better way to exposing the spec to the target.
-		if fieldName == "spec" {
-			targetField.Set(reflect.ValueOf(spec))
-			continue
-		}
-
-		switch fieldType {
-		case reflect.TypeOf([]interfaces.Spec{}):
-			targetSpecs, err := LoadTargetSpecs(targetJson, fieldName, spec.Path())
-			if err != nil {
-				return err
-			}
-
-			platformTargetSpecs, err := LoadTargetSpecs(platformOptionsJson, fieldName, spec.Path())
-			if err != nil {
-				return err
-			}
-
-			targetSpecs = append(targetSpecs, platformTargetSpecs...)
-			targetField.Set(reflect.ValueOf(targetSpecs))
-
-		case reflect.TypeOf([]interfaces.DirSpec{}):
-			dirSpecs, err := LoadDirSpecs(targetJson, fieldName, spec.Path())
-			if err != nil {
-				return err
-			}
-
-			platformDirSpecs, err := LoadDirSpecs(platformOptionsJson, fieldName, spec.Path())
-			if err != nil {
-				return err
-			}
-
-			dirSpecs = append(dirSpecs, platformDirSpecs...)
-			targetField.Set(reflect.ValueOf(dirSpecs))
-
-		case reflect.TypeOf([]string{}):
-			options := LoadStrings(targetJson, fieldName)
-			options = append(options, LoadStrings(platformOptionsJson, fieldName)...)
-			targetField.Set(reflect.ValueOf(options))
-
-		case reflect.TypeOf(cc.Binary):
-			switch spec.Type() {
-			case "c++/binary":
-				targetField.Set(reflect.ValueOf(cc.Binary))
-			case "c++/library":
-				targetField.Set(reflect.ValueOf(cc.Library))
-			case "c++/test":
-				targetField.Set(reflect.ValueOf(cc.Test))
-			default:
-				return errors.New(fmt.Sprintf("Invalid C++ target type %s", spec.Type()))
-			}
-
-		default:
-			return errors.New(fmt.Sprintf("Unknown field type %s", fieldType))
+	// Iterate through each field in the JSON. THis will allow us to log messages
+	// when unknown arguments have been provided.
+	for jsonKey := range targetJson {
+		err := loadJson(targetType, targetValue, targetJson, jsonKey, spec)
+		if err != nil {
+			return errors.New(fmt.Sprintf("Error while loading %s: %s", spec, err))
 		}
 	}
+
+	// Load target specific JSON.
+	for jsonKey := range platformOptionsJson {
+		err := loadJson(targetType, targetValue, platformOptionsJson, jsonKey, spec)
+		if err != nil {
+			return errors.New(
+				fmt.Sprintf("Error while loading platform options for %s: %s", spec, err))
+		}
+	}
+
+	log.Infof("Loaded target %s", spec)
 
 	return nil
 }

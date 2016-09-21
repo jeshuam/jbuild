@@ -115,3 +115,17 @@ func OSPathToWSPath(path string) string {
 	return "//" + strings.Trim(
 		strings.Replace(path, string(os.PathSeparator), "/", -1), "/")
 }
+
+func MakeUnique(args []string) []string {
+	found := make(map[string]bool, len(args))
+	output := make([]string, 0, len(args))
+	for _, arg := range args {
+		_, ok := found[arg]
+		if !ok {
+			found[arg] = true
+			output = append(output, arg)
+		}
+	}
+
+	return output
+}

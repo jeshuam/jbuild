@@ -43,7 +43,9 @@ func RunCommand(cmd *exec.Cmd, result chan error, complete func(string, bool, ti
 		result <- nil
 		return
 	} else {
-		log.Debug(cmd.Args)
+		if args.ShowCommands {
+			log.Debug(cmd.Args)
+		}
 	}
 
 	// Save the command output.

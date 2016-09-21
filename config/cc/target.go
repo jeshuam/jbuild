@@ -21,10 +21,10 @@ const (
 
 type Target struct {
 	Spec         interfaces.TargetSpec
-	OutputType   TargetType
+	Type         TargetType
 	Srcs         []interfaces.Spec
 	Hdrs         []interfaces.Spec
-	Deps         []interfaces.Spec
+	Deps         []interfaces.TargetSpec
 	Data         []interfaces.Spec
 	CompileFlags []string
 	LinkFlags    []string
@@ -47,8 +47,8 @@ func (this *Target) String() string {
 		this.Srcs, this.Hdrs, this.CompileFlags, this.LinkFlags)
 }
 
-func (this *Target) Type() string {
-	switch this.OutputType {
+func (this *Target) GetType() string {
+	switch this.Type {
 	case Binary:
 		return "c++/binary"
 	case Test:
@@ -71,18 +71,23 @@ func (this *Target) TotalOps() int {
 func (this *Target) Dependencies() []interfaces.TargetSpec {
 	deps := util.GetDependencies(this.Srcs)
 	deps = append(deps, util.GetDependencies(this.Hdrs)...)
-	deps = append(deps, util.GetDependencies(this.Deps)...)
 	deps = append(deps, util.GetDependencies(this.Data)...)
 	deps = append(deps, util.GetDependencies(this.Libs)...)
+	for _, dep := range this.Deps {
+		deps = append(deps, dep)
+	}
 	return deps
 }
 
 func (this *Target) AllDependencies() []interfaces.TargetSpec {
 	deps := util.GetAllDependencies(this.Srcs)
 	deps = append(deps, util.GetAllDependencies(this.Hdrs)...)
-	deps = append(deps, util.GetAllDependencies(this.Deps)...)
 	deps = append(deps, util.GetAllDependencies(this.Data)...)
 	deps = append(deps, util.GetAllDependencies(this.Libs)...)
+	for _, dep := range this.Deps {
+		deps = append(deps, dep)
+		deps = append(deps, dep.Target().AllDependencies()...)
+	}
 	return deps
 }
 
@@ -105,6 +110,7 @@ func (this *Target) Process(progressBar *progress.ProgressBar, workQueue chan co
 	// If there are no source files and this is a library, just finish.
 	if this.IsLibrary() && len(this.srcs()) == 0 {
 		progressBar.Finish()
+		this._processed = true
 		return nil
 	}
 
@@ -144,17 +150,17 @@ func (this *Target) Process(progressBar *progress.ProgressBar, workQueue chan co
 
 // IsLibrary returns true iff this target refers to a library output file.
 func (this *Target) IsLibrary() bool {
-	return this.OutputType == Library
+	return this.Type == Library
 }
 
 // IsBinary returns true iff this target refers to a binary output file.
 func (this *Target) IsBinary() bool {
-	return this.OutputType == Binary
+	return this.Type == Binary
 }
 
 // IsTest returns true iff this target refers to a test output file.
 func (this *Target) IsTest() bool {
-	return this.OutputType == Test
+	return this.Type == Test
 }
 
 // IsExecutable returns true iff the output of this target is executable.
@@ -266,7 +272,10 @@ func (this *Target) data() []interfaces.FileSpec {
 func (this *Target) depOutputs() []string {
 	outputs := make([]string, 0)
 	for _, dep := range this.AllDependencies() {
-		outputs = append(outputs, dep.Target().OutputFiles()...)
+		switch dep.Target().(type) {
+		case *Target:
+			outputs = append(outputs, dep.Target().OutputFiles()...)
+		}
 	}
 
 	return outputs

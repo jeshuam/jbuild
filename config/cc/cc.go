@@ -18,11 +18,11 @@ var (
 
 // Compile the source files within the given target.
 func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue chan common.CmdSpec) ([]string, int, error) {
-	objs := make([]string, len(target.srcs()))
+	objs := make([]string, 0, len(target.srcs()))
 	results := make(chan error, len(target.srcs()))
 	nCompiled := 0
 
-	for i, srcFile := range target.srcs() {
+	for _, srcFile := range target.srcs() {
 		// Display the source file we are building.
 		progressBar.SetSuffix(srcFile.String())
 
@@ -30,7 +30,7 @@ func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue c
 		// to the compiler.
 		srcPath := srcFile.FilePath()
 		objPath := filepath.Join(srcFile.OutputPath(), srcFile.File()) + ".o"
-		objs[i] = objPath
+		objs = append(objs, objPath)
 
 		// Make the directory of the obj if needed.
 		err := os.MkdirAll(filepath.Dir(objPath), 0755)
@@ -52,7 +52,7 @@ func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue c
 			progressBar.Increment()
 			continue
 		} else {
-			log.Debugf("Compiling file %s: depsChanged=%v, srcChanged=%v", srcFile, depsChanged, srcChanged)
+			log.Debugf("... compile %s", srcFile)
 		}
 
 		// Build the compilation command.
@@ -103,8 +103,8 @@ func linkObjects(target *Target, progressBar *progress.ProgressBar, taskQueue ch
 	result := make(chan error)
 
 	// Now, we need to build up the command to run.
+	log.Debugf("... link %s", outputPath)
 	cmd := linkCommand(target, objects, outputPath)
-	log.Infof("%s cmd = %s", target.Spec, cmd.Args)
 
 	// Run the command.
 	taskQueue <- common.CmdSpec{cmd, result, func(string, bool, time.Duration) {

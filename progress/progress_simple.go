@@ -45,7 +45,7 @@ func doUpdate(progressBar *ProgressBar) string {
 	target := blue("%s", progressBar.name)
 
 	// Make the new bar string and print it.
-	update := fmt.Sprintf("%s %s: %s\n", header, target, progressBar.suffix)
+	update := fmt.Sprintf("%s %s: %s", header, target, progressBar.suffix)
 	fmt.Print(update)
 	return update
 }
@@ -70,6 +70,8 @@ func Start() {
 			if len(update) < lastLineLength {
 				fmt.Print(strings.Repeat(" ", lastLineLength-len(update)))
 			}
+
+			fmt.Println()
 
 			lastLineLength = len(update)
 			lastUpdate = time.Now()

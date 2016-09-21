@@ -10,7 +10,7 @@ type Target interface {
 	String() string
 
 	// Type returns a unique string specifying the type of target it is.
-	Type() string
+	GetType() string
 
 	// Processed returns whether the target has been processed or not.
 	Processed() bool

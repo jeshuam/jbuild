@@ -12,6 +12,7 @@ import (
 // A Filegroup is just a list of files. Filegroups can be nested, so you can
 // have a filegroup which is a collection of filegroups.
 type Target struct {
+	Type  string
 	Files []interfaces.Spec
 }
 
@@ -22,8 +23,8 @@ func (this *Target) String() string {
 	return fmt.Sprintf("filegroup: files=%s", this.Files)
 }
 
-func (this *Target) Type() string {
-	return "filegroup"
+func (this *Target) GetType() string {
+	return this.Type
 }
 
 func (this *Target) Processed() bool {
