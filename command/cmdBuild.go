@@ -11,7 +11,7 @@ import (
 )
 
 type processingResult struct {
-	Spec interfaces.Spec
+	Spec interfaces.TargetSpec
 	Err  error
 }
 
@@ -20,8 +20,8 @@ func setupProgressBars(targetsToBuild map[string]interfaces.TargetSpec) {
 		if args.UseSimpleProgress {
 			// For simple progress bars, manually set the maximum number of ops.
 			totalOps := 0
-			for targetSpec := range targetsToBuild {
-				totalOps += targetsToBuild[targetSpec].Target().TotalOps()
+			for _, targetSpec := range targetsToBuild {
+				totalOps += targetSpec.Target().TotalOps()
 			}
 
 			progress.SetTotalOps(totalOps)
@@ -44,26 +44,28 @@ func buildTargets(targetsToBuild map[string]interfaces.TargetSpec, taskQueue cha
 	)
 
 	for len(targetsBuilt) < len(targetsToBuild) {
-		for specName, _ := range targetsToBuild {
-			spec := targetsToBuild[specName]
-			_, targetStarted := targetsStarted[specName]
+		for _, spec := range targetsToBuild {
+			_, targetStarted := targetsStarted[spec.String()]
 			if !targetStarted && util.ReadyToProcess(spec) {
-				log.Infof("Processing %s...", specName)
-				var progressBar *progress.ProgressBar
-				if spec.Target().TotalOps() > 0 {
-					progressBar = progress.AddBar(spec.Target().TotalOps(), specName)
-				}
+				log.Infof("Processing %s...", spec)
 
-				go func() {
+				// Start processing this target.
+				go func(spec interfaces.TargetSpec) {
+					// Setup the progress bar if necessary.
+					var progressBar *progress.ProgressBar
+					if spec.Target().TotalOps() > 0 {
+						progressBar = progress.AddBar(spec.Target().TotalOps(), spec.String())
+					}
+
 					err := spec.Target().Process(progressBar, taskQueue)
 					if err != nil {
-						log.Fatalf("Error while processing %s: %v", specName, err)
+						log.Fatalf("Error while processing %s: %v", spec, err)
 					}
 
 					results <- processingResult{spec, err}
-				}()
+				}(spec)
 
-				targetsStarted[specName] = true
+				targetsStarted[spec.String()] = true
 			}
 		}
 
