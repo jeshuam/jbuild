@@ -7,21 +7,27 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/jeshuam/jbuild/args"
 	"github.com/op/go-logging"
 )
 
 var (
 	log = logging.MustGetLogger("jbuild")
-)
 
-func FileExists(filepath string) bool {
-	_, err := os.Stat(filepath)
-	if err == nil {
-		return true
+	FileExists = func(filepath string) bool {
+		_, err := os.Stat(filepath)
+		if err == nil {
+			return true
+		}
+
+		return false
 	}
 
-	return false
-}
+	IsDir = func(filepath string) bool {
+		stat, _ := os.Stat(filepath)
+		return stat != nil && stat.IsDir()
+	}
+)
 
 type CmdSpec struct {
 	Cmd      *exec.Cmd
@@ -31,13 +37,15 @@ type CmdSpec struct {
 
 func RunCommand(cmd *exec.Cmd, result chan error, complete func(string, bool, time.Duration)) {
 	// Print the command.
-	if DryRun {
+	if args.DryRun {
 		log.Infof("DRY_RUN: %s", cmd.Args)
 		complete("", true, 0)
 		result <- nil
 		return
 	} else {
-		log.Debug(cmd.Args)
+		if args.ShowCommands {
+			log.Debug(cmd.Args)
+		}
 	}
 
 	// Save the command output.

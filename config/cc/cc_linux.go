@@ -3,20 +3,14 @@ package cc
 import (
 	"os/exec"
 	"strings"
-
-	"github.com/jeshuam/jbuild/config"
 )
 
-func prepareEnvironment(_ *config.Target, cmd *exec.Cmd) {
+func prepareEnvironment(_ *Target, cmd *exec.Cmd) {
 
 }
 
 func libraryName(name string) string {
-	if *ccStaticLinking {
-		return name + ".a"
-	}
-
-	return "lib" + name + ".so"
+	return name + ".a"
 }
 
 func isSharedLib(path string) bool {
