@@ -42,21 +42,20 @@ func (this *DirSpecImpl) Type() string {
 // given spec doesn't refer to a valid directory. rawSpec can be absolute or
 // relative to `cwd`.
 func MakeDirSpec(rawSpec, cwd string) interfaces.DirSpec {
-	spec := new(FileSpecImpl)
+	spec := new(DirSpecImpl)
 
 	// If the spec is absolute, then we can just save the path directly.
-	if strings.HasPrefix(rawSpec, "//") {
-		spec.path = strings.Trim(rawSpec, "/")
+	if !strings.HasPrefix(rawSpec, "//") {
+		workspacePath, _ := filepath.Rel(args.WorkspaceDir, cwd)
+		spec.path = filepath.Join(workspacePath, rawSpec)
 	} else {
-		// Otherwise, we need to figure out the absolute path.
-		spec.path, _ = filepath.Rel(args.WorkspaceDir, filepath.Join(cwd, rawSpec))
+		spec.path = rawSpec
 	}
 
 	// Check to see whether this file exists and is a file. If it doesn't, then
 	// we don't have a FileSpec.
 	spec.path = strings.Trim(strings.Replace(spec.path, pathSeparator, "/", -1), "/")
 	if common.FileExists(spec.Path()) && common.IsDir(spec.Path()) {
-		log.Debugf("Loaded DirSpec: %s", spec)
 		return spec
 	}
 

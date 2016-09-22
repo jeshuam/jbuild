@@ -34,7 +34,11 @@ func (this *FileSpecImpl) Path() string {
 }
 
 func (this *FileSpecImpl) String() string {
-	return "//" + this.Dir() + "/" + this.File()
+	if this.Dir() == "" {
+		return "//" + this.File()
+	} else {
+		return "//" + this.Dir() + "/" + this.File()
+	}
 }
 
 func (this *FileSpecImpl) Type() string {
@@ -58,27 +62,34 @@ func (this *FileSpecImpl) OutputPath() string {
 //                             Utility Functions                              //
 ////////////////////////////////////////////////////////////////////////////////
 
+// splitPathAndFile is a utility function which splits a given path into the
+// (path, file) components while taking the separator to use as an argument. The
+// returned path will also use a "/" as the separator.
+func splitPathAndFile(path, sep string) (string, string) {
+	pathParts := strings.Split(path, sep)
+	return strings.Join(pathParts[0:len(pathParts)-1], "/"),
+		pathParts[len(pathParts)-1]
+}
+
 // MakeFileSpec constructs and returns a valid FileSpec object, or nil if the
 // given spec doesn't refer to a valid file. rawSpec can be absolute or relative
 // to `cwd`.
 func MakeFileSpec(rawSpec, cwd string) interfaces.FileSpec {
 	spec := new(FileSpecImpl)
 
-	// If the spec isn't absolute, we need to make it relative.
-	if !strings.HasPrefix(rawSpec, "//") {
-		specPath, _ := filepath.Rel(args.WorkspaceDir, cwd)
-		rawSpec = util.OSPathToWSPath(filepath.Join(specPath, rawSpec))
+	// If the spec is absolute, we already have the correct path.
+	if strings.HasPrefix(rawSpec, "//") {
+		spec.path, spec.file = splitPathAndFile(
+			strings.Trim(rawSpec, "/"), "/")
+	} else {
+		workspacePath, _ := filepath.Rel(args.WorkspaceDir, cwd)
+		spec.path, spec.file = splitPathAndFile(
+			filepath.Join(workspacePath, rawSpec), pathSeparator)
 	}
-
-	// Split the string into it's file and dir parts.
-	rawSpec = strings.Trim(rawSpec, "/")
-	spec.path, spec.file = filepath.Split(
-		strings.Replace(rawSpec, "/", pathSeparator, -1))
-	spec.path = strings.Trim(strings.Replace(
-		spec.path, pathSeparator, "/", -1), "/")
 
 	// Check to see whether this file exists and is a file. If it doesn't, then
 	// we don't have a FileSpec.
+	spec.path = strings.Trim(strings.Replace(spec.path, pathSeparator, "/", -1), "/")
 	if common.FileExists(spec.FilePath()) && !common.IsDir(spec.FilePath()) {
 		return spec
 	}
@@ -90,20 +101,22 @@ func MakeFileSpec(rawSpec, cwd string) interfaces.FileSpec {
 // the given spec doesn't refer to any valid files. rawSpec can be absolute or
 // relative to `cwd`.
 func MakeFileSpecGlob(rawSpecGlob, cwd string) []interfaces.Spec {
-	specs := make([]interfaces.Spec, 0)
-
 	// If the spec is absolute, then we can just save the path directly.
 	if !strings.HasPrefix(rawSpecGlob, "//") {
-		rawSpecGlob, _ = filepath.Rel(
-			args.WorkspaceDir, filepath.Join(cwd, strings.Trim(rawSpecGlob, "/")))
-		rawSpecGlob = filepath.Join(args.WorkspaceDir, rawSpecGlob)
+		workspacePath, _ := filepath.Rel(args.WorkspaceDir, cwd)
+		rawSpecGlob = filepath.Join(workspacePath, rawSpecGlob)
 	}
 
 	// Expand the globs.
-	globs, _ := Glob(rawSpecGlob)
+	globToSearch := filepath.Join(args.WorkspaceDir, strings.Trim(rawSpecGlob, "/"))
+	globs, _ := Glob(globToSearch)
+	specs := make([]interfaces.Spec, 0, len(globs))
 	for _, glob := range globs {
 		globRel, _ := filepath.Rel(args.WorkspaceDir, glob)
-		specs = append(specs, MakeFileSpec(util.OSPathToWSPath(globRel), ""))
+		spec := MakeFileSpec(util.OSPathToWSPath(globRel), "")
+		if spec != nil {
+			specs = append(specs, spec)
+		}
 	}
 
 	return specs
