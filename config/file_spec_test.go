@@ -73,11 +73,11 @@ func TestMakeFileSpecWithFullyQualifiedPathThatIsDirReturnsNil(t *testing.T) {
 func TestMakeFileSpecWithRelativePathThatExistsReturnsSpec(t *testing.T) {
 	args.WorkspaceDir = filepath.Join("path", "to", "workspace")
 	args.OutputDir = filepath.Join(args.WorkspaceDir, "out")
-	common.CurrentDir = filepath.Join(args.WorkspaceDir, "path")
+	args.CurrentDir = filepath.Join(args.WorkspaceDir, "path")
 	common.FileExists = func(string) bool { return true }
 	common.IsDir = func(string) bool { return false }
 
-	fileSpec := MakeFileSpec("to/file.txt", common.CurrentDir)
+	fileSpec := MakeFileSpec("to/file.txt", args.CurrentDir)
 	require.NotNil(t, fileSpec)
 
 	assert.Equal(t,
@@ -101,11 +101,11 @@ func TestMakeFileSpecWithRelativePathThatExistsReturnsSpec(t *testing.T) {
 func TestMakeFileSpecWithRelativePathToRootThatExistsReturnsSpec(t *testing.T) {
 	args.WorkspaceDir = filepath.Join("path", "to", "workspace")
 	args.OutputDir = filepath.Join(args.WorkspaceDir, "out")
-	common.CurrentDir = filepath.Join(args.WorkspaceDir)
+	args.CurrentDir = filepath.Join(args.WorkspaceDir)
 	common.FileExists = func(string) bool { return true }
 	common.IsDir = func(string) bool { return false }
 
-	fileSpec := MakeFileSpec("file.txt", common.CurrentDir)
+	fileSpec := MakeFileSpec("file.txt", args.CurrentDir)
 	require.NotNil(t, fileSpec)
 
 	assert.Equal(t,
@@ -129,22 +129,22 @@ func TestMakeFileSpecWithRelativePathToRootThatExistsReturnsSpec(t *testing.T) {
 func TestMakeFileSpecWithRelativePathThatDoesNotExistsReturnsNil(t *testing.T) {
 	args.WorkspaceDir = filepath.Join("path", "to", "workspace")
 	args.OutputDir = filepath.Join(args.WorkspaceDir, "out")
-	common.CurrentDir = filepath.Join(args.WorkspaceDir, "path", "to")
+	args.CurrentDir = filepath.Join(args.WorkspaceDir, "path", "to")
 	common.FileExists = func(string) bool { return false }
 	common.IsDir = func(string) bool { return false }
 
-	fileSpec := MakeFileSpec("file.txt", common.CurrentDir)
+	fileSpec := MakeFileSpec("file.txt", args.CurrentDir)
 	assert.Nil(t, fileSpec)
 }
 
 func TestMakeFileSpecWithRelativePathThatIsDirReturnsNil(t *testing.T) {
 	args.WorkspaceDir = filepath.Join("path", "to", "workspace")
 	args.OutputDir = filepath.Join(args.WorkspaceDir, "out")
-	common.CurrentDir = filepath.Join(args.WorkspaceDir, "path", "to")
+	args.CurrentDir = filepath.Join(args.WorkspaceDir, "path", "to")
 	common.FileExists = func(string) bool { return true }
 	common.IsDir = func(string) bool { return true }
 
-	fileSpec := MakeFileSpec("file.txt", common.CurrentDir)
+	fileSpec := MakeFileSpec("file.txt", args.CurrentDir)
 	assert.Nil(t, fileSpec)
 }
 

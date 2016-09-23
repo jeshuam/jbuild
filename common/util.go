@@ -12,8 +12,6 @@ import (
 )
 
 var (
-	log = logging.MustGetLogger("jbuild")
-
 	FileExists = func(filepath string) bool {
 		_, err := os.Stat(filepath)
 		if err == nil {
@@ -35,7 +33,9 @@ type CmdSpec struct {
 	Complete func(string, bool, time.Duration)
 }
 
-func RunCommand(cmd *exec.Cmd, result chan error, complete func(string, bool, time.Duration)) {
+func RunCommand(args *args.Args, cmd *exec.Cmd, result chan error, complete func(string, bool, time.Duration)) {
+	log := logging.MustGetLogger("jbuild")
+
 	// Print the command.
 	if args.DryRun {
 		log.Infof("DRY_RUN: %s", cmd.Args)

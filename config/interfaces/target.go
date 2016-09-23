@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/progress"
 )
@@ -40,5 +41,5 @@ type Target interface {
 	// target from not processed --> processed. The channel provided must be used
 	// to asynchronously perform work. This is required to ensure that the number
 	// of threads used to perform external operations is constrained.
-	Process(progressBar *progress.ProgressBar, workQueue chan common.CmdSpec) error
+	Process(args *args.Args, progressBar *progress.ProgressBar, workQueue chan common.CmdSpec) error
 }

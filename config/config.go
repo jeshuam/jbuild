@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/etgryphon/stringUp"
+	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/config/cc"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/interfaces"
@@ -24,7 +25,7 @@ var (
 
 // Load a list of FileSpecs from a JSON map. The values are all globs by
 // default.
-func loadSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.Spec, error) {
+func loadSpecs(args *args.Args, json map[string]interface{}, key, cwd string) ([]interfaces.Spec, error) {
 	// First, load the array of strings from the JSON object.
 	rawSpecs := loadStrings(json, key)
 
@@ -36,26 +37,26 @@ func loadSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.Spec,
 	for _, rawSpec := range rawSpecs {
 		// Try to load a set of globs, but only if they are prefixed by glob:.
 		if strings.HasPrefix(rawSpec, "glob:") {
-			globSpecs := MakeFileSpecGlob(strings.TrimLeft(rawSpec, "glob:"), cwd)
+			globSpecs := MakeFileSpecGlob(args, strings.TrimLeft(rawSpec, "glob:"), cwd)
 			if len(globSpecs) > 0 {
 				specs = append(specs, globSpecs...)
 				continue
 			}
 		} else {
-			fileSpec := MakeFileSpec(rawSpec, cwd)
+			fileSpec := MakeFileSpec(args, rawSpec, cwd)
 			if fileSpec != nil {
 				specs = append(specs, fileSpec)
 				continue
 			}
 		}
 
-		dirSpec := MakeDirSpec(rawSpec, cwd)
+		dirSpec := MakeDirSpec(args, rawSpec, cwd)
 		if dirSpec != nil {
 			specs = append(specs, dirSpec)
 			continue
 		}
 
-		targetSpecs, err := MakeTargetSpec(rawSpec, cwd)
+		targetSpecs, err := MakeTargetSpec(args, rawSpec, cwd)
 		if err != nil {
 			return nil, err
 		}
@@ -76,11 +77,11 @@ func loadSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.Spec,
 }
 
 // Load a list of TargetSpecs from a JSON map.
-func loadTargetSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.TargetSpec, error) {
+func loadTargetSpecs(args *args.Args, json map[string]interface{}, key, cwd string) ([]interfaces.TargetSpec, error) {
 	rawSpecs := loadStrings(json, key)
 	targetSpecs := make([]interfaces.TargetSpec, 0, len(rawSpecs))
 	for _, rawSpec := range rawSpecs {
-		targetSpec, err := MakeTargetSpec(rawSpec, cwd)
+		targetSpec, err := MakeTargetSpec(args, rawSpec, cwd)
 		if err != nil {
 			return nil, err
 		}
@@ -96,11 +97,11 @@ func loadTargetSpecs(json map[string]interface{}, key, cwd string) ([]interfaces
 }
 
 // Load a list of DirSpecs from a JSON map.
-func loadDirSpecs(json map[string]interface{}, key, cwd string) ([]interfaces.DirSpec, error) {
+func loadDirSpecs(args *args.Args, json map[string]interface{}, key, cwd string) ([]interfaces.DirSpec, error) {
 	rawSpecs := loadStrings(json, key)
 	dirSpecs := make([]interfaces.DirSpec, 0, len(rawSpecs))
 	for _, rawSpec := range rawSpecs {
-		dirSpec := MakeDirSpec(rawSpec, cwd)
+		dirSpec := MakeDirSpec(args, rawSpec, cwd)
 		if dirSpec == nil {
 			return nil, errors.New(fmt.Sprintf("Could not make DirSpec '%s'", rawSpec))
 		}
@@ -125,6 +126,7 @@ func loadStrings(json map[string]interface{}, key string) []string {
 }
 
 func loadJson(
+	args *args.Args,
 	targetType reflect.Type,
 	targetValue reflect.Value,
 	json map[string]interface{},
@@ -155,7 +157,7 @@ func loadJson(
 
 	switch fieldType.Type {
 	case reflect.TypeOf([]interfaces.Spec{}):
-		specs, err := loadSpecs(json, key, spec.Path())
+		specs, err := loadSpecs(args, json, key, spec.Path())
 		if err != nil {
 			return err
 		}
@@ -174,7 +176,7 @@ func loadJson(
 		fieldValue.Set(reflect.ValueOf(currentVal))
 
 	case reflect.TypeOf([]interfaces.DirSpec{}):
-		dirSpecs, err := loadDirSpecs(json, key, spec.Path())
+		dirSpecs, err := loadDirSpecs(args, json, key, spec.Path())
 		if err != nil {
 			return err
 		}
@@ -184,7 +186,7 @@ func loadJson(
 		fieldValue.Set(reflect.ValueOf(currentVal))
 
 	case reflect.TypeOf([]interfaces.TargetSpec{}):
-		targetSpecs, err := loadTargetSpecs(json, key, spec.Path())
+		targetSpecs, err := loadTargetSpecs(args, json, key, spec.Path())
 		if err != nil {
 			return err
 		}
@@ -213,13 +215,10 @@ func loadJson(
 	case reflect.TypeOf(cc.Binary):
 		switch spec.Type() {
 		case "c++/binary":
-			log.Infof("found binary!")
 			fieldValue.Set(reflect.ValueOf(cc.Binary))
 		case "c++/library":
-			log.Infof("found library!")
 			fieldValue.Set(reflect.ValueOf(cc.Library))
 		case "c++/test":
-			log.Infof("found test!")
 			fieldValue.Set(reflect.ValueOf(cc.Test))
 		default:
 			return errors.New(fmt.Sprintf("Invalid C++ target type '%s' for '%s'", spec.Type(), spec))
@@ -232,7 +231,7 @@ func loadJson(
 	return nil
 }
 
-func LoadTargetFromJson(spec interfaces.TargetSpec, target interfaces.Target, targetJson map[string]interface{}) error {
+func LoadTargetFromJson(args *args.Args, spec interfaces.TargetSpec, target interfaces.Target, targetJson map[string]interface{}) error {
 	var targetType reflect.Type
 	var targetValue reflect.Value
 	switch target.(type) {
@@ -259,10 +258,16 @@ func LoadTargetFromJson(spec interfaces.TargetSpec, target interfaces.Target, ta
 		specFieldValue.Set(reflect.ValueOf(spec))
 	}
 
+	// If the target has a Args field, the populate it.
+	argsFieldValue := targetValue.Elem().FieldByName("Args")
+	if argsFieldValue.IsValid() {
+		argsFieldValue.Set(reflect.ValueOf(args))
+	}
+
 	// Iterate through each field in the JSON. THis will allow us to log messages
 	// when unknown arguments have been provided.
 	for jsonKey := range targetJson {
-		err := loadJson(targetType, targetValue, targetJson, jsonKey, spec)
+		err := loadJson(args, targetType, targetValue, targetJson, jsonKey, spec)
 		if err != nil {
 			return err
 		}
@@ -270,7 +275,7 @@ func LoadTargetFromJson(spec interfaces.TargetSpec, target interfaces.Target, ta
 
 	// Load target specific JSON.
 	for jsonKey := range platformOptionsJson {
-		err := loadJson(targetType, targetValue, platformOptionsJson, jsonKey, spec)
+		err := loadJson(args, targetType, targetValue, platformOptionsJson, jsonKey, spec)
 		if err != nil {
 			return err
 		}

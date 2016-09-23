@@ -24,6 +24,8 @@ type TargetSpecImpl struct {
 	name   string
 	_type  string
 	target interfaces.Target
+
+	args *args.Args
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -36,7 +38,7 @@ func (this *TargetSpecImpl) Dir() string {
 
 func (this *TargetSpecImpl) Path() string {
 	return filepath.Join(
-		args.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
+		this.args.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
 func (this *TargetSpecImpl) String() string {
@@ -52,22 +54,22 @@ func (this *TargetSpecImpl) Name() string {
 }
 
 func (this *TargetSpecImpl) Target() interfaces.Target {
-	return util.TargetCache[this.String()]
+	return this.target
 }
 
 func (this *TargetSpecImpl) OutputPath() string {
 	return filepath.Join(
-		args.OutputDir, strings.Replace(this.path, "/", pathSeparator, -1))
+		this.args.OutputDir, strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 //                            TargetSpec Methods                              //
 ////////////////////////////////////////////////////////////////////////////////
 
-func (this *TargetSpecImpl) init(json map[string]interface{}) error {
+func (this *TargetSpecImpl) init(args *args.Args, json map[string]interface{}) error {
 	// If the target has already been loaded, then just return it.
 	cachedTarget, ok := util.TargetCache[this.String()]
-	if ok {
+	if !args.NoCache && ok {
 		this.target = cachedTarget
 		return nil
 	}
@@ -92,24 +94,24 @@ func (this *TargetSpecImpl) init(json map[string]interface{}) error {
 	util.TargetCache[this.String()] = this.target
 
 	// Load the target.
-	return LoadTargetFromJson(this, this.Target(), json)
+	return LoadTargetFromJson(args, this, this.Target(), json)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 //                       TargetSpec Utility Functions                         //
 ////////////////////////////////////////////////////////////////////////////////
 
-func expandAllTargetsInTree(workspaceDir, path string) ([]interfaces.TargetSpec, error) {
-	buildFiles, err := Glob(filepath.Join(workspaceDir, path, "**", args.BuildFilename))
+func expandAllTargetsInTree(args *args.Args, path string) ([]interfaces.TargetSpec, error) {
+	buildFiles, err := Glob(filepath.Join(args.WorkspaceDir, path, "**", args.BuildFilename))
 	if err != nil {
 		return nil, err
 	}
 
 	finalSpecs := make([]interfaces.TargetSpec, 0)
 	for _, buildFile := range buildFiles {
-		buildRelPath, _ := filepath.Rel(workspaceDir, buildFile)
+		buildRelPath, _ := filepath.Rel(args.WorkspaceDir, buildFile)
 		buildFilePath, _ := filepath.Split(buildRelPath)
-		targets, err := expandAllTargetsInDir(workspaceDir, buildFilePath)
+		targets, err := expandAllTargetsInDir(args, buildFilePath)
 		if err != nil {
 			return nil, err
 		}
@@ -120,9 +122,9 @@ func expandAllTargetsInTree(workspaceDir, path string) ([]interfaces.TargetSpec,
 	return finalSpecs, nil
 }
 
-func expandAllTargetsInDir(workspaceDir, path string) ([]interfaces.TargetSpec, error) {
+func expandAllTargetsInDir(args *args.Args, path string) ([]interfaces.TargetSpec, error) {
 	log.Debugf("Scanning for all targets in '%s'", util.OSPathToWSPath(path))
-	buildFilepath := filepath.Join(workspaceDir, path, args.BuildFilename)
+	buildFilepath := filepath.Join(args.WorkspaceDir, path, args.BuildFilename)
 	targetsJSON, err := LoadBuildFile(buildFilepath)
 	if err != nil {
 		return nil, err
@@ -132,7 +134,7 @@ func expandAllTargetsInDir(workspaceDir, path string) ([]interfaces.TargetSpec, 
 	for targetName := range targetsJSON {
 		targetPath := util.OSPathToWSPath(path) + ":" + targetName
 		log.Debugf("Found target '%s'", targetPath)
-		specs, err := MakeTargetSpec(targetPath, "")
+		specs, err := MakeTargetSpec(args, targetPath, "")
 		if err != nil {
 			return nil, err
 		}
@@ -146,8 +148,9 @@ func expandAllTargetsInDir(workspaceDir, path string) ([]interfaces.TargetSpec, 
 // MakeTargetSpec constructs and returns a valid TargetSpec object, or nil if
 // the given spec doesn't refer to a valid target. rawSpec can be absolute or
 // relative to `cwd`.
-func MakeTargetSpec(rawSpec string, cwd string) ([]interfaces.TargetSpec, error) {
+func MakeTargetSpec(args *args.Args, rawSpec string, cwd string) ([]interfaces.TargetSpec, error) {
 	spec := new(TargetSpecImpl)
+	spec.args = args
 
 	// Split the string into it's file and dir parts.
 	rawSpecParts := strings.Split(rawSpec, ":")
@@ -170,7 +173,7 @@ func MakeTargetSpec(rawSpec string, cwd string) ([]interfaces.TargetSpec, error)
 	// Replace any last OS-level separators. Now we can see if it has been cached!
 	spec.path = strings.Replace(spec.path, pathSeparator, "/", -1)
 	cachedSpec, ok := util.SpecCache[spec.String()]
-	if ok {
+	if !args.NoCache && ok {
 		return []interfaces.TargetSpec{cachedSpec.(interfaces.TargetSpec)}, nil
 	}
 
@@ -178,11 +181,11 @@ func MakeTargetSpec(rawSpec string, cwd string) ([]interfaces.TargetSpec, error)
 	// target into multiple targets.
 	if spec.name == "all" {
 		log.Infof("Expanding target '%s'", spec)
-		return expandAllTargetsInDir(args.WorkspaceDir, spec.Dir())
+		return expandAllTargetsInDir(args, spec.Dir())
 	} else if strings.HasSuffix(spec.path, "...") {
 		log.Infof("Expanding target '//%s'", spec.Dir())
 		targetPathWithoutDots, _ := filepath.Split(spec.Dir())
-		return expandAllTargetsInTree(args.WorkspaceDir, targetPathWithoutDots)
+		return expandAllTargetsInTree(args, targetPathWithoutDots)
 	}
 
 	// Check to see whether the target exists. This requires that the BUILD file
@@ -198,7 +201,7 @@ func MakeTargetSpec(rawSpec string, cwd string) ([]interfaces.TargetSpec, error)
 	}
 
 	// Otherwise, initialize the target spec and return it.
-	err = spec.init(targetJson.(map[string]interface{}))
+	err = spec.init(args, targetJson.(map[string]interface{}))
 	if err != nil {
 		return nil, err
 	}

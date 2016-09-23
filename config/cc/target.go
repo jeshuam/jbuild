@@ -3,7 +3,9 @@ package cc
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/interfaces"
@@ -22,6 +24,7 @@ const (
 
 type Target struct {
 	Spec         interfaces.TargetSpec
+	Args         *args.Args
 	Type         TargetType
 	Srcs         []interfaces.Spec       `types:"file,filegroup"`
 	Hdrs         []interfaces.Spec       `types:"file,filegroup"`
@@ -31,11 +34,6 @@ type Target struct {
 	LinkFlags    []string
 	Includes     []interfaces.DirSpec
 	Libs         []interfaces.Spec `types:"file,filegroup"`
-
-	// Working arguments.
-	_outputFile string
-	_processed  bool
-	_changed    bool
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +60,21 @@ func (this *Target) GetType() string {
 }
 
 func (this *Target) Processed() bool {
-	return this._processed
+	// If the output file doesn't exist, then this target isn't processed.
+	if !common.FileExists(this.OutputPath()) {
+		return false
+	}
+
+	// Validate each file.
+	outputStat, _ := os.Stat(this.OutputPath())
+	for _, fileSpec := range this.files() {
+		fileStat, _ := os.Stat(fileSpec.FilePath())
+		if fileStat.ModTime().After(outputStat.ModTime()) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (this *Target) TotalOps() int {
@@ -93,7 +105,7 @@ func (this *Target) AllDependencies() []interfaces.TargetSpec {
 }
 
 func (this *Target) OutputFiles() []string {
-	return []string{this._outputFile}
+	return []string{this.OutputPath()}
 }
 
 func (this *Target) Validate() error {
@@ -101,7 +113,7 @@ func (this *Target) Validate() error {
 	return nil
 }
 
-func (this *Target) Process(progressBar *progress.ProgressBar, workQueue chan common.CmdSpec) error {
+func (this *Target) Process(args *args.Args, progressBar *progress.ProgressBar, workQueue chan common.CmdSpec) error {
 	// Make the output directory for this target.
 	err := os.MkdirAll(this.Spec.OutputPath(), 0755)
 	if err != nil {
@@ -111,13 +123,12 @@ func (this *Target) Process(progressBar *progress.ProgressBar, workQueue chan co
 	// If there are no source files and this is a library, just finish.
 	if this.IsLibrary() && len(this.srcs()) == 0 {
 		progressBar.Finish()
-		this._processed = true
 		return nil
 	}
 
 	// Compile all of the source files.
 	progressBar.SetOperation("compiling")
-	objFiles, nCompiled, err := compileFiles(this, progressBar, workQueue)
+	objFiles, nCompiled, err := compileFiles(args, this, progressBar, workQueue)
 	if err != nil {
 		return err
 	}
@@ -126,7 +137,7 @@ func (this *Target) Process(progressBar *progress.ProgressBar, workQueue chan co
 	// type of the target. We only have to do that if something in the target was
 	// compiled (this should avoid expensive and pointless linking steps).
 	progressBar.SetOperation("linking")
-	binary, err := linkObjects(this, progressBar, workQueue, objFiles, nCompiled)
+	_, err = linkObjects(args, this, progressBar, workQueue, objFiles, nCompiled)
 	if err != nil {
 		return err
 	}
@@ -140,8 +151,6 @@ func (this *Target) Process(progressBar *progress.ProgressBar, workQueue chan co
 
 	// Save the output of this processing command.
 	progressBar.Finish()
-	this._outputFile = binary
-	this._processed = true
 	return nil
 }
 
@@ -169,6 +178,15 @@ func (this *Target) IsExecutable() bool {
 	return this.IsTest() || this.IsBinary()
 }
 
+// OutputPath returns the fully specified output path for this target.
+func (this *Target) OutputPath() string {
+	if this.IsLibrary() {
+		return filepath.Join(this.Args.OutputDir, LibraryName(this.Spec.Name()))
+	} else {
+		return filepath.Join(this.Args.OutputDir, BinaryName(this.Spec.Name()))
+	}
+}
+
 // extractFileSpecs goes through a list of generic specs and returns a list of
 // file specs. It is assumed that the specs are either filegroup targets or
 // FileSpecs.
@@ -184,6 +202,16 @@ func extractFileSpecs(specs []interfaces.Spec) []interfaces.FileSpec {
 		}
 	}
 
+	return fileSpecs
+}
+
+// files returns a list of all files for this target (i.e. source files, data
+// files and header files).
+func (this *Target) files() []interfaces.FileSpec {
+	fileSpecs := this.srcs()
+	fileSpecs = append(fileSpecs, this.hdrs()...)
+	fileSpecs = append(fileSpecs, this.data()...)
+	fileSpecs = append(fileSpecs, this.libs()...)
 	return fileSpecs
 }
 

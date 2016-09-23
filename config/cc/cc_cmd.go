@@ -9,7 +9,7 @@ import (
 	"github.com/jeshuam/jbuild/config/util"
 )
 
-func compileCommand(target *Target, src, obj string) *exec.Cmd {
+func compileCommand(args *args.Args, target *Target, src, obj string) *exec.Cmd {
 	compiler := args.CCCompiler
 
 	// Add compiler specific options.
@@ -43,13 +43,13 @@ func compileCommand(target *Target, src, obj string) *exec.Cmd {
 
 	// Prepare the command's environment. This will do different things depending
 	// on whether this is windows or linux.
-	prepareEnvironment(target, command)
+	prepareEnvironment(args, target, command)
 
 	// Return the complete command.
 	return command
 }
 
-func linkCommand(target *Target, objs []string, output string) *exec.Cmd {
+func linkCommand(args *args.Args, target *Target, objs []string, output string) *exec.Cmd {
 	// Work out which linker to use.
 	var linker string
 	if args.CCCompiler == "cl.exe" {
@@ -108,7 +108,7 @@ func linkCommand(target *Target, objs []string, output string) *exec.Cmd {
 	command := exec.Command(linker, util.MakeUnique(flags)...)
 
 	// Prepare the environment.
-	prepareEnvironment(target, command)
+	prepareEnvironment(args, target, command)
 
 	return command
 }

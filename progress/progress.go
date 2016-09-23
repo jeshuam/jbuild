@@ -41,7 +41,9 @@ func (p *ProgressBar) Increment() {
 	}
 	p.lock.Unlock()
 
-	progressBarUpdate <- p
+	if !disabled {
+		progressBarUpdate <- p
+	}
 }
 
 // Return the percentage complete in the range [0, 100].
@@ -54,7 +56,9 @@ func (p *ProgressBar) SetOperation(newOperation string) {
 	p.operation = newOperation
 	p.lock.Unlock()
 
-	progressBarUpdate <- p
+	if !disabled {
+		progressBarUpdate <- p
+	}
 }
 
 func (p *ProgressBar) SetSuffix(newSuffix string) {
@@ -62,7 +66,9 @@ func (p *ProgressBar) SetSuffix(newSuffix string) {
 	p.suffix = newSuffix
 	p.lock.Unlock()
 
-	progressBarUpdate <- p
+	if !disabled {
+		progressBarUpdate <- p
+	}
 }
 
 func (p *ProgressBar) Finish() {
@@ -71,7 +77,9 @@ func (p *ProgressBar) Finish() {
 	p.completeOps = p.totalOps
 	p.lock.Unlock()
 
-	progressBarUpdate <- p
+	if !disabled {
+		progressBarUpdate <- p
+	}
 }
 
 func (p *ProgressBar) IsFinished() bool {
@@ -103,11 +111,4 @@ func Finish() {
 
 func Disable() {
 	disabled = true
-	progressBarUpdateFunction.Add(1)
-	go func() {
-		for range progressBarUpdate {
-
-		}
-		progressBarUpdateFunction.Done()
-	}()
 }

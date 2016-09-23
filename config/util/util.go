@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/jeshuam/jbuild/config/interfaces"
+	"github.com/op/go-logging"
 )
 
 var (
@@ -44,8 +45,8 @@ func GetDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
 }
 
 func checkForDependencyCyclesRecurse(
-	spec interfaces.Spec, visited []string, seq int) error {
-	target := TargetCache[spec.String()]
+	spec interfaces.TargetSpec, visited []string, seq int) error {
+	target := spec.Target()
 
 	// If this node has already been visited in the current recursive stack, then
 	// there must be a cycle in the graph.
@@ -76,10 +77,10 @@ func checkForDependencyCyclesRecurse(
 	return nil
 }
 
-func CheckForDependencyCycles(spec interfaces.Spec) error {
+func CheckForDependencyCycles(spec interfaces.TargetSpec) error {
 	visited := make([]string, 0, 1)
 	visited = append(visited, spec.String())
-	target := TargetCache[spec.String()]
+	target := spec.Target()
 	for _, dep := range target.Dependencies() {
 		err := checkForDependencyCyclesRecurse(dep, visited, 1)
 		if err != nil {
@@ -91,8 +92,10 @@ func CheckForDependencyCycles(spec interfaces.Spec) error {
 }
 
 func ReadyToProcess(spec interfaces.TargetSpec) bool {
+	log := logging.MustGetLogger("jbuild")
 	for _, dep := range spec.Target().AllDependencies() {
 		if !dep.Target().Processed() {
+			log.Infof("Not processing %s, dependency %s isn't done", spec, dep)
 			return false
 		}
 	}

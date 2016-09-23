@@ -15,10 +15,6 @@ var (
 	vcInstallDir, ucrtSdkDir, ucrtSdkVersion, netFxSdkDir string
 )
 
-func init() {
-	windowsLoadSdkDir()
-}
-
 func windowsReadRegistryKey(key, name string) (string, error) {
 	// Load the key.
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE, key, registry.QUERY_VALUE)
@@ -35,7 +31,7 @@ func windowsReadRegistryKey(key, name string) (string, error) {
 	return val, nil
 }
 
-func windowsLoadSdkDir() {
+func windowsLoadSdkDir(args *args.Args) {
 	// Load the Windows SDK directory from the registry.
 	val, err := windowsReadRegistryKey(`SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7`, args.VCVersion)
 	if err != nil {
@@ -78,7 +74,12 @@ func windowsLoadSdkDir() {
 	netFxSdkDir = val
 }
 
-func prepareEnvironment(target *Target, cmd *exec.Cmd) {
+func prepareEnvironment(args *args.Args, target *Target, cmd *exec.Cmd) {
+	// If we haven't loaded yet, then load.
+	if vcInstallDir == "" {
+		windowsLoadSdkDir(args)
+	}
+
 	env := os.Environ()
 
 	// Set PATH.
@@ -107,7 +108,7 @@ func prepareEnvironment(target *Target, cmd *exec.Cmd) {
 	cmd.Env = env
 }
 
-func libraryName(name string) string {
+func LibraryName(name string) string {
 	return name + ".lib"
 }
 
@@ -115,6 +116,6 @@ func isSharedLib(path string) bool {
 	return strings.HasSuffix(path, ".dll")
 }
 
-func binaryName(name string) string {
+func BinaryName(name string) string {
 	return name + ".exe"
 }

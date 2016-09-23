@@ -17,11 +17,6 @@ import (
 	"github.com/op/go-logging"
 )
 
-var (
-	log                     = logging.MustGetLogger("jbuild")
-	concurrentTestSemaphore = make(chan bool, args.TestThreads)
-)
-
 type testResult struct {
 	TestBinary string
 	TargetSpec string
@@ -32,6 +27,8 @@ type testResult struct {
 }
 
 func (this *testResult) save() {
+	log := logging.MustGetLogger("jbuild")
+
 	// Open the output cache file.
 	cacheFileName := this.TestBinary + ".result"
 	cacheFile, err := os.Create(cacheFileName)
@@ -48,7 +45,14 @@ func (this *testResult) save() {
 	}
 }
 
-func loadTestResult(target interfaces.TargetSpec) *testResult {
+func loadTestResult(args *args.Args, target interfaces.TargetSpec) *testResult {
+	log := logging.MustGetLogger("jbuild")
+
+	// If caching id disabled, return.
+	if args.NoCache {
+		return nil
+	}
+
 	// Don't load anything if the file doesn't exist.
 	cacheFileName := filepath.Join(target.OutputPath(), target.Name()) + ".result"
 	if !common.FileExists(cacheFileName) {
@@ -84,11 +88,11 @@ func loadTestResult(target interfaces.TargetSpec) *testResult {
 	return result
 }
 
-func runTest(target interfaces.TargetSpec, results chan testResult) {
+func runTest(args *args.Args, sem chan bool, target interfaces.TargetSpec, results chan testResult) {
 	// If we aren't being forced to run tests, then try to load a cached test
 	// result file.
 	if !args.ForceRunTests && args.TestRuns == 1 {
-		result := loadTestResult(target)
+		result := loadTestResult(args, target)
 		if result != nil {
 			results <- *result
 			return
@@ -98,20 +102,21 @@ func runTest(target interfaces.TargetSpec, results chan testResult) {
 	// Either we are being forced to run tests, or this test has not been cached
 	// recently. Run the test!
 	cmd := exec.Command(filepath.Join(target.OutputPath(), target.Name()))
-	concurrentTestSemaphore <- true
-	common.RunCommand(cmd, nil, func(output string, success bool, d time.Duration) {
+	sem <- true
+	common.RunCommand(args, cmd, nil, func(output string, success bool, d time.Duration) {
 		result := testResult{filepath.Join(target.OutputPath(), target.Name()), target.String(), success, output, d, false}
 		result.save()
 		results <- result
-		<-concurrentTestSemaphore
+		<-sem
 	})
 }
 
-func runTests(targetsToTest map[string]interfaces.TargetSpec) chan testResult {
+func runTests(args *args.Args, targetsToTest map[string]interfaces.TargetSpec) chan testResult {
 	rawResults := make(chan testResult)
+	concurrentTestSemaphore := make(chan bool, args.TestThreads)
 	for target := range targetsToTest {
 		for i := 0; i < int(args.TestRuns); i++ {
-			go runTest(targetsToTest[target], rawResults)
+			go runTest(args, concurrentTestSemaphore, targetsToTest[target], rawResults)
 		}
 	}
 
@@ -129,7 +134,7 @@ func collateTestResults(rawResults chan testResult, testRuns int) map[string][]t
 	return results
 }
 
-func displayResultsForTarget(target string, results []testResult) {
+func displayResultsForTarget(args *args.Args, target string, results []testResult) {
 	var (
 		nPasses, nFails int
 		totalDuration   time.Duration
@@ -189,9 +194,9 @@ func displayResultsForTarget(target string, results []testResult) {
 	}
 }
 
-func RunTests(targetsToTest map[string]interfaces.TargetSpec) {
+func RunTests(args *args.Args, targetsToTest map[string]interfaces.TargetSpec) {
 	// Run the tests once, for each command, and collect the results.
-	rawResults := runTests(targetsToTest)
+	rawResults := runTests(args, targetsToTest)
 
 	// Collect all of the results into a result map, mapping target names to a
 	// list of results.
@@ -207,6 +212,6 @@ func RunTests(targetsToTest map[string]interfaces.TargetSpec) {
 
 	for _, target := range resultKeySorted {
 		targetResults := results[target]
-		displayResultsForTarget(target, targetResults)
+		displayResultsForTarget(args, target, targetResults)
 	}
 }

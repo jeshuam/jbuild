@@ -3,6 +3,7 @@ package filegroup
 import (
 	"fmt"
 
+	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/jeshuam/jbuild/config/util"
@@ -57,7 +58,7 @@ func (this *Target) Validate() error {
 	return nil
 }
 
-func (this *Target) Process(*progress.ProgressBar, chan common.CmdSpec) error {
+func (this *Target) Process(*args.Args, *progress.ProgressBar, chan common.CmdSpec) error {
 	return nil
 }
 

@@ -12,6 +12,8 @@ import (
 // Implementation of the FileSpec interface.
 type DirSpecImpl struct {
 	path string
+
+	args *args.Args
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -23,7 +25,7 @@ func (this *DirSpecImpl) Dir() string {
 
 func (this *DirSpecImpl) Path() string {
 	return filepath.Join(
-		args.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
+		this.args.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
 func (this *DirSpecImpl) String() string {
@@ -41,8 +43,9 @@ func (this *DirSpecImpl) Type() string {
 // MakeDirSpec constructs and returns a valid DirSpec object, or nil if the
 // given spec doesn't refer to a valid directory. rawSpec can be absolute or
 // relative to `cwd`.
-func MakeDirSpec(rawSpec, cwd string) interfaces.DirSpec {
+func MakeDirSpec(args *args.Args, rawSpec, cwd string) interfaces.DirSpec {
 	spec := new(DirSpecImpl)
+	spec.args = args
 
 	// If the spec is absolute, then we can just save the path directly.
 	if !strings.HasPrefix(rawSpec, "//") {

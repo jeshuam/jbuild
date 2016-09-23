@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/progress"
 	"github.com/op/go-logging"
@@ -17,7 +18,7 @@ var (
 )
 
 // Compile the source files within the given target.
-func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue chan common.CmdSpec) ([]string, int, error) {
+func compileFiles(args *args.Args, target *Target, progressBar *progress.ProgressBar, taskQueue chan common.CmdSpec) ([]string, int, error) {
 	objs := make([]string, 0, len(target.srcs()))
 	results := make(chan error, len(target.srcs()))
 	nCompiled := 0
@@ -56,7 +57,7 @@ func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue c
 		}
 
 		// Build the compilation command.
-		cmd := compileCommand(target, srcPath, objPath)
+		cmd := compileCommand(args, target, srcPath, objPath)
 
 		// Run the command.
 		nCompiled++
@@ -76,25 +77,16 @@ func compileFiles(target *Target, progressBar *progress.ProgressBar, taskQueue c
 	return objs, nCompiled, nil
 }
 
-func linkObjects(target *Target, progressBar *progress.ProgressBar, taskQueue chan common.CmdSpec, objects []string, nCompiled int) (string, error) {
+func linkObjects(args *args.Args, target *Target, progressBar *progress.ProgressBar, taskQueue chan common.CmdSpec, objects []string, nCompiled int) (string, error) {
 	// Throw and error if there are no source files and this isn't a library.
 	if target.IsBinary() && (len(target.srcs()) == 0 && len(target.Deps) == 0) {
 		return "", errors.New(fmt.Sprintf("No source files/deps found for binary %s", target))
 	}
 
-	// First, work out what the name of the output is.
-	var outputName string
-	if target.IsLibrary() {
-		outputName = libraryName(target.Spec.Name())
-	} else if target.IsExecutable() {
-		outputName = binaryName(target.Spec.Name())
-	}
-
 	// Work out the output filepath.
-	outputPath := filepath.Join(target.Spec.OutputPath(), outputName)
+	outputPath := target.OutputPath()
 	if nCompiled == 0 && common.FileExists(outputPath) {
 		progressBar.Increment()
-		target._changed = false
 		return outputPath, nil
 	}
 
@@ -104,7 +96,7 @@ func linkObjects(target *Target, progressBar *progress.ProgressBar, taskQueue ch
 
 	// Now, we need to build up the command to run.
 	log.Debugf("... link %s", outputPath)
-	cmd := linkCommand(target, objects, outputPath)
+	cmd := linkCommand(args, target, objects, outputPath)
 
 	// Run the command.
 	taskQueue <- common.CmdSpec{cmd, result, func(string, bool, time.Duration) {
