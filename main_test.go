@@ -2,7 +2,7 @@
 // directory here is a workspace which tests some part (or combination of parts)
 // of the system. The main() function here is called as though it was being run
 // from the command-line. These are NOT unit tests.
-package test
+package main
 
 import (
 	"bytes"
@@ -40,7 +40,7 @@ func runBinary(binary string) (string, error) {
 }
 
 func setupTest(testDir string) args.Args {
-	args, _ := args.Load(filepath.Join(cwd, testDir))
+	args, _ := args.Load(filepath.Join(cwd, "test", testDir))
 	args.ShowLog = true
 	args.NoCache = true
 	args.Threads = 1
