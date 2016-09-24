@@ -46,16 +46,8 @@ func buildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 
 	for len(targetsBuilt) < len(targetsToBuild) {
 		startedThisRound := 0
-		log.Info("Starting new round of targets...")
 		for _, spec := range targetsToBuild {
 			_, targetStarted := targetsStarted[spec.String()]
-			if targetStarted {
-				log.Infof("Skipping %s, already started.", spec)
-			}
-
-			// if !util.ReadyToProcess(spec) {
-			// 	log.Infof("Skipping %s, not ready to process.", spec)
-			// }
 			if !targetStarted && util.ReadyToProcess(spec) {
 				log.Infof("Processing %s...", spec)
 
@@ -68,7 +60,6 @@ func buildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 					}
 
 					err := spec.Target().Process(args, progressBar, taskQueue)
-					fmt.Printf("GOT HERE FOR %s\n", spec)
 					results <- processingResult{spec, err}
 				}(spec)
 

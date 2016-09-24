@@ -45,6 +45,7 @@ func compileFiles(args *args.Args, target *Target, progressBar *progress.Progres
 		srcChanged := true
 		depsChanged := false
 		if objStat != nil {
+			depsChanged = target.depsChangedSince(objStat)
 			srcChanged = !objStat.ModTime().After(srcStat.ModTime())
 		}
 

@@ -60,6 +60,13 @@ func (this *Target) GetType() string {
 }
 
 func (this *Target) Processed() bool {
+	// If there are no source files for this target, then we have to be finished.
+	// This is because there must be no output. It's probably just a bag of
+	// headers or something.
+	if len(this.srcs()) == 0 {
+		return true
+	}
+
 	// If the output file doesn't exist, then this target isn't processed.
 	if !common.FileExists(this.OutputPath()) {
 		return false
@@ -105,6 +112,10 @@ func (this *Target) AllDependencies() []interfaces.TargetSpec {
 }
 
 func (this *Target) OutputFiles() []string {
+	if len(this.srcs()) == 0 {
+		return []string{}
+	}
+
 	return []string{this.OutputPath()}
 }
 
@@ -181,9 +192,9 @@ func (this *Target) IsExecutable() bool {
 // OutputPath returns the fully specified output path for this target.
 func (this *Target) OutputPath() string {
 	if this.IsLibrary() {
-		return filepath.Join(this.Args.OutputDir, LibraryName(this.Spec.Name()))
+		return filepath.Join(this.Spec.OutputPath(), LibraryName(this.Spec.Name()))
 	} else {
-		return filepath.Join(this.Args.OutputDir, BinaryName(this.Spec.Name()))
+		return filepath.Join(this.Spec.OutputPath(), BinaryName(this.Spec.Name()))
 	}
 }
 
