@@ -7,10 +7,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/client9/xson/hjson"
 )
 
 type Args struct {
@@ -31,7 +34,8 @@ type Args struct {
 	UseSimpleProgress bool
 
 	// Processing options.
-	Threads int
+	Threads       int
+	Configuration string
 
 	// Testing options.
 	ForceRunTests bool
@@ -50,6 +54,10 @@ type Args struct {
 
 	// Windows options.
 	VCVersion string
+
+	// The WORKSPACE file loaded.
+	WorkspaceOptions     map[string]interface{}
+	ConfigurationOptions map[string]interface{}
 }
 
 // All flags are defined using flag.xVar(&flag, ...). This generally makes them
@@ -97,6 +105,10 @@ func init() {
 	flag.IntVar(&args.Threads, "threads", runtime.NumCPU(),
 		"Number of threads to use while processing targets.")
 
+	flag.StringVar(&args.Configuration, "c", "",
+		"The configuration to use when building. By default, no configuration is "+
+			"used (except for the common stuff).")
+
 	// Test options.
 	flag.BoolVar(&args.ForceRunTests, "force_run_tests", false,
 		"If set, tests will be run even if cached results are available.")
@@ -121,6 +133,26 @@ func init() {
 	flag.BoolVar(&args.NoCache, "no_cache", false,
 		"If set to true, no internal caching of any kind will be used. This is "+
 			"useful for testing.")
+}
+
+// LoadConfigFile loads the BUILD specification file located at `path` and
+// returns a generic key-value mapping as the result. The BUILD file is
+// actually JSON, but we use hjson to make the config easier to write.
+func LoadConfigFile(path string) (map[string]interface{}, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, errors.New(fmt.Sprintf("Config file not found '%s'", path))
+	}
+
+	// Load the BUILD file.
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, errors.New(
+			fmt.Sprintf("Could not read config file '%s': %s", path, err))
+	}
+
+	configJson := make(map[string]interface{})
+	hjson.Unmarshal(content, &configJson)
+	return configJson, nil
 }
 
 // Load performs additional setup required to ensure the arguments are in a
@@ -160,11 +192,30 @@ func Load(cwd string) (Args, error) {
 				"Could not find WORKSPACE file '%s' anywhere above the current directory.",
 				newArgs.WorkspaceFilename))
 		}
+
+		// Load the workspace file.
+		workspaceOptionsAll, err := LoadConfigFile(
+			filepath.Join(newArgs.WorkspaceDir, newArgs.WorkspaceFilename))
+		if err != nil {
+			return Args{}, err
+		}
+
+		workspaceOptions, ok := workspaceOptionsAll[runtime.GOOS]
+		if ok {
+			newArgs.WorkspaceOptions = workspaceOptions.(map[string]interface{})
+			configurationOptions, ok := newArgs.WorkspaceOptions[newArgs.Configuration]
+			if ok {
+				newArgs.ConfigurationOptions = configurationOptions.(map[string]interface{})
+			}
+		}
 	}
 
 	// Load OutputDir based on WorkspaceDir.
 	if !filepath.IsAbs(newArgs.OutputDir) {
 		newArgs.OutputDir = filepath.Join(newArgs.WorkspaceDir, newArgs.OutputDir)
+		if newArgs.Configuration != "" {
+			newArgs.OutputDir = filepath.Join(newArgs.OutputDir, newArgs.Configuration)
+		}
 	}
 
 	// Load the C++ compiler.

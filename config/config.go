@@ -131,7 +131,8 @@ func loadJson(
 	targetValue reflect.Value,
 	json map[string]interface{},
 	key string,
-	spec interfaces.TargetSpec) error {
+	spec interfaces.TargetSpec,
+	errorOnUnknownField bool) error {
 
 	// If this is a platform specific options key, ignore it.
 	if key == "linux" || key == "windows" || key == "darwin" {
@@ -144,7 +145,11 @@ func loadJson(
 
 	// If this field doesn't exist, throw an error.
 	if !fieldValue.IsValid() {
-		return errors.New(fmt.Sprintf("Unknown field '%s' in '%s'", key, spec))
+		if errorOnUnknownField {
+			return errors.New(fmt.Sprintf("Unknown field '%s' in '%s'", key, spec))
+		} else {
+			return nil
+		}
 	}
 
 	// This field is valid, let's load it.
@@ -207,6 +212,8 @@ func loadJson(
 	case reflect.TypeOf([]string{}):
 		currentVal := fieldValue.Interface().([]string)
 		currentVal = append(currentVal, loadStrings(json, key)...)
+
+		// Save the values.
 		fieldValue.Set(reflect.ValueOf(currentVal))
 
 	case reflect.TypeOf("string"):
@@ -267,7 +274,7 @@ func LoadTargetFromJson(args *args.Args, spec interfaces.TargetSpec, target inte
 	// Iterate through each field in the JSON. THis will allow us to log messages
 	// when unknown arguments have been provided.
 	for jsonKey := range targetJson {
-		err := loadJson(args, targetType, targetValue, targetJson, jsonKey, spec)
+		err := loadJson(args, targetType, targetValue, targetJson, jsonKey, spec, true)
 		if err != nil {
 			return err
 		}
@@ -275,7 +282,21 @@ func LoadTargetFromJson(args *args.Args, spec interfaces.TargetSpec, target inte
 
 	// Load target specific JSON.
 	for jsonKey := range platformOptionsJson {
-		err := loadJson(args, targetType, targetValue, platformOptionsJson, jsonKey, spec)
+		err := loadJson(args, targetType, targetValue, platformOptionsJson, jsonKey, spec, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	for jsonKey := range args.WorkspaceOptions {
+		err := loadJson(args, targetType, targetValue, args.WorkspaceOptions, jsonKey, spec, false)
+		if err != nil {
+			return err
+		}
+	}
+
+	for jsonKey := range args.ConfigurationOptions {
+		err := loadJson(args, targetType, targetValue, args.ConfigurationOptions, jsonKey, spec, false)
 		if err != nil {
 			return err
 		}

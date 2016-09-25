@@ -18,7 +18,7 @@ var (
 )
 
 // Compile the source files within the given target.
-func compileFiles(args *args.Args, target *Target, progressBar *progress.ProgressBar, taskQueue chan common.CmdSpec) ([]string, int, error) {
+func compileFiles(args *args.Args, target *Target, progressBar *progress.ProgressBar, taskQueue chan common.CmdSpec, force bool) ([]string, int, error) {
 	objs := make([]string, 0, len(target.srcs()))
 	results := make(chan error, len(target.srcs()))
 	nCompiled := 0
@@ -40,24 +40,25 @@ func compileFiles(args *args.Args, target *Target, progressBar *progress.Progres
 		}
 
 		// If the object is newer than the source file, don't compile it again.
-		srcStat, _ := os.Stat(srcPath)
-		objStat, _ := os.Stat(objPath)
-		srcChanged := true
-		depsChanged := false
-		if objStat != nil {
-			depsChanged = target.depsChangedSince(objStat)
-			srcChanged = !objStat.ModTime().After(srcStat.ModTime())
-		}
+		if !force {
+			srcStat, _ := os.Stat(srcPath)
+			objStat, _ := os.Stat(objPath)
+			srcChanged := true
+			depsChanged := false
+			if objStat != nil {
+				depsChanged = target.depsChangedSince(objStat)
+				srcChanged = !objStat.ModTime().After(srcStat.ModTime())
+			}
 
-		// Recompile this file if the deps or src has changed.
-		if !depsChanged && !srcChanged {
-			progressBar.Increment()
-			continue
-		} else {
-			log.Debugf("... compile %s", srcFile)
+			// Recompile this file if the deps or src has changed.
+			if !depsChanged && !srcChanged {
+				progressBar.Increment()
+				continue
+			}
 		}
 
 		// Build the compilation command.
+		log.Debugf("... compile %s", srcFile)
 		cmd := compileCommand(args, target, srcPath, objPath)
 
 		// Run the command.

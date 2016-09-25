@@ -72,11 +72,30 @@ func (this *Target) Processed() bool {
 		return false
 	}
 
-	// Validate each file.
+	// If the BUILD or WORKSPACE files that this file was build in have changed,
+	// then we haven't processed.
 	outputStat, _ := os.Stat(this.OutputPath())
+	buildStat, _ := os.Stat(filepath.Join(this.Spec.Path(), this.Args.BuildFilename))
+	if buildStat.ModTime().After(outputStat.ModTime()) {
+		return false
+	}
+
+	workspaceStat, _ := os.Stat(filepath.Join(this.Args.WorkspaceDir, this.Args.WorkspaceFilename))
+	if workspaceStat.ModTime().After(outputStat.ModTime()) {
+		return false
+	}
+
+	// Validate each file.
 	for _, fileSpec := range this.files() {
 		fileStat, _ := os.Stat(fileSpec.FilePath())
 		if fileStat.ModTime().After(outputStat.ModTime()) {
+			return false
+		}
+	}
+
+	// We haven't been processed if out dependencies haven't been.
+	for _, depSpec := range this.AllDependencies() {
+		if !depSpec.Target().Processed() {
 			return false
 		}
 	}
@@ -131,6 +150,16 @@ func (this *Target) Process(args *args.Args, progressBar *progress.ProgressBar, 
 		return err
 	}
 
+	// Check if we should force compile.
+	outputStat, _ := os.Stat(this.OutputPath())
+	forceCompile := false
+	if outputStat != nil {
+		buildStat, _ := os.Stat(filepath.Join(this.Spec.Path(), this.Args.BuildFilename))
+		workspaceStat, _ := os.Stat(filepath.Join(this.Args.WorkspaceDir, this.Args.WorkspaceFilename))
+		forceCompile = buildStat.ModTime().After(outputStat.ModTime()) ||
+			workspaceStat.ModTime().After(outputStat.ModTime())
+	}
+
 	// If there are no source files and this is a library, just finish.
 	if this.IsLibrary() && len(this.srcs()) == 0 {
 		progressBar.Finish()
@@ -139,7 +168,7 @@ func (this *Target) Process(args *args.Args, progressBar *progress.ProgressBar, 
 
 	// Compile all of the source files.
 	progressBar.SetOperation("compiling")
-	objFiles, nCompiled, err := compileFiles(args, this, progressBar, workQueue)
+	objFiles, nCompiled, err := compileFiles(args, this, progressBar, workQueue, forceCompile)
 	if err != nil {
 		return err
 	}

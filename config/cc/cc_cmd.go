@@ -35,7 +35,6 @@ func compileCommand(args *args.Args, target *Target, src, obj string) *exec.Cmd 
 		} else {
 			flags = append(flags, "-I"+include.Path())
 		}
-
 	}
 
 	// Make the command.

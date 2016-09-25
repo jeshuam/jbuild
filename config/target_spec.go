@@ -42,6 +42,10 @@ func (this *TargetSpecImpl) Path() string {
 }
 
 func (this *TargetSpecImpl) String() string {
+	if this.Dir() == "." {
+		return "//:" + this.Name()
+	}
+
 	return "//" + this.Dir() + ":" + this.Name()
 }
 
@@ -190,6 +194,8 @@ func MakeTargetSpec(args *args.Args, rawSpec string, cwd string) ([]interfaces.T
 
 	// Check to see whether the target exists. This requires that the BUILD file
 	// for this directory is parsed.
+	log.Infof("BUILD filename = %s", args.BuildFilename)
+	log.Infof("Workspace Path = %s", args.WorkspaceDir)
 	buildFile, err := LoadBuildFile(filepath.Join(spec.Path(), args.BuildFilename))
 	if err != nil {
 		return nil, err

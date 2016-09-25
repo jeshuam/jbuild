@@ -7,9 +7,9 @@ package main
 import (
 	"bytes"
 	"flag"
-	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/jeshuam/jbuild/args"
@@ -22,11 +22,14 @@ import (
 )
 
 var (
-	cwd, _ = os.Getwd()
+	cwd string
 )
 
 func init() {
 	flag.Parse()
+
+	_, filename, _, _ := runtime.Caller(1)
+	cwd = filepath.Dir(filename)
 }
 
 func runBinary(binary string) (string, error) {
@@ -40,8 +43,10 @@ func runBinary(binary string) (string, error) {
 	return out.String(), err
 }
 
-func setupTest(testDir string) args.Args {
-	args, _ := args.Load(filepath.Join(cwd, "test", testDir))
+func setupTest(t *testing.T, testDir string) args.Args {
+	args, err := args.Load(filepath.Join(cwd, "test", testDir))
+	require.NoError(t, err)
+
 	args.ShowLog = true
 	args.NoCache = true
 	args.Threads = 1
@@ -74,7 +79,7 @@ func jbuildClean(t *testing.T, args args.Args) {
 
 func Test01SimpleCppBinary(t *testing.T) {
 	// Set the current directory.
-	args := setupTest("01_simple_cpp_binary")
+	args := setupTest(t, "01_simple_cpp_binary")
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", ":hello_world"}))
@@ -96,7 +101,7 @@ func Test01SimpleCppBinary(t *testing.T) {
 
 func Test02SimpleCppLibrary(t *testing.T) {
 	// Set the current directory.
-	args := setupTest("02_simple_cpp_library")
+	args := setupTest(t, "02_simple_cpp_library")
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", ":hello_world"}))
@@ -120,7 +125,7 @@ func Test02SimpleCppLibrary(t *testing.T) {
 
 func Test03CppMultilibrary(t *testing.T) {
 	// Set the current directory.
-	args := setupTest("03_cpp_multilibrary")
+	args := setupTest(t, "03_cpp_multilibrary")
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", ":hello_world"}))
@@ -146,7 +151,7 @@ func Test03CppMultilibrary(t *testing.T) {
 
 func Test04CppData(t *testing.T) {
 	// Set the current directory.
-	args := setupTest("04_cpp_data")
+	args := setupTest(t, "04_cpp_data")
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", ":hello_world"}))
@@ -171,7 +176,7 @@ func Test04CppData(t *testing.T) {
 
 func Test05CppAllTargets(t *testing.T) {
 	// Set the current directory.
-	args := setupTest("05_cpp_all_target")
+	args := setupTest(t, "05_cpp_all_target")
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", ":all"}))
@@ -190,7 +195,7 @@ func Test05CppAllTargets(t *testing.T) {
 
 func Test06CppAllTargetsInTree(t *testing.T) {
 	// Set the current directory.
-	args := setupTest("06_cpp_all_targets_in_tree")
+	args := setupTest(t, "06_cpp_all_targets_in_tree")
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", "//..."}))
@@ -209,7 +214,7 @@ func Test06CppAllTargetsInTree(t *testing.T) {
 
 func Test07CppFilegroup(t *testing.T) {
 	// Set the current directory.
-	args := setupTest("07_cpp_filegroup")
+	args := setupTest(t, "07_cpp_filegroup")
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", ":hello_world"}))
@@ -232,7 +237,7 @@ func Test07CppFilegroup(t *testing.T) {
 
 func Test08CppFilegroupOfFilegroups(t *testing.T) {
 	// Set the current directory.
-	args := setupTest("08_cpp_filegroup_of_filegroups")
+	args := setupTest(t, "08_cpp_filegroup_of_filegroups")
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", ":hello_world"}))
@@ -255,7 +260,7 @@ func Test08CppFilegroupOfFilegroups(t *testing.T) {
 
 func Test09CppIncludes(t *testing.T) {
 	// Set the current directory.
-	args := setupTest("09_cpp_includes")
+	args := setupTest(t, "09_cpp_includes")
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", ":hello_world"}))
@@ -277,7 +282,7 @@ func Test09CppIncludes(t *testing.T) {
 
 func Test10CppDepWithHeaders(t *testing.T) {
 	// Set the current directory.
-	args := setupTest("10_cpp_dep_with_headers")
+	args := setupTest(t, "10_cpp_dep_with_headers")
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", ":hello_world"}))
@@ -299,7 +304,7 @@ func Test10CppDepWithHeaders(t *testing.T) {
 
 func Test11CppGlobs(t *testing.T) {
 	// Set the current directory.
-	args := setupTest("11_cpp_globs")
+	args := setupTest(t, "11_cpp_globs")
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", ":hello_world"}))
@@ -322,7 +327,7 @@ func Test11CppGlobs(t *testing.T) {
 
 func Test12CppRunFromDifferentDir(t *testing.T) {
 	// Set the current directory.
-	args := setupTest(filepath.Join("12_cpp_run_from_different_dir", "dir1", "dir2"))
+	args := setupTest(t, filepath.Join("12_cpp_run_from_different_dir", "dir1", "dir2"))
 
 	// Build up the command-line.
 	require.NoError(t, jbuild.JBuildRun(args, []string{"build", "../..:hello_world"}))

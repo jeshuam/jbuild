@@ -1,0 +1,23 @@
+linux: {
+  compile_flags: ["-std=c++11"]
+
+  debug: {
+    compile_flags: ["-g"]
+  }
+
+  release: {
+    compile_flags: ["-O3"]
+  }
+}
+
+windows: {
+  compile_flags: ["/test"]
+
+  debug: {
+    compile_flags: ["/g"]
+  }
+
+  release: {
+    compile_flags: ["/O3"]
+  }
+}
