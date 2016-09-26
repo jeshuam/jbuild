@@ -179,7 +179,7 @@ func Load(cwd string) (Args, error) {
 			// Remove the last part of the path off.
 			var file string
 			tmpCwd, file = filepath.Split(tmpCwd)
-			tmpCwd = strings.Trim(tmpCwd, string(os.PathSeparator))
+			tmpCwd = strings.TrimRight(tmpCwd, string(os.PathSeparator))
 
 			if file == "" {
 				break

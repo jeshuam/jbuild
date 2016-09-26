@@ -3,9 +3,11 @@ package cc
 import (
 	"os/exec"
 	"strings"
+
+	"github.com/jeshuam/jbuild/args"
 )
 
-func prepareEnvironment(_ *Target, cmd *exec.Cmd) {
+func prepareEnvironment(*args.Args, *Target, *exec.Cmd) {
 
 }
 
