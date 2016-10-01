@@ -95,11 +95,9 @@ func linkCommand(args *args.Args, target *Target, objs []string, output string) 
 			flags = append(flags, lib.FilePath())
 		}
 
-		// We have to go through the outputs in reverse order to make sure that we
-		// put core dependencies last in the list.
-		depOutputs := target.depOutputs()
-		for i := len(depOutputs) - 1; i >= 0; i-- {
-			flags = append(flags, depOutputs[i])
+		// Add the previous outputs to the commandline.
+		for _, output := range target.depOutputs() {
+			flags = append(flags, output)
 		}
 	}
 
