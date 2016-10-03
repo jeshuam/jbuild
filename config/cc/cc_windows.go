@@ -67,7 +67,7 @@ func windowsLoadSdkDir(args *args.Args) {
 	if err != nil {
 		val, err = windowsReadRegistryKey(`SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1A`, "InstallationFolder")
 		if err != nil {
-			log.Fatal("Could not find NetFX SDK directory.")
+			log.Warning("Could not find NetFX SDK directory.")
 		}
 	}
 
@@ -106,6 +106,7 @@ func prepareEnvironment(args *args.Args, target *Target, cmd *exec.Cmd) {
 		filepath.Join(netFxSdkDir, "Lib")))
 
 	cmd.Env = env
+	cmd.Path = filepath.Join(vcInstallDir, "bin", cmd.Args[0])
 }
 
 func LibraryName(name string) string {
