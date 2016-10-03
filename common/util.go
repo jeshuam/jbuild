@@ -45,6 +45,7 @@ func RunCommand(args *args.Args, cmd *exec.Cmd, result chan error, complete func
 	} else {
 		if args.ShowCommands {
 			log.Debug(cmd.Args)
+			log.Debug(cmd.Env)
 		}
 	}
 
