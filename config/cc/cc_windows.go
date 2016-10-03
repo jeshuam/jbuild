@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	vcInstallDir, ucrtSdkDir, ucrtSdkVersion, netFxSdkDir string
+	vcInstallDir, ucrtSdkDir, ucrtSdkVersion string
 )
 
 func windowsReadRegistryKey(key, name string) (string, error) {
@@ -61,17 +61,6 @@ func windowsLoadSdkDir(args *args.Args) {
 	// Find the version which has all of the required directories.
 	ucrtSdkDir = val
 	ucrtSdkVersion = filepath.Base(versions[len(versions)-1])
-
-	// Load the NETFXSDK directory from the registry.
-	val, err = windowsReadRegistryKey(`SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1A`, "InstallationFolder")
-	if err != nil {
-		val, err = windowsReadRegistryKey(`SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1A`, "InstallationFolder")
-		if err != nil {
-			log.Warning("Could not find NetFX SDK directory.")
-		}
-	}
-
-	netFxSdkDir = val
 }
 
 func prepareEnvironment(args *args.Args, target *Target, cmd *exec.Cmd) {
@@ -89,14 +78,13 @@ func prepareEnvironment(args *args.Args, target *Target, cmd *exec.Cmd) {
 
 	// Set INCLUDE.
 	env = append(env, fmt.Sprintf(
-		"INCLUDE=%s;%s;%s;%s;%s;%s;%s;%s;%s",
+		"INCLUDE=%s;%s;%s;%s;%s;%s;%s;%s",
 		filepath.Join(vcInstallDir, "include"),
 		filepath.Join(ucrtSdkDir, "Include", ucrtSdkVersion, "ucrt"),
 		filepath.Join(ucrtSdkDir, "Include", ucrtSdkVersion, "um"),
 		filepath.Join(ucrtSdkDir, "Include", ucrtSdkVersion, "shared"),
 		filepath.Join(ucrtSdkDir, "Include", ucrtSdkVersion, "winrt"),
 		filepath.Join(ucrtSdkDir, "Include", "um"),
-		filepath.Join(netFxSdkDir, "Include"),
 		args.WorkspaceDir,
 		filepath.Join(args.OutputDir, "gen")))
 
@@ -106,8 +94,7 @@ func prepareEnvironment(args *args.Args, target *Target, cmd *exec.Cmd) {
 		filepath.Join(vcInstallDir, "lib"),
 		filepath.Join(vcInstallDir, "lib", "amd64"),
 		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "ucrt", "x86"),
-		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "um", "x86"),
-		filepath.Join(netFxSdkDir, "Lib")))
+		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "um", "x86")))
 
 	cmd.Env = env
 	cmd.Path = filepath.Join(vcInstallDir, "bin", cmd.Args[0])
