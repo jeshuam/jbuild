@@ -76,6 +76,9 @@ func JBuildRun(args args.Args, cmdArgs []string) error {
 
 	// Get the current processing target.
 	targetArgs := cmdArgs[1:]
+	if command == "run" {
+		targetArgs = targetArgs[:1]
+	}
 
 	// Save 2 lists: a set of targets specified, and a set of targets to process.
 	var firstTargetSpecified interfaces.TargetSpec
@@ -137,6 +140,10 @@ func JBuildRun(args args.Args, cmdArgs []string) error {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
+
+		if args.ShowCommands {
+			log.Infof("$ %s", cmd.Args)
+		}
 		cmd.Run()
 	} else if command == "test" {
 		if len(targetsSpecified) == 1 {
