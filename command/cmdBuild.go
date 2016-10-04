@@ -94,7 +94,11 @@ func BuildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 		go func() {
 			for {
 				task := <-taskQueue
+
+				// Try to acquire the lock for the command.
+				task.Lock.Lock()
 				common.RunCommand(args, task.Cmd, task.Result, task.Complete)
+				task.Lock.Unlock()
 			}
 		}()
 	}

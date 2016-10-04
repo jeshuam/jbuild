@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"sync"
 	"time"
 
 	"github.com/jeshuam/jbuild/args"
@@ -29,6 +30,7 @@ var (
 
 type CmdSpec struct {
 	Cmd      *exec.Cmd
+	Lock     *sync.Mutex
 	Result   chan error
 	Complete func(string, bool, time.Duration)
 }
@@ -45,6 +47,9 @@ func RunCommand(args *args.Args, cmd *exec.Cmd, result chan error, complete func
 	} else {
 		if args.ShowCommands {
 			log.Debug(cmd.Args)
+		}
+
+		if args.ShowCommandEnv {
 			log.Debug(cmd.Env)
 		}
 	}

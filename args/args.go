@@ -31,6 +31,7 @@ type Args struct {
 	// Display options.
 	ShowLog           bool
 	ShowCommands      bool
+	ShowCommandEnv    bool
 	UseSimpleProgress bool
 
 	// Processing options.

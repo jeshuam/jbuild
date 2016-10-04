@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/jeshuam/jbuild/args"
@@ -14,7 +15,8 @@ import (
 )
 
 var (
-	log = logging.MustGetLogger("jbuild")
+	log   = logging.MustGetLogger("jbuild")
+	locks = make(map[string]*sync.Mutex)
 )
 
 // Compile the source files within the given target.
@@ -57,13 +59,20 @@ func compileFiles(args *args.Args, target *Target, progressBar *progress.Progres
 			}
 		}
 
+		// Get the lock for this src file.
+		lock, ok := locks[srcPath]
+		if !ok {
+			lock = new(sync.Mutex)
+			locks[srcPath] = lock
+		}
+
 		// Build the compilation command.
 		log.Debugf("... compile %s", srcFile)
 		cmd := compileCommand(args, target, srcPath, objPath)
 
 		// Run the command.
 		nCompiled++
-		taskQueue <- common.CmdSpec{cmd, results, func(string, bool, time.Duration) {
+		taskQueue <- common.CmdSpec{cmd, lock, results, func(string, bool, time.Duration) {
 			progressBar.Increment()
 		}}
 	}
@@ -93,15 +102,21 @@ func linkObjects(args *args.Args, target *Target, progressBar *progress.Progress
 	}
 
 	// Make the error channel.
-	// target.Changed = true
 	result := make(chan error)
+
+	// Get the lock for this src file.
+	lock, ok := locks[outputPath]
+	if !ok {
+		lock = new(sync.Mutex)
+		locks[outputPath] = lock
+	}
 
 	// Now, we need to build up the command to run.
 	log.Debugf("... link %s", outputPath)
 	cmd := linkCommand(args, target, objects, outputPath)
 
 	// Run the command.
-	taskQueue <- common.CmdSpec{cmd, result, func(string, bool, time.Duration) {
+	taskQueue <- common.CmdSpec{cmd, lock, result, func(string, bool, time.Duration) {
 		progressBar.Increment()
 	}}
 
