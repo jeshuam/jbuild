@@ -66,6 +66,14 @@ func JBuildRun(args args.Args, cmdArgs []string) error {
 				fmt.Sprintf("Could not clean output directory: '%s'", err))
 		}
 
+		// Maybe clean external repos.
+		if args.CleanExternalRepos {
+			log.Infof("Cleaning external repos...")
+			if err := os.RemoveAll(args.ExternalRepoDir); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}
 

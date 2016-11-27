@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"strings"
 )
@@ -74,15 +73,9 @@ func fetchGit(args Args, repo ExternalRepo) error {
 func LoadExternalRepo(args Args, repoName string, repoJson map[string]interface{}) (ExternalRepo, error) {
 	repo := makeExternalRepoStruct(repoName, repoJson)
 
-	// Get the home directory.
-	usr, err := user.Current()
-	if err != nil {
-		return ExternalRepo{}, err
-	}
-
 	// Checkout the repository.
-	workspaceName := filepath.Base(args.WorkspaceDir)
-	repo.RepoDir = filepath.Join(usr.HomeDir, ".jbuild", workspaceName)
+	var err error
+	repo.RepoDir = args.ExternalRepoDir
 	if repo.Type == "git" {
 		err = fetchGit(args, repo)
 	} else {

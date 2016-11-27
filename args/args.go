@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -25,10 +26,12 @@ type Args struct {
 	WorkspaceDir string
 
 	// Workspace options.
-	WorkspaceFilename string
-	ExternalRepoKey   string
-	UpdateExternals   bool
-	BuildFilename     string
+	WorkspaceFilename  string
+	ExternalRepoKey    string
+	ExternalRepoDir    string
+	UpdateExternals    bool
+	CleanExternalRepos bool
+	BuildFilename      string
 
 	// Display options.
 	ShowLog           bool
@@ -99,8 +102,15 @@ func init() {
 		"The key in the WORKSPACE file that will be loaded as an external repo "+
 			"list.")
 
-	flag.BoolVar(&args.UpdateExternals, "update_external", false,
+	flag.StringVar(&args.ExternalRepoDir, "external_repo_dir", "",
+		"The absolute path to the location to store external repos. If blank, defaults "+
+		    "to a location within the user's home directory.")
+
+	flag.BoolVar(&args.UpdateExternals, "update_externals", false,
 		"If set to true, external repositories will be updated.")
+
+	flag.BoolVar(&args.CleanExternalRepos, "clean_external_repos", false,
+		"If set to true, remove external repos when cleaning.")
 
 	flag.StringVar(&args.BuildFilename, "build_filename", "BUILD",
 		"The name of the BUILD file specifying the targets in each directory.")
@@ -210,6 +220,17 @@ func Load(cwd string) (Args, error) {
 			return Args{}, errors.New(fmt.Sprintf(
 				"Could not find WORKSPACE file '%s' anywhere above the current directory.",
 				newArgs.WorkspaceFilename))
+		}
+
+		// Load the ExternalRepoDir flag.
+		workspaceName := filepath.Base(newArgs.WorkspaceDir)
+		if newArgs.ExternalRepoDir == "" {
+			usr, err := user.Current()
+			if err != nil {
+				return Args{}, err
+			}
+
+			newArgs.ExternalRepoDir = filepath.Join(usr.HomeDir, ".jbuild", workspaceName)
 		}
 
 		// Load the workspace file.
