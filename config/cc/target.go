@@ -76,6 +76,12 @@ func (this *Target) Processed() bool {
 	// then we haven't processed.
 	outputStat, _ := os.Stat(this.OutputPath())
 	buildStat, _ := os.Stat(filepath.Join(this.Spec.Path(), this.Args.BuildFilename))
+
+	// If we couldn't find the BUILD file, maybe it was an external?
+	if buildStat == nil {
+		buildStat, _ = os.Stat(this.Args.ExternalBuildFiles["//"+this.Spec.Dir()].Build)
+	}
+
 	if buildStat.ModTime().After(outputStat.ModTime()) {
 		return false
 	}
@@ -156,6 +162,12 @@ func (this *Target) Process(args *args.Args, progressBar *progress.ProgressBar, 
 	if outputStat != nil {
 		buildStat, _ := os.Stat(filepath.Join(this.Spec.Path(), this.Args.BuildFilename))
 		workspaceStat, _ := os.Stat(filepath.Join(this.Args.WorkspaceDir, this.Args.WorkspaceFilename))
+
+		// If we couldn't find the BUILD file, maybe it was an external?
+		if buildStat == nil {
+			buildStat, _ = os.Stat(this.Args.ExternalBuildFiles["//"+this.Spec.Dir()].Build)
+		}
+
 		forceCompile = buildStat.ModTime().After(outputStat.ModTime()) ||
 			workspaceStat.ModTime().After(outputStat.ModTime())
 	}

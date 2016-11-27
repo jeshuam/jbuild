@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -24,8 +25,7 @@ func (this *DirSpecImpl) Dir() string {
 }
 
 func (this *DirSpecImpl) Path() string {
-	return filepath.Join(
-		this.args.WorkspaceDir, strings.Replace(this.path, "/", pathSeparator, -1))
+	return filepath.Join(strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
 func (this *DirSpecImpl) String() string {
@@ -43,24 +43,24 @@ func (this *DirSpecImpl) Type() string {
 // MakeDirSpec constructs and returns a valid DirSpec object, or nil if the
 // given spec doesn't refer to a valid directory. rawSpec can be absolute or
 // relative to `cwd`.
-func MakeDirSpec(args *args.Args, rawSpec, cwd string) interfaces.DirSpec {
+func MakeDirSpec(args *args.Args, rawSpec, cwd, buildBase string) interfaces.DirSpec {
 	spec := new(DirSpecImpl)
 	spec.args = args
 
 	// If the spec is absolute, then we can just save the path directly.
 	if !strings.HasPrefix(rawSpec, "//") {
-		workspacePath, _ := filepath.Rel(args.WorkspaceDir, cwd)
-		spec.path = filepath.Join(workspacePath, rawSpec)
+		spec.path = filepath.Join(buildBase, cwd, rawSpec)
 	} else {
-		spec.path = rawSpec
+		spec.path = filepath.Join(buildBase, rawSpec)
 	}
 
 	// Check to see whether this file exists and is a file. If it doesn't, then
 	// we don't have a FileSpec.
-	spec.path = strings.Trim(strings.Replace(spec.path, pathSeparator, "/", -1), "/")
+	spec.path = strings.Replace(spec.path, pathSeparator, "/", -1)
 	if common.FileExists(spec.Path()) && common.IsDir(spec.Path()) {
 		return spec
 	}
 
+	fmt.Printf("FAILED\n")
 	return nil
 }

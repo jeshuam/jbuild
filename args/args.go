@@ -26,6 +26,8 @@ type Args struct {
 
 	// Workspace options.
 	WorkspaceFilename string
+	ExternalRepoKey   string
+	UpdateExternals   bool
 	BuildFilename     string
 
 	// Display options.
@@ -55,6 +57,11 @@ type Args struct {
 
 	// Windows options.
 	VCVersion string
+
+	// External repos that need to be loaded. Once loaded, this map should contain
+	// a mapping from the local workspace path --> BUILD file text. The local path
+	// must be absolute.
+	ExternalBuildFiles map[string]ExternalRepo
 
 	// The WORKSPACE file loaded.
 	WorkspaceOptions     map[string]interface{}
@@ -87,6 +94,13 @@ func init() {
 	// Workspace options.
 	flag.StringVar(&args.WorkspaceFilename, "workspace_filename", "WORKSPACE",
 		"The name of the WORKSPACE file when looking for the workspace root.")
+
+	flag.StringVar(&args.ExternalRepoKey, "external_repo_key", "external",
+		"The key in the WORKSPACE file that will be loaded as an external repo "+
+			"list.")
+
+	flag.BoolVar(&args.UpdateExternals, "update_external", false,
+		"If set to true, external repositories will be updated.")
 
 	flag.StringVar(&args.BuildFilename, "build_filename", "BUILD",
 		"The name of the BUILD file specifying the targets in each directory.")
@@ -152,7 +166,11 @@ func LoadConfigFile(path string) (map[string]interface{}, error) {
 	}
 
 	configJson := make(map[string]interface{})
-	hjson.Unmarshal(content, &configJson)
+	err = hjson.Unmarshal(content, &configJson)
+	if err != nil {
+		return nil, err
+	}
+
 	return configJson, nil
 }
 
@@ -201,6 +219,21 @@ func Load(cwd string) (Args, error) {
 			return Args{}, err
 		}
 
+		// Load any additional dependencies (e.g. from github).
+		externalRepos, ok := workspaceOptionsAll[newArgs.ExternalRepoKey]
+		if ok {
+			for repoName, repoJson := range externalRepos.(map[string]interface{}) {
+				externalRepo, err := LoadExternalRepo(newArgs, repoName, repoJson.(map[string]interface{}))
+				if err != nil {
+					return Args{}, err
+				}
+
+				newArgs.ExternalBuildFiles = make(map[string]ExternalRepo)
+				newArgs.ExternalBuildFiles[externalRepo.Dir] = externalRepo
+			}
+		}
+
+		// Load OS specific options.
 		workspaceOptions, ok := workspaceOptionsAll[runtime.GOOS]
 		if ok {
 			newArgs.WorkspaceOptions = workspaceOptions.(map[string]interface{})

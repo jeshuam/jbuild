@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/jeshuam/jbuild/args"
@@ -86,7 +87,8 @@ func JBuildRun(args args.Args, cmdArgs []string) error {
 	targetsToBuild := make(map[string]interfaces.TargetSpec)
 	for _, target := range targetArgs {
 		log.Infof("Loading target(s) '%s'", target)
-		specs, err := config.MakeTargetSpec(&args, target, args.CurrentDir)
+		relStart, _ := filepath.Rel(args.WorkspaceDir, args.CurrentDir)
+		specs, err := config.MakeTargetSpec(&args, target, relStart, args.WorkspaceDir)
 		if err != nil {
 			return errors.New(fmt.Sprintf("Failed to load target '%s': %s", target, err))
 		}
