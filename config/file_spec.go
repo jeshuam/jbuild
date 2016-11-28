@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -18,9 +17,9 @@ var (
 
 // Implementation of the FileSpec interface.
 type FileSpecImpl struct {
-	path string
+	path   string
 	wsPath string
-	file string
+	file   string
 
 	args *args.Args
 }
@@ -54,7 +53,7 @@ func (this *FileSpecImpl) FilePath() string {
 
 func (this *FileSpecImpl) OutputPath() string {
 	return filepath.Join(
-		this.args.OutputDir, strings.Replace(this.path, "/", pathSeparator, -1))
+		this.args.OutputDir, strings.Replace(this.wsPath, "/", pathSeparator, -1))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -82,11 +81,11 @@ func MakeFileSpec(args *args.Args, rawSpec, cwd, buildBase string) interfaces.Fi
 		spec.path, spec.file = splitPathAndFile(
 			strings.Trim(rawSpec, "/"), "/")
 		spec.path = filepath.Join(buildBase, spec.path)
-		spec.wsPath = spec.path
+		spec.wsPath, _ = splitPathAndFile(spec.path, pathSeparator)
 	} else {
 		spec.path, spec.file = splitPathAndFile(
 			filepath.Join(buildBase, cwd, rawSpec), pathSeparator)
-		spec.wsPath = filepath.Join(cwd, rawSpec)
+		spec.wsPath, _ = splitPathAndFile(filepath.Join(cwd, rawSpec), pathSeparator)
 	}
 
 	// Check to see whether this file exists and is a file. If it doesn't, then
@@ -96,7 +95,6 @@ func MakeFileSpec(args *args.Args, rawSpec, cwd, buildBase string) interfaces.Fi
 		return spec
 	}
 
-	fmt.Printf("FAILING %s\n", spec.path)
 	return nil
 }
 
