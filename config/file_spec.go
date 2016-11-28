@@ -36,7 +36,7 @@ func (this *FileSpecImpl) Path() string {
 }
 
 func (this *FileSpecImpl) String() string {
-	return "//" + this.wsPath + "/" + this.File()
+	return "//" + strings.Replace(this.wsPath, pathSeparator, "/", -1) + "/" + this.File()
 }
 
 func (this *FileSpecImpl) Type() string {
@@ -81,11 +81,11 @@ func MakeFileSpec(args *args.Args, rawSpec, cwd, buildBase string) interfaces.Fi
 		spec.path, spec.file = splitPathAndFile(
 			strings.Trim(rawSpec, "/"), "/")
 		spec.path = filepath.Join(buildBase, spec.path)
-		spec.wsPath, _ = splitPathAndFile(spec.path, pathSeparator)
+		spec.wsPath, _ = filepath.Rel(buildBase, spec.path)
 	} else {
 		spec.path, spec.file = splitPathAndFile(
 			filepath.Join(buildBase, cwd, rawSpec), pathSeparator)
-		spec.wsPath, _ = splitPathAndFile(filepath.Join(cwd, rawSpec), pathSeparator)
+		spec.wsPath, _ = filepath.Rel(buildBase, spec.path)
 	}
 
 	// Check to see whether this file exists and is a file. If it doesn't, then

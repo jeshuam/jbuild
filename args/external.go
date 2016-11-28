@@ -35,7 +35,7 @@ func makeExternalRepoStruct(name string, repo map[string]interface{}) ExternalRe
 func fetchGit(args Args, repo ExternalRepo) error {
 	// If the directory doesn't exist, then clone.
 	gitDir := filepath.Join(repo.RepoDir, strings.Trim(repo.Dir, "/"))
-	if _, err := os.Stat(repo.RepoDir); err != nil {
+	if _, err := os.Stat(gitDir); err != nil {
 		// Build the git command.
 		cmd := exec.Command("git", "clone", "-b", repo.Branch, repo.Url, gitDir)
 
