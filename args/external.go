@@ -10,7 +10,6 @@ import (
 )
 
 type ExternalRepo struct {
-	Name   string
 	Type   string
 	Url    string
 	Branch string
@@ -21,9 +20,8 @@ type ExternalRepo struct {
 	RepoDir   string
 }
 
-func makeExternalRepoStruct(name string, repo map[string]interface{}) ExternalRepo {
+func MakeExternalRepoStruct(repo map[string]interface{}) ExternalRepo {
 	r := ExternalRepo{}
-	r.Name = name
 	r.Type = repo["type"].(string)
 	r.Url = repo["url"].(string)
 	r.Branch = repo["branch"].(string)
@@ -32,12 +30,12 @@ func makeExternalRepoStruct(name string, repo map[string]interface{}) ExternalRe
 	return r
 }
 
-func fetchGit(args Args, repo ExternalRepo) error {
+func fetchGit(args *Args, repo ExternalRepo) error {
 	// If the directory doesn't exist, then clone.
 	gitDir := filepath.Join(repo.RepoDir, strings.Trim(repo.Dir, "/"))
 	if _, err := os.Stat(gitDir); err != nil {
 		// Build the git command.
-		cmd := exec.Command("git", "clone", "-b", repo.Branch, repo.Url, gitDir)
+		cmd := exec.Command("git", "clone", "--recurse-submodules", "-b", repo.Branch, repo.Url, gitDir)
 
 		// Save the command output.
 		cmd.Stdout = os.Stdout
@@ -70,28 +68,26 @@ func fetchGit(args Args, repo ExternalRepo) error {
 
 // LoadExternalRepo will load the external repository specified by `repo`,
 // download it and load the corresponding BUILD file.
-func LoadExternalRepo(args Args, repoName string, repoJson map[string]interface{}) (ExternalRepo, error) {
-	repo := makeExternalRepoStruct(repoName, repoJson)
-
+func LoadExternalRepo(args *Args, repo ExternalRepo) error {
 	// Checkout the repository.
 	var err error
 	repo.RepoDir = args.ExternalRepoDir
 	if repo.Type == "git" {
 		err = fetchGit(args, repo)
 	} else {
-		return ExternalRepo{}, errors.New(fmt.Sprintf("Unknown repo type %s", repo.Type))
+		return errors.New(fmt.Sprintf("Unknown repo type %s", repo.Type))
 	}
 
 	// Check for errors.
 	if err != nil {
-		return ExternalRepo{}, err
+		return err
 	}
 
 	// Load the BUILD file.
 	repo.BuildFile, err = LoadConfigFile(filepath.Join(args.WorkspaceDir, repo.Build))
 	if err != nil {
-		return ExternalRepo{}, err
+		return err
 	}
 
-	return repo, nil
+	return nil
 }

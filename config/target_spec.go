@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jeshuam/jbuild/args"
+	argsModule "github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/config/cc"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/interfaces"
@@ -25,7 +25,7 @@ type TargetSpecImpl struct {
 	_type  string
 	target interfaces.Target
 
-	args *args.Args
+	args *argsModule.Args
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -70,7 +70,7 @@ func (this *TargetSpecImpl) OutputPath() string {
 //                            TargetSpec Methods                              //
 ////////////////////////////////////////////////////////////////////////////////
 
-func (this *TargetSpecImpl) init(args *args.Args, json map[string]interface{}, buildBase string) error {
+func (this *TargetSpecImpl) init(args *argsModule.Args, json map[string]interface{}, buildBase string) error {
 	// If the target has already been loaded, then just return it.
 	cachedTarget, ok := util.TargetCache[this.String()]
 	if !args.NoCache && ok {
@@ -105,7 +105,7 @@ func (this *TargetSpecImpl) init(args *args.Args, json map[string]interface{}, b
 //                       TargetSpec Utility Functions                         //
 ////////////////////////////////////////////////////////////////////////////////
 
-func expandAllTargetsInTree(args *args.Args, path, buildBase string) ([]interfaces.TargetSpec, error) {
+func expandAllTargetsInTree(args *argsModule.Args, path, buildBase string) ([]interfaces.TargetSpec, error) {
 	buildFiles, err := Glob(filepath.Join(buildBase, path, "**", args.BuildFilename))
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func expandAllTargetsInTree(args *args.Args, path, buildBase string) ([]interfac
 	return finalSpecs, nil
 }
 
-func expandAllTargetsInDir(args *args.Args, path, buildBase string) ([]interfaces.TargetSpec, error) {
+func expandAllTargetsInDir(args *argsModule.Args, path, buildBase string) ([]interfaces.TargetSpec, error) {
 	log.Debugf("Scanning for all targets in '%s'", util.OSPathToWSPath(path))
 	buildFilepath := filepath.Join(buildBase, path, args.BuildFilename)
 	targetsJSON, err := LoadBuildFile(buildFilepath)
@@ -152,7 +152,7 @@ func expandAllTargetsInDir(args *args.Args, path, buildBase string) ([]interface
 // MakeTargetSpec constructs and returns a valid TargetSpec object, or nil if
 // the given spec doesn't refer to a valid target. rawSpec can be absolute or
 // relative to `cwd`.
-func MakeTargetSpec(args *args.Args, rawSpec string, cwd string, buildBase string) ([]interfaces.TargetSpec, error) {
+func MakeTargetSpec(args *argsModule.Args, rawSpec string, cwd string, buildBase string) ([]interfaces.TargetSpec, error) {
 	spec := new(TargetSpecImpl)
 	spec.args = args
 
@@ -196,10 +196,13 @@ func MakeTargetSpec(args *args.Args, rawSpec string, cwd string, buildBase strin
 	// BUILD file.
 	var err error
 	var buildFile map[string]interface{}
-	externalRepo, ok := args.ExternalBuildFiles["//"+spec.Dir()]
+	externalRepo, ok := args.ExternalRepoDefs["//"+spec.Dir()]
 	if ok {
-		buildFile = externalRepo.BuildFile
-		buildBase = externalRepo.RepoDir
+		// Load this external repo.
+		argsModule.LoadExternalRepo(args, externalRepo)
+
+		buildFile = args.ExternalBuildFiles["//"+spec.Dir()]
+		buildBase = args.ExternalRepoDir
 	} else {
 		// Check to see whether the target exists. This requires that the BUILD file
 		// for this directory is parsed.

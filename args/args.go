@@ -64,7 +64,8 @@ type Args struct {
 	// External repos that need to be loaded. Once loaded, this map should contain
 	// a mapping from the local workspace path --> BUILD file text. The local path
 	// must be absolute.
-	ExternalBuildFiles map[string]ExternalRepo
+	ExternalBuildFiles map[string]map[string]interface{}
+	ExternalRepoDefs   map[string]ExternalRepo
 
 	// The WORKSPACE file loaded.
 	WorkspaceOptions     map[string]interface{}
@@ -104,7 +105,7 @@ func init() {
 
 	flag.StringVar(&args.ExternalRepoDir, "external_repo_dir", "",
 		"The absolute path to the location to store external repos. If blank, defaults "+
-		    "to a location within the user's home directory.")
+			"to a location within the user's home directory.")
 
 	flag.BoolVar(&args.UpdateExternals, "update_externals", false,
 		"If set to true, external repositories will be updated.")
@@ -241,16 +242,20 @@ func Load(cwd string) (Args, error) {
 		}
 
 		// Load any additional dependencies (e.g. from github).
+		newArgs.ExternalBuildFiles = make(map[string]map[string]interface{})
+		newArgs.ExternalRepoDefs = make(map[string]ExternalRepo)
 		externalRepos, ok := workspaceOptionsAll[newArgs.ExternalRepoKey]
 		if ok {
-			for repoName, repoJson := range externalRepos.(map[string]interface{}) {
-				externalRepo, err := LoadExternalRepo(newArgs, repoName, repoJson.(map[string]interface{}))
+			for _, repoJson := range externalRepos.([]interface{}) {
+				// Load some basic information about the external repo.
+				buildFilePath := repoJson.(map[string]interface{})["build"].(string)
+				externalDir := repoJson.(map[string]interface{})["dir"].(string)
+				newArgs.ExternalBuildFiles[externalDir], err = LoadConfigFile(buildFilePath)
+				newArgs.ExternalRepoDefs[externalDir] = MakeExternalRepoStruct(repoJson.(map[string]interface{}))
+
 				if err != nil {
 					return Args{}, err
 				}
-
-				newArgs.ExternalBuildFiles = make(map[string]ExternalRepo)
-				newArgs.ExternalBuildFiles[externalRepo.Dir] = externalRepo
 			}
 		}
 
