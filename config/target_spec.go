@@ -71,6 +71,15 @@ func (this *TargetSpecImpl) OutputPath() string {
 ////////////////////////////////////////////////////////////////////////////////
 
 func (this *TargetSpecImpl) init(args *argsModule.Args, json map[string]interface{}, buildBase string) error {
+	// Extract the type from the target.
+	targetTypeInterface, ok := json["type"]
+	if !ok {
+		return errors.New(fmt.Sprintf("Target %s missing required 'type' field."))
+	}
+
+	// Save the type
+	this._type = targetTypeInterface.(string)
+
 	// If the target has already been loaded, then just return it.
 	cachedTarget, ok := util.TargetCache[this.String()]
 	if !args.NoCache && ok {
@@ -78,14 +87,7 @@ func (this *TargetSpecImpl) init(args *argsModule.Args, json map[string]interfac
 		return nil
 	}
 
-	// Extract the type from the target.
-	targetTypeInterface, ok := json["type"]
-	if !ok {
-		return errors.New(fmt.Sprintf("Target %s missing required 'type' field."))
-	}
-
 	// Based on the type, create a new target.
-	this._type = targetTypeInterface.(string)
 	if strings.HasPrefix(this._type, "c++") {
 		this.target = new(cc.Target)
 	} else if strings.HasPrefix(this._type, "filegroup") {

@@ -40,8 +40,9 @@ func loadSpecs(args *args.Args, json map[string]interface{}, key, cwd, buildBase
 			globSpecs := MakeFileSpecGlob(args, strings.TrimPrefix(rawSpec, "glob:"), cwd, buildBase)
 			if len(globSpecs) > 0 {
 				specs = append(specs, globSpecs...)
-				continue
 			}
+
+			continue
 		} else {
 			fileSpec := MakeFileSpec(args, rawSpec, cwd, buildBase)
 			if fileSpec != nil {

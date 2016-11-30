@@ -200,29 +200,42 @@ func Load(cwd string) (Args, error) {
 	// Make a copy of the default args.
 	newArgs := args
 
+	// Get the user's home directory.
+	usr, err := user.Current()
+	if err != nil {
+		return Args{}, err
+	}
+
 	// Load the CurrentDir flag.
 	newArgs.CurrentDir = cwd
 
 	// Load any base workspace files.
 	newArgs.WorkspaceOptions = make(map[string]interface{})
-	if args.BaseWorkspaceFiles != "" {
-		baseWorkspaceFiles, err := ioutil.ReadDir(args.BaseWorkspaceFiles)
-		if err != nil {
-			return Args{}, err
-		}
+	if newArgs.BaseWorkspaceFiles == "" {
+		newArgs.BaseWorkspaceFiles = filepath.Join(usr.HomeDir, ".jbuild")
+	}
 
-		for _, file := range baseWorkspaceFiles {
-			filePath := filepath.Join(args.BaseWorkspaceFiles, file.Name())
-			if strings.HasSuffix(strings.ToLower(file.Name()), ".workspace") {
-				cfg, err := LoadConfigFile(filePath)
-				if err != nil {
-					return Args{}, err
-				}
+	// If the base workspace files dir doesn't exist, make it.
+	if exists, _ := os.Stat(newArgs.BaseWorkspaceFiles); exists == nil {
+		os.MkdirAll(newArgs.BaseWorkspaceFiles, 0755)
+	}
 
-				err = mergo.Merge(&newArgs.WorkspaceOptions, cfg)
-				if err != nil {
-					return Args{}, err
-				}
+	baseWorkspaceFiles, err := ioutil.ReadDir(newArgs.BaseWorkspaceFiles)
+	if err != nil {
+		return Args{}, err
+	}
+
+	for _, file := range baseWorkspaceFiles {
+		filePath := filepath.Join(newArgs.BaseWorkspaceFiles, file.Name())
+		if strings.HasSuffix(strings.ToLower(file.Name()), ".workspace") {
+			cfg, err := LoadConfigFile(filePath)
+			if err != nil {
+				return Args{}, err
+			}
+
+			err = mergo.Merge(&newArgs.WorkspaceOptions, cfg)
+			if err != nil {
+				return Args{}, err
 			}
 		}
 	}
@@ -259,11 +272,6 @@ func Load(cwd string) (Args, error) {
 	// Load the ExternalRepoDir flag.
 	workspaceName := filepath.Base(newArgs.WorkspaceDir)
 	if newArgs.ExternalRepoDir == "" {
-		usr, err := user.Current()
-		if err != nil {
-			return Args{}, err
-		}
-
 		newArgs.ExternalRepoDir = filepath.Join(usr.HomeDir, ".jbuild", workspaceName)
 	}
 

@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -61,6 +60,5 @@ func MakeDirSpec(args *args.Args, rawSpec, cwd, buildBase string) interfaces.Dir
 		return spec
 	}
 
-	fmt.Printf("FAILED\n")
 	return nil
 }

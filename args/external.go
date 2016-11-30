@@ -82,9 +82,10 @@ func fetchGit(args *Args, repo ExternalRepo) error {
 
 		// Save the command output.
 		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		// cmd.Stderr = os.Stderr
 
 		// Clone the repository.
+		fmt.Printf("Cloning into %s...\n", repo.Url)
 		err := cmd.Run()
 		if err != nil {
 			return err
