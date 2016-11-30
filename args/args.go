@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/client9/xson/hjson"
+	"github.com/imdario/mergo"
 )
 
 type Args struct {
@@ -26,6 +27,7 @@ type Args struct {
 	WorkspaceDir string
 
 	// Workspace options.
+	BaseWorkspaceFiles string
 	WorkspaceFilename  string
 	ExternalRepoKey    string
 	ExternalRepoDir    string
@@ -64,8 +66,7 @@ type Args struct {
 	// External repos that need to be loaded. Once loaded, this map should contain
 	// a mapping from the local workspace path --> BUILD file text. The local path
 	// must be absolute.
-	ExternalBuildFiles map[string]map[string]interface{}
-	ExternalRepoDefs   map[string]ExternalRepo
+	ExternalRepos map[string]ExternalRepo
 
 	// The WORKSPACE file loaded.
 	WorkspaceOptions     map[string]interface{}
@@ -96,6 +97,13 @@ func init() {
 			"using the workspace_filename flag.")
 
 	// Workspace options.
+	flag.StringVar(&args.BaseWorkspaceFiles, "base_workspace_files", "",
+		"A directory from which to load base WORKSPACE files. This allows "+
+			"standard configuration files (like boost) to be shipped with jbuild. "+
+			"The values in the project's WORKSPACE file take precedence over there. "+
+			"Files should be named XXX.workspace, where XXX signifies what is in "+
+			"the file.")
+
 	flag.StringVar(&args.WorkspaceFilename, "workspace_filename", "WORKSPACE",
 		"The name of the WORKSPACE file when looking for the workspace root.")
 
@@ -195,6 +203,30 @@ func Load(cwd string) (Args, error) {
 	// Load the CurrentDir flag.
 	newArgs.CurrentDir = cwd
 
+	// Load any base workspace files.
+	newArgs.WorkspaceOptions = make(map[string]interface{})
+	if args.BaseWorkspaceFiles != "" {
+		baseWorkspaceFiles, err := ioutil.ReadDir(args.BaseWorkspaceFiles)
+		if err != nil {
+			return Args{}, err
+		}
+
+		for _, file := range baseWorkspaceFiles {
+			filePath := filepath.Join(args.BaseWorkspaceFiles, file.Name())
+			if strings.HasSuffix(strings.ToLower(file.Name()), ".workspace") {
+				cfg, err := LoadConfigFile(filePath)
+				if err != nil {
+					return Args{}, err
+				}
+
+				err = mergo.Merge(&newArgs.WorkspaceOptions, cfg)
+				if err != nil {
+					return Args{}, err
+				}
+			}
+		}
+	}
+
 	// Load the WorkspaceDir flag.
 	if newArgs.WorkspaceDir == "" {
 		tmpCwd := newArgs.CurrentDir
@@ -222,51 +254,60 @@ func Load(cwd string) (Args, error) {
 				"Could not find WORKSPACE file '%s' anywhere above the current directory.",
 				newArgs.WorkspaceFilename))
 		}
+	}
 
-		// Load the ExternalRepoDir flag.
-		workspaceName := filepath.Base(newArgs.WorkspaceDir)
-		if newArgs.ExternalRepoDir == "" {
-			usr, err := user.Current()
-			if err != nil {
-				return Args{}, err
-			}
-
-			newArgs.ExternalRepoDir = filepath.Join(usr.HomeDir, ".jbuild", workspaceName)
-		}
-
-		// Load the workspace file.
-		workspaceOptionsAll, err := LoadConfigFile(
-			filepath.Join(newArgs.WorkspaceDir, newArgs.WorkspaceFilename))
+	// Load the ExternalRepoDir flag.
+	workspaceName := filepath.Base(newArgs.WorkspaceDir)
+	if newArgs.ExternalRepoDir == "" {
+		usr, err := user.Current()
 		if err != nil {
 			return Args{}, err
 		}
 
-		// Load any additional dependencies (e.g. from github).
-		newArgs.ExternalBuildFiles = make(map[string]map[string]interface{})
-		newArgs.ExternalRepoDefs = make(map[string]ExternalRepo)
-		externalRepos, ok := workspaceOptionsAll[newArgs.ExternalRepoKey]
-		if ok {
-			for _, repoJson := range externalRepos.([]interface{}) {
-				// Load some basic information about the external repo.
-				buildFilePath := repoJson.(map[string]interface{})["build"].(string)
-				externalDir := repoJson.(map[string]interface{})["dir"].(string)
-				newArgs.ExternalBuildFiles[externalDir], err = LoadConfigFile(buildFilePath)
-				newArgs.ExternalRepoDefs[externalDir] = MakeExternalRepoStruct(repoJson.(map[string]interface{}))
+		newArgs.ExternalRepoDir = filepath.Join(usr.HomeDir, ".jbuild", workspaceName)
+	}
 
-				if err != nil {
-					return Args{}, err
-				}
-			}
+	// Load the workspace file.
+	workspaceFilePath := filepath.Join(newArgs.WorkspaceDir, newArgs.WorkspaceFilename)
+	workspaceFileStat, _ := os.Stat(workspaceFilePath)
+	if workspaceFileStat.Size() > 0 {
+		loadedOptions, err := LoadConfigFile(workspaceFilePath)
+		if err != nil {
+			return Args{}, err
 		}
 
-		// Load OS specific options.
-		workspaceOptions, ok := workspaceOptionsAll[runtime.GOOS]
-		if ok {
-			newArgs.WorkspaceOptions = workspaceOptions.(map[string]interface{})
-			configurationOptions, ok := newArgs.WorkspaceOptions[newArgs.Configuration]
-			if ok {
-				newArgs.ConfigurationOptions = configurationOptions.(map[string]interface{})
+		err = mergo.Merge(&newArgs.WorkspaceOptions, loadedOptions)
+		if err != nil {
+			return Args{}, err
+		}
+	}
+
+	// Load any additional dependencies (e.g. from github).
+	newArgs.ExternalRepos = make(map[string]ExternalRepo)
+	externalRepos, ok := newArgs.WorkspaceOptions[newArgs.ExternalRepoKey]
+	if ok {
+		for repoPath, repoJson := range externalRepos.(map[string]interface{}) {
+			// Load some basic information about the external repo.
+			externalRepo, err := MakeExternalRepo(repoPath, repoJson.(map[string]interface{}))
+			if err != nil {
+				return Args{}, err
 			}
+
+			newArgs.ExternalRepos[repoPath] = externalRepo
+		}
+	}
+
+	// Load OS specific options.
+	workspaceOptions, ok := newArgs.WorkspaceOptions[runtime.GOOS]
+	if ok {
+		err := mergo.Merge(&newArgs.WorkspaceOptions, workspaceOptions.(map[string]interface{}))
+		if err != nil {
+			return Args{}, err
+		}
+
+		configurationOptions, ok := newArgs.WorkspaceOptions[newArgs.Configuration]
+		if ok {
+			newArgs.ConfigurationOptions = configurationOptions.(map[string]interface{})
 		}
 	}
 

@@ -196,12 +196,12 @@ func MakeTargetSpec(args *argsModule.Args, rawSpec string, cwd string, buildBase
 	// BUILD file.
 	var err error
 	var buildFile map[string]interface{}
-	externalRepo, ok := args.ExternalRepoDefs["//"+spec.Dir()]
+	externalRepo, ok := args.ExternalRepos["//"+spec.Dir()]
 	if ok {
 		// Load this external repo.
 		argsModule.LoadExternalRepo(args, externalRepo)
 
-		buildFile = args.ExternalBuildFiles["//"+spec.Dir()]
+		buildFile = externalRepo.Build
 		buildBase = args.ExternalRepoDir
 	} else {
 		// Check to see whether the target exists. This requires that the BUILD file

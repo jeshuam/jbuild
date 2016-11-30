@@ -9,30 +9,73 @@ import (
 	"strings"
 )
 
+// An ExternalRepo structure, which contains all information required to build
+// and checkout an external repo.
 type ExternalRepo struct {
-	Type   string
-	Url    string
-	Branch string
-	Build  string
-	Dir    string
+	// The path this external repo should be presented as. Must be unique.
+	Path string
 
-	BuildFile map[string]interface{}
-	RepoDir   string
+	// The URL to the git repository that contains the code. Should be https://
+	// for maximum compatability.
+	Url string
+
+	// The branch to checkout. This is anything that can be passed to the -b flag
+	// when checking out the code (e.g. a tag, branch). If blank, uses master.
+	Branch string
+
+	// The build instructions needed to build this external repo. Can either be
+	// the raw BUILD contents or a filepath (relative to the workspace root).
+	Build     map[string]interface{}
+	BuildFile string
 }
 
-func MakeExternalRepoStruct(repo map[string]interface{}) ExternalRepo {
-	r := ExternalRepo{}
-	r.Type = repo["type"].(string)
-	r.Url = repo["url"].(string)
-	r.Branch = repo["branch"].(string)
-	r.Build = repo["build"].(string)
-	r.Dir = repo["dir"].(string)
-	return r
+// MakeExternalRepo from a JSON map.
+func MakeExternalRepo(path string, repoJson map[string]interface{}) (ExternalRepo, error) {
+	var url, branch, buildFile string
+	var build map[string]interface{}
+	var err error
+
+	// Get the objects from the JSON.
+	urlInt, urlOk := repoJson["url"]
+	branchInt, branchOk := repoJson["branch"]
+	buildInt, buildOk := repoJson["build"]
+
+	if urlOk {
+		url = urlInt.(string)
+	} else {
+		return ExternalRepo{}, errors.New("A URL must be specified for all external repos.")
+	}
+
+	if branchOk {
+		branch = branchInt.(string)
+	} else {
+		branch = "master"
+	}
+
+	if buildOk {
+		switch buildInt.(type) {
+		case string:
+			build, err = LoadConfigFile(buildInt.(string))
+			buildFile = buildInt.(string)
+			if err != nil {
+				return ExternalRepo{}, err
+			}
+
+		case map[string]interface{}:
+			build = buildInt.(map[string]interface{})
+			buildFile = ""
+		}
+	} else {
+		return ExternalRepo{}, errors.New("A BUILD file or spec must be specified for external repos.")
+	}
+
+	// Make and return the external repo.
+	return ExternalRepo{path, url, branch, build, buildFile}, nil
 }
 
 func fetchGit(args *Args, repo ExternalRepo) error {
 	// If the directory doesn't exist, then clone.
-	gitDir := filepath.Join(repo.RepoDir, strings.Trim(repo.Dir, "/"))
+	gitDir := filepath.Join(args.ExternalRepoDir, strings.Trim(repo.Path, "/"))
 	if _, err := os.Stat(gitDir); err != nil {
 		// Build the git command.
 		cmd := exec.Command("git", "clone", "--recurse-submodules", "-b", repo.Branch, repo.Url, gitDir)
@@ -69,22 +112,8 @@ func fetchGit(args *Args, repo ExternalRepo) error {
 // LoadExternalRepo will load the external repository specified by `repo`,
 // download it and load the corresponding BUILD file.
 func LoadExternalRepo(args *Args, repo ExternalRepo) error {
-	// Checkout the repository.
-	var err error
-	repo.RepoDir = args.ExternalRepoDir
-	if repo.Type == "git" {
-		err = fetchGit(args, repo)
-	} else {
-		return errors.New(fmt.Sprintf("Unknown repo type %s", repo.Type))
-	}
-
-	// Check for errors.
-	if err != nil {
-		return err
-	}
-
-	// Load the BUILD file.
-	repo.BuildFile, err = LoadConfigFile(filepath.Join(args.WorkspaceDir, repo.Build))
+	// Fetch the repo.
+	err := fetchGit(args, repo)
 	if err != nil {
 		return err
 	}

@@ -79,10 +79,17 @@ func (this *Target) Processed() bool {
 
 	// If we couldn't find the BUILD file, maybe it was an external?
 	if buildStat == nil {
-		buildStat, _ = os.Stat(this.Args.ExternalRepoDefs["//"+this.Spec.Dir()].Build)
+		externalRepo, ok := this.Args.ExternalRepos["//"+this.Spec.Dir()]
+		if !ok {
+			panic("Build file not found for non-external repo??")
+		}
+
+		if externalRepo.BuildFile != "" {
+			buildStat, _ = os.Stat(externalRepo.BuildFile)
+		}
 	}
 
-	if buildStat.ModTime().After(outputStat.ModTime()) {
+	if buildStat != nil && buildStat.ModTime().After(outputStat.ModTime()) {
 		return false
 	}
 
@@ -165,10 +172,17 @@ func (this *Target) Process(args *args.Args, progressBar *progress.ProgressBar, 
 
 		// If we couldn't find the BUILD file, maybe it was an external?
 		if buildStat == nil {
-			buildStat, _ = os.Stat(this.Args.ExternalRepoDefs["//"+this.Spec.Dir()].Build)
+			externalRepo, ok := this.Args.ExternalRepos["//"+this.Spec.Dir()]
+			if !ok {
+				panic("Build file not found for non-external repo??")
+			}
+
+			if externalRepo.BuildFile != "" {
+				buildStat, _ = os.Stat(externalRepo.BuildFile)
+			}
 		}
 
-		forceCompile = buildStat.ModTime().After(outputStat.ModTime()) ||
+		forceCompile = (buildStat != nil && buildStat.ModTime().After(outputStat.ModTime())) ||
 			workspaceStat.ModTime().After(outputStat.ModTime())
 	}
 
