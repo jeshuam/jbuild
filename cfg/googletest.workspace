@@ -1,0 +1,46 @@
+external: {
+  "//third_party/googletest": {
+    url: "https://github.com/google/googletest"
+    branch: "release-1.8.0"
+    build: {
+      googletest: {
+        type: c++/library
+        srcs: [
+          "googletest/src/gtest.cc",
+          "googletest/src/gtest-death-test.cc",
+          "googletest/src/gtest-filepath.cc",
+          "googletest/src/gtest-port.cc",
+          "googletest/src/gtest-printers.cc",
+          "googletest/src/gtest-test-part.cc",
+          "googletest/src/gtest-typed-test.cc",
+        ]
+
+        hdrs: ["glob:googletest/include/gtest/**/*.h"]
+        includes: [
+          "googletest",
+          "googletest/include",
+        ]
+      }
+
+      main: {
+        type: c++/library
+        srcs: ["googletest/src/gtest_main.cc"]
+        deps: [
+          ":googletest"
+        ]
+
+        linux: {
+          link_flags: [
+            "-lpthread",
+          ]
+        }
+
+        windows: {
+          link_flags: [
+            "/SUBSYSTEM:CONSOLE",
+          ]
+        }
+      }
+    }
+  }
+}
