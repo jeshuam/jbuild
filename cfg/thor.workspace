@@ -1,0 +1,39 @@
+external: {
+  "//third_party/sfml/thor": {
+    url: "https://github.com/Bromeon/Thor"
+    branch: "master"
+    build: {
+      thor: {
+        type: c++/library
+        srcs: [
+          "glob:src/*.cpp",
+        ]
+
+        hdrs: [
+          "glob:include/**/*.hpp",
+          "glob:extlibs/aurora/include/**/*.hpp",
+        ]
+
+        includes: [
+          "extlibs/aurora/include",
+          "include",
+        ]
+
+        deps: [
+          "//third_party/sfml:audio",
+          "//third_party/sfml:graphics",
+        ]
+
+        compile_flags: [
+          "-DTHOR_EXPORTS",
+        ]
+
+        linux: {
+          compile_flags: [
+            "-std=c++11",
+          ]
+        }
+      }
+    }
+  }
+}
