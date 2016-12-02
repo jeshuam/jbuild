@@ -1,0 +1,220 @@
+external: {
+  "//third_party/sfml": {
+    url: "https://github.com/SFML/SFML"
+    branch: "2.4.1"
+    build: {
+      system: {
+        type: c++/library
+        srcs: [
+          "glob:src/SFML/System/*.cpp"
+        ]
+
+        includes: [
+          "include",
+          "src",
+        ]
+
+        compile_flags: [
+          "-DSFML_STATIC",
+        ]
+
+        linux: {
+          srcs: [
+            "glob:src/SFML/System/Unix/*.cpp"
+          ]
+
+          link_flags: [
+            "-lpthread",
+            "-lrt",
+            "-lm",
+          ]
+        }
+
+        windows: {
+          srcs: [
+            "glob:src/SFML/System/Win32/*.cpp"
+          ]
+
+          link_flags: [
+            "winmm.lib",
+          ]
+
+          compile_flags: [
+            "-DSFML_USE_STATIC_STD_LIBS",
+          ]
+        }
+      }
+
+      window: {
+        type: c++/library
+        deps: [
+          ":system",
+        ]
+
+        srcs: [
+          "src/SFML/Window/Context.cpp",
+          "src/SFML/Window/GlContext.cpp",
+          "src/SFML/Window/GlResource.cpp",
+          "src/SFML/Window/Joystick.cpp",
+          "src/SFML/Window/JoystickManager.cpp",
+          "src/SFML/Window/Keyboard.cpp",
+          "src/SFML/Window/Mouse.cpp",
+          "src/SFML/Window/Touch.cpp",
+          "src/SFML/Window/Sensor.cpp",
+          "src/SFML/Window/SensorManager.cpp",
+          "src/SFML/Window/VideoMode.cpp",
+          "src/SFML/Window/Window.cpp",
+          "src/SFML/Window/WindowImpl.cpp",
+        ]
+
+        linux: {
+          srcs: [
+            "glob:src/SFML/Window/Unix/*.cpp"
+          ]
+        }
+
+        windows: {
+          srcs: [
+            "glob:src/SFML/Window/Win32/*.cpp"
+          ]
+
+          includes: [
+            "extlibs/headers",
+            "extlibs/headers/AL",
+          ]
+
+          compile_flags: [
+              "-DUNICODE",
+              "-D_UNICODE",
+          ]
+
+          link_flags: [
+            "opengl32.lib",
+            "winmm.lib",
+            "gdi32.lib",
+            "advapi32.lib",
+            "user32.lib",
+          ]
+        }
+      }
+
+      graphics: {
+        type: c++/library
+        deps: [
+          ":system",
+          ":window",
+        ]
+
+        srcs: [
+          "glob:src/SFML/Graphics/*.cpp",
+        ]
+
+        includes: [
+          "extlibs/headers/stb_image",
+        ]
+
+        windows: {
+          libs: [
+            "extlibs/libs-msvc-universal/x86/freetype.lib",
+            "extlibs/libs-msvc-universal/x86/jpeg.lib",
+          ]
+
+          includes: [
+            "extlibs/headers/freetype2",
+            "extlibs/headers/jpeg",
+          ]
+
+          link_flags: [
+            "legacy_stdio_definitions.lib",
+          ]
+        }
+
+        linux: {
+          compile_flags: [
+            "-I/usr/include/freetype2",
+          ]
+
+          link_flags: [
+            "-lGL",
+            "-lSM",
+            "-lICE",
+            "-lX11",
+            "-lXext",
+            "-lfreetype",
+            "-ljpeg",
+            "-lxcb",
+            "-lX11-xcb",
+            "-lxcb-image",
+            "-lxcb-randr",
+            "-ludev",
+          ]
+        }
+      }
+
+      audio: {
+        type: c++/library
+        deps: [
+          ":system",
+        ]
+
+        srcs: [
+          "glob:src/SFML/Audio/*.cpp",
+        ]
+
+        linux: {
+          link_flags: [
+            "-lopenal",
+            "-lvorbisenc",
+            "-lvorbisfile",
+            "-lvorbis",
+            "-logg",
+            "-lFLAC",
+          ]
+        }
+
+        windows: {
+          libs: [
+            "extlibs/libs-msvc-universal/x86/flac.lib",
+            "extlibs/libs-msvc-universal/x86/openal32.lib",
+            "extlibs/libs-msvc-universal/x86/vorbis.lib",
+            "extlibs/libs-msvc-universal/x86/vorbisenc.lib",
+            "extlibs/libs-msvc-universal/x86/vorbisfile.lib",
+            "extlibs/libs-msvc-universal/x86/ogg.lib",
+          ]
+
+          includes: [
+            "extlibs/headers",
+            "extlibs/headers/AL",
+          ]
+        }
+      }
+
+      network: {
+        type: c++/library
+        deps: [
+          ":system",
+        ]
+
+        srcs: [
+          "glob:src/SFML/Network/*.cpp"
+        ]
+
+        linux: {
+          srcs: [
+            "glob:src/SFML/Network/Unix/*.cpp"
+          ]
+        }
+
+        windows: {
+          srcs: [
+            "glob:src/SFML/Network/Win32/*.cpp"
+          ]
+
+          link_flags: [
+            "ws2_32.lib"
+          ]
+        }
+      }
+    }
+  }
+}

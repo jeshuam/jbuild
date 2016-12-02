@@ -1,0 +1,3717 @@
+{
+    "external": {
+        "//third_party/boost/accumulators": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "accumulators": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/accumulators"
+        },
+        "//third_party/boost/algorithm": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "algorithm": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/algorithm"
+        },
+        "//third_party/boost/align": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "align": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/align"
+        },
+        "//third_party/boost/any": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "any": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/any"
+        },
+        "//third_party/boost/array": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "array": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/array"
+        },
+        "//third_party/boost/asio": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "asio": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/asio"
+        },
+        "//third_party/boost/assert": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "assert": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/assert"
+        },
+        "//third_party/boost/assign": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "assign": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/assign"
+        },
+        "//third_party/boost/atomic": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "atomic": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/lockpool.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/atomic"
+        },
+        "//third_party/boost/bimap": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "bimap": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/bimap"
+        },
+        "//third_party/boost/bind": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "bind": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/bind"
+        },
+        "//third_party/boost/chrono": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "chrono": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/chrono.cpp",
+                        "src/process_cpu_clocks.cpp",
+                        "src/thread_clock.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/chrono"
+        },
+        "//third_party/boost/circular_buffer": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "circular_buffer": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/circular_buffer"
+        },
+        "//third_party/boost/compatibility": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "compatibility": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/compatibility"
+        },
+        "//third_party/boost/compute": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "compute": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/compute"
+        },
+        "//third_party/boost/concept_check": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "concept_check": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/concept_check"
+        },
+        "//third_party/boost/config": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "config": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/config"
+        },
+        "//third_party/boost/container": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "container": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/alloc_lib.c",
+                        "src/dlmalloc.cpp",
+                        "src/dlmalloc_2_8_6.c",
+                        "src/dlmalloc_ext_2_8_6.c",
+                        "src/global_resource.cpp",
+                        "src/monotonic_buffer_resource.cpp",
+                        "src/pool_resource.cpp",
+                        "src/synchronized_pool_resource.cpp",
+                        "src/unsynchronized_pool_resource.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/container"
+        },
+        "//third_party/boost/context": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "context": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ],
+                        "srcs": [
+                            "src/posix/stack_traits.cpp"
+                        ]
+                    },
+                    "srcs": [
+                        "src/dummy.cpp",
+                        "src/execution_context.cpp",
+                        "src/unsupported.cpp",
+                        "src/untested.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ],
+                        "srcs": [
+                            "src/windows/stack_traits.cpp"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/context"
+        },
+        "//third_party/boost/conversion": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "conversion": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/conversion"
+        },
+        "//third_party/boost/convert": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "convert": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/convert"
+        },
+        "//third_party/boost/core": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "core": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/core"
+        },
+        "//third_party/boost/coroutine": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "coroutine": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ],
+                        "srcs": [
+                            "src/posix/stack_traits.cpp"
+                        ]
+                    },
+                    "srcs": [
+                        "src/detail/coroutine_context.cpp",
+                        "src/exceptions.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ],
+                        "srcs": [
+                            "src/windows/stack_traits.cpp"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/coroutine"
+        },
+        "//third_party/boost/coroutine2": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "coroutine2": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/coroutine2"
+        },
+        "//third_party/boost/crc": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "crc": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/crc"
+        },
+        "//third_party/boost/date_time": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "date_time": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ],
+                        "srcs": [
+                            "src/posix_time/posix_time_types.cpp"
+                        ]
+                    },
+                    "srcs": [
+                        "src/gregorian/date_generators.cpp",
+                        "src/gregorian/greg_month.cpp",
+                        "src/gregorian/greg_weekday.cpp",
+                        "src/gregorian/gregorian_types.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/date_time"
+        },
+        "//third_party/boost/detail": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "detail": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/detail"
+        },
+        "//third_party/boost/disjoint_sets": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "disjoint_sets": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/disjoint_sets"
+        },
+        "//third_party/boost/dll": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "dll": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/dll"
+        },
+        "//third_party/boost/dynamic_bitset": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "dynamic_bitset": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/dynamic_bitset"
+        },
+        "//third_party/boost/endian": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "endian": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/endian"
+        },
+        "//third_party/boost/exception": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "exception": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/clone_current_exception_non_intrusive.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/exception"
+        },
+        "//third_party/boost/fiber": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "fiber": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/algo/algorithm.cpp",
+                        "src/algo/round_robin.cpp",
+                        "src/algo/shared_work.cpp",
+                        "src/algo/work_stealing.cpp",
+                        "src/barrier.cpp",
+                        "src/condition_variable.cpp",
+                        "src/context.cpp",
+                        "src/fiber.cpp",
+                        "src/future.cpp",
+                        "src/mutex.cpp",
+                        "src/properties.cpp",
+                        "src/recursive_mutex.cpp",
+                        "src/recursive_timed_mutex.cpp",
+                        "src/scheduler.cpp",
+                        "src/timed_mutex.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/fiber"
+        },
+        "//third_party/boost/filesystem": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "filesystem": {
+                    "deps": [
+                        "//third_party/boost/config",
+                        "//third_party/boost/detail",
+                        "//third_party/boost/functional",
+                        "//third_party/boost/io",
+                        "//third_party/boost/iterator",
+                        "//third_party/boost/range",
+                        "//third_party/boost/smart_ptr",
+                        "//third_party/boost/system",
+                        "//third_party/boost/type_traits"
+                    ],
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/codecvt_error_category.cpp",
+                        "src/operations.cpp",
+                        "src/path.cpp",
+                        "src/path_traits.cpp",
+                        "src/portability.cpp",
+                        "src/unique_path.cpp",
+                        "src/utf8_codecvt_facet.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ],
+                        "srcs": [
+                            "src/windows_file_codecvt.cpp"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/filesystem"
+        },
+        "//third_party/boost/flyweight": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "flyweight": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/flyweight"
+        },
+        "//third_party/boost/foreach": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "foreach": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/foreach"
+        },
+        "//third_party/boost/format": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "format": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/format"
+        },
+        "//third_party/boost/function": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "function": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/function"
+        },
+        "//third_party/boost/function_types": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "function_types": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/function_types"
+        },
+        "//third_party/boost/functional": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "functional": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/functional"
+        },
+        "//third_party/boost/fusion": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "fusion": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/fusion"
+        },
+        "//third_party/boost/geometry": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "geometry": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/geometry"
+        },
+        "//third_party/boost/gil": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "gil": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/gil"
+        },
+        "//third_party/boost/graph": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "graph": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/graphml.cpp",
+                        "src/read_graphviz_new.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/graph"
+        },
+        "//third_party/boost/graph_parallel": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "graph_parallel": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/mpi_process_group.cpp",
+                        "src/tag_allocator.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/graph_parallel"
+        },
+        "//third_party/boost/hana": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "hana": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/hana"
+        },
+        "//third_party/boost/heap": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "heap": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/heap"
+        },
+        "//third_party/boost/icl": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "icl": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/icl"
+        },
+        "//third_party/boost/integer": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "integer": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/integer"
+        },
+        "//third_party/boost/interprocess": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "interprocess": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/interprocess"
+        },
+        "//third_party/boost/intrusive": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "intrusive": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/intrusive"
+        },
+        "//third_party/boost/io": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "io": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/io"
+        },
+        "//third_party/boost/iostreams": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "iostreams": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/bzip2.cpp",
+                        "src/file_descriptor.cpp",
+                        "src/gzip.cpp",
+                        "src/mapped_file.cpp",
+                        "src/zlib.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/iostreams"
+        },
+        "//third_party/boost/iterator": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "iterator": {
+                    "deps": [
+                        "//third_party/boost/mpl",
+                        "//third_party/boost/static_assert"
+                    ],
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/iterator"
+        },
+        "//third_party/boost/lambda": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "lambda": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/lambda"
+        },
+        "//third_party/boost/lexical_cast": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "lexical_cast": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/lexical_cast"
+        },
+        "//third_party/boost/local_function": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "local_function": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/local_function"
+        },
+        "//third_party/boost/locale": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "locale": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ],
+                        "srcs": [
+                            "src/posix/codecvt.cpp",
+                            "src/posix/collate.cpp",
+                            "src/posix/converter.cpp",
+                            "src/posix/numeric.cpp",
+                            "src/posix/posix_backend.cpp"
+                        ]
+                    },
+                    "srcs": [
+                        "src/encoding/codepage.cpp",
+                        "src/icu/boundary.cpp",
+                        "src/icu/codecvt.cpp",
+                        "src/icu/collator.cpp",
+                        "src/icu/conversion.cpp",
+                        "src/icu/date_time.cpp",
+                        "src/icu/formatter.cpp",
+                        "src/icu/icu_backend.cpp",
+                        "src/icu/numeric.cpp",
+                        "src/icu/time_zone.cpp",
+                        "src/shared/date_time.cpp",
+                        "src/shared/format.cpp",
+                        "src/shared/formatting.cpp",
+                        "src/shared/generator.cpp",
+                        "src/shared/ids.cpp",
+                        "src/shared/localization_backend.cpp",
+                        "src/shared/message.cpp",
+                        "src/shared/mo_lambda.cpp",
+                        "src/std/codecvt.cpp",
+                        "src/std/collate.cpp",
+                        "src/std/converter.cpp",
+                        "src/std/numeric.cpp",
+                        "src/std/std_backend.cpp",
+                        "src/util/codecvt_converter.cpp",
+                        "src/util/default_locale.cpp",
+                        "src/util/gregorian.cpp",
+                        "src/util/info.cpp",
+                        "src/util/locale_data.cpp",
+                        "src/win32/collate.cpp",
+                        "src/win32/converter.cpp",
+                        "src/win32/lcid.cpp",
+                        "src/win32/numeric.cpp",
+                        "src/win32/win_backend.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/locale"
+        },
+        "//third_party/boost/lockfree": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "lockfree": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/lockfree"
+        },
+        "//third_party/boost/log": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "log": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ],
+                        "srcs": [
+                            "src/posix/ipc_reliable_message_queue.cpp",
+                            "src/posix/object_name.cpp"
+                        ]
+                    },
+                    "srcs": [
+                        "src/attribute_name.cpp",
+                        "src/attribute_set.cpp",
+                        "src/attribute_value_set.cpp",
+                        "src/code_conversion.cpp",
+                        "src/core.cpp",
+                        "src/date_time_format_parser.cpp",
+                        "src/default_attribute_names.cpp",
+                        "src/default_sink.cpp",
+                        "src/dump.cpp",
+                        "src/dump_avx2.cpp",
+                        "src/dump_ssse3.cpp",
+                        "src/event.cpp",
+                        "src/exceptions.cpp",
+                        "src/format_parser.cpp",
+                        "src/global_logger_storage.cpp",
+                        "src/named_scope.cpp",
+                        "src/named_scope_format_parser.cpp",
+                        "src/once_block.cpp",
+                        "src/permissions.cpp",
+                        "src/process_id.cpp",
+                        "src/process_name.cpp",
+                        "src/record_ostream.cpp",
+                        "src/setup/default_filter_factory.cpp",
+                        "src/setup/default_formatter_factory.cpp",
+                        "src/setup/filter_parser.cpp",
+                        "src/setup/formatter_parser.cpp",
+                        "src/setup/init_from_settings.cpp",
+                        "src/setup/init_from_stream.cpp",
+                        "src/setup/matches_relation_factory.cpp",
+                        "src/setup/parser_utils.cpp",
+                        "src/setup/settings_parser.cpp",
+                        "src/severity_level.cpp",
+                        "src/spirit_encoding.cpp",
+                        "src/syslog_backend.cpp",
+                        "src/text_file_backend.cpp",
+                        "src/text_multifile_backend.cpp",
+                        "src/text_ostream_backend.cpp",
+                        "src/thread_id.cpp",
+                        "src/thread_specific.cpp",
+                        "src/threadsafe_queue.cpp",
+                        "src/timer.cpp",
+                        "src/timestamp.cpp",
+                        "src/trivial.cpp",
+                        "src/unhandled_exception_count.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ],
+                        "srcs": [
+                            "src/windows/debug_output_backend.cpp",
+                            "src/windows/event_log_backend.cpp",
+                            "src/windows/ipc_reliable_message_queue.cpp",
+                            "src/windows/ipc_sync_wrappers.cpp",
+                            "src/windows/light_rw_mutex.cpp",
+                            "src/windows/mapped_shared_memory.cpp",
+                            "src/windows/object_name.cpp"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/log"
+        },
+        "//third_party/boost/logic": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "logic": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/logic"
+        },
+        "//third_party/boost/math": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "math": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/tr1/acosh.cpp",
+                        "src/tr1/acoshf.cpp",
+                        "src/tr1/acoshl.cpp",
+                        "src/tr1/asinh.cpp",
+                        "src/tr1/asinhf.cpp",
+                        "src/tr1/asinhl.cpp",
+                        "src/tr1/assoc_laguerre.cpp",
+                        "src/tr1/assoc_laguerref.cpp",
+                        "src/tr1/assoc_laguerrel.cpp",
+                        "src/tr1/assoc_legendre.cpp",
+                        "src/tr1/assoc_legendref.cpp",
+                        "src/tr1/assoc_legendrel.cpp",
+                        "src/tr1/atanh.cpp",
+                        "src/tr1/atanhf.cpp",
+                        "src/tr1/atanhl.cpp",
+                        "src/tr1/beta.cpp",
+                        "src/tr1/betaf.cpp",
+                        "src/tr1/betal.cpp",
+                        "src/tr1/cbrt.cpp",
+                        "src/tr1/cbrtf.cpp",
+                        "src/tr1/cbrtl.cpp",
+                        "src/tr1/comp_ellint_1.cpp",
+                        "src/tr1/comp_ellint_1f.cpp",
+                        "src/tr1/comp_ellint_1l.cpp",
+                        "src/tr1/comp_ellint_2.cpp",
+                        "src/tr1/comp_ellint_2f.cpp",
+                        "src/tr1/comp_ellint_2l.cpp",
+                        "src/tr1/comp_ellint_3.cpp",
+                        "src/tr1/comp_ellint_3f.cpp",
+                        "src/tr1/comp_ellint_3l.cpp",
+                        "src/tr1/copysign.cpp",
+                        "src/tr1/copysignf.cpp",
+                        "src/tr1/copysignl.cpp",
+                        "src/tr1/cyl_bessel_i.cpp",
+                        "src/tr1/cyl_bessel_if.cpp",
+                        "src/tr1/cyl_bessel_il.cpp",
+                        "src/tr1/cyl_bessel_j.cpp",
+                        "src/tr1/cyl_bessel_jf.cpp",
+                        "src/tr1/cyl_bessel_jl.cpp",
+                        "src/tr1/cyl_bessel_k.cpp",
+                        "src/tr1/cyl_bessel_kf.cpp",
+                        "src/tr1/cyl_bessel_kl.cpp",
+                        "src/tr1/cyl_neumann.cpp",
+                        "src/tr1/cyl_neumannf.cpp",
+                        "src/tr1/cyl_neumannl.cpp",
+                        "src/tr1/ellint_1.cpp",
+                        "src/tr1/ellint_1f.cpp",
+                        "src/tr1/ellint_1l.cpp",
+                        "src/tr1/ellint_2.cpp",
+                        "src/tr1/ellint_2f.cpp",
+                        "src/tr1/ellint_2l.cpp",
+                        "src/tr1/ellint_3.cpp",
+                        "src/tr1/ellint_3f.cpp",
+                        "src/tr1/ellint_3l.cpp",
+                        "src/tr1/erf.cpp",
+                        "src/tr1/erfc.cpp",
+                        "src/tr1/erfcf.cpp",
+                        "src/tr1/erfcl.cpp",
+                        "src/tr1/erff.cpp",
+                        "src/tr1/erfl.cpp",
+                        "src/tr1/expint.cpp",
+                        "src/tr1/expintf.cpp",
+                        "src/tr1/expintl.cpp",
+                        "src/tr1/expm1.cpp",
+                        "src/tr1/expm1f.cpp",
+                        "src/tr1/expm1l.cpp",
+                        "src/tr1/fmax.cpp",
+                        "src/tr1/fmaxf.cpp",
+                        "src/tr1/fmaxl.cpp",
+                        "src/tr1/fmin.cpp",
+                        "src/tr1/fminf.cpp",
+                        "src/tr1/fminl.cpp",
+                        "src/tr1/fpclassify.cpp",
+                        "src/tr1/fpclassifyf.cpp",
+                        "src/tr1/fpclassifyl.cpp",
+                        "src/tr1/hermite.cpp",
+                        "src/tr1/hermitef.cpp",
+                        "src/tr1/hermitel.cpp",
+                        "src/tr1/hypot.cpp",
+                        "src/tr1/hypotf.cpp",
+                        "src/tr1/hypotl.cpp",
+                        "src/tr1/laguerre.cpp",
+                        "src/tr1/laguerref.cpp",
+                        "src/tr1/laguerrel.cpp",
+                        "src/tr1/legendre.cpp",
+                        "src/tr1/legendref.cpp",
+                        "src/tr1/legendrel.cpp",
+                        "src/tr1/lgamma.cpp",
+                        "src/tr1/lgammaf.cpp",
+                        "src/tr1/lgammal.cpp",
+                        "src/tr1/llround.cpp",
+                        "src/tr1/llroundf.cpp",
+                        "src/tr1/llroundl.cpp",
+                        "src/tr1/log1p.cpp",
+                        "src/tr1/log1pf.cpp",
+                        "src/tr1/log1pl.cpp",
+                        "src/tr1/lround.cpp",
+                        "src/tr1/lroundf.cpp",
+                        "src/tr1/lroundl.cpp",
+                        "src/tr1/nextafter.cpp",
+                        "src/tr1/nextafterf.cpp",
+                        "src/tr1/nextafterl.cpp",
+                        "src/tr1/nexttoward.cpp",
+                        "src/tr1/nexttowardf.cpp",
+                        "src/tr1/nexttowardl.cpp",
+                        "src/tr1/riemann_zeta.cpp",
+                        "src/tr1/riemann_zetaf.cpp",
+                        "src/tr1/riemann_zetal.cpp",
+                        "src/tr1/round.cpp",
+                        "src/tr1/roundf.cpp",
+                        "src/tr1/roundl.cpp",
+                        "src/tr1/sph_bessel.cpp",
+                        "src/tr1/sph_besself.cpp",
+                        "src/tr1/sph_bessell.cpp",
+                        "src/tr1/sph_legendre.cpp",
+                        "src/tr1/sph_legendref.cpp",
+                        "src/tr1/sph_legendrel.cpp",
+                        "src/tr1/sph_neumann.cpp",
+                        "src/tr1/sph_neumannf.cpp",
+                        "src/tr1/sph_neumannl.cpp",
+                        "src/tr1/tgamma.cpp",
+                        "src/tr1/tgammaf.cpp",
+                        "src/tr1/tgammal.cpp",
+                        "src/tr1/trunc.cpp",
+                        "src/tr1/truncf.cpp",
+                        "src/tr1/truncl.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/math"
+        },
+        "//third_party/boost/metaparse": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "metaparse": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/metaparse"
+        },
+        "//third_party/boost/move": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "move": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/move"
+        },
+        "//third_party/boost/mpi": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "mpi": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/broadcast.cpp",
+                        "src/communicator.cpp",
+                        "src/computation_tree.cpp",
+                        "src/content_oarchive.cpp",
+                        "src/environment.cpp",
+                        "src/exception.cpp",
+                        "src/graph_communicator.cpp",
+                        "src/group.cpp",
+                        "src/intercommunicator.cpp",
+                        "src/mpi_datatype_cache.cpp",
+                        "src/mpi_datatype_oarchive.cpp",
+                        "src/packed_iarchive.cpp",
+                        "src/packed_oarchive.cpp",
+                        "src/packed_skeleton_iarchive.cpp",
+                        "src/packed_skeleton_oarchive.cpp",
+                        "src/point_to_point.cpp",
+                        "src/python/collectives.cpp",
+                        "src/python/datatypes.cpp",
+                        "src/python/documentation.cpp",
+                        "src/python/module.cpp",
+                        "src/python/py_communicator.cpp",
+                        "src/python/py_environment.cpp",
+                        "src/python/py_exception.cpp",
+                        "src/python/py_nonblocking.cpp",
+                        "src/python/py_request.cpp",
+                        "src/python/py_timer.cpp",
+                        "src/python/serialize.cpp",
+                        "src/python/skeleton_and_content.cpp",
+                        "src/python/status.cpp",
+                        "src/request.cpp",
+                        "src/text_skeleton_oarchive.cpp",
+                        "src/timer.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/mpi"
+        },
+        "//third_party/boost/mpl": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "mpl": {
+                    "deps": [
+                        "//third_party/boost/preprocessor"
+                    ],
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/mpl"
+        },
+        "//third_party/boost/msm": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "msm": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/msm"
+        },
+        "//third_party/boost/multi_array": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "multi_array": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/multi_array"
+        },
+        "//third_party/boost/multi_index": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "multi_index": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/multi_index"
+        },
+        "//third_party/boost/multiprecision": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "multiprecision": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/multiprecision"
+        },
+        "//third_party/boost/numeric": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "numeric": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/numeric"
+        },
+        "//third_party/boost/optional": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "optional": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/optional"
+        },
+        "//third_party/boost/parameter": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "parameter": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/parameter"
+        },
+        "//third_party/boost/phoenix": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "phoenix": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/phoenix"
+        },
+        "//third_party/boost/polygon": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "polygon": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/polygon"
+        },
+        "//third_party/boost/pool": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "pool": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/pool"
+        },
+        "//third_party/boost/predef": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "predef": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/predef"
+        },
+        "//third_party/boost/preprocessor": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "preprocessor": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/preprocessor"
+        },
+        "//third_party/boost/program_options": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "program_options": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/cmdline.cpp",
+                        "src/config_file.cpp",
+                        "src/convert.cpp",
+                        "src/options_description.cpp",
+                        "src/parsers.cpp",
+                        "src/positional_options.cpp",
+                        "src/split.cpp",
+                        "src/utf8_codecvt_facet.cpp",
+                        "src/value_semantic.cpp",
+                        "src/variables_map.cpp",
+                        "src/winmain.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/program_options"
+        },
+        "//third_party/boost/property_map": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "property_map": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/property_map"
+        },
+        "//third_party/boost/property_tree": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "property_tree": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/property_tree"
+        },
+        "//third_party/boost/proto": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "proto": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/proto"
+        },
+        "//third_party/boost/ptr_container": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "ptr_container": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/ptr_container"
+        },
+        "//third_party/boost/python": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "python": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/converter/arg_to_python_base.cpp",
+                        "src/converter/builtin_converters.cpp",
+                        "src/converter/from_python.cpp",
+                        "src/converter/registry.cpp",
+                        "src/converter/type_id.cpp",
+                        "src/dict.cpp",
+                        "src/errors.cpp",
+                        "src/exec.cpp",
+                        "src/import.cpp",
+                        "src/list.cpp",
+                        "src/long.cpp",
+                        "src/module.cpp",
+                        "src/numeric.cpp",
+                        "src/numpy/dtype.cpp",
+                        "src/numpy/matrix.cpp",
+                        "src/numpy/ndarray.cpp",
+                        "src/numpy/numpy.cpp",
+                        "src/numpy/scalars.cpp",
+                        "src/numpy/ufunc.cpp",
+                        "src/object/class.cpp",
+                        "src/object/enum.cpp",
+                        "src/object/function.cpp",
+                        "src/object/function_doc_signature.cpp",
+                        "src/object/inheritance.cpp",
+                        "src/object/iterator.cpp",
+                        "src/object/life_support.cpp",
+                        "src/object/pickle_support.cpp",
+                        "src/object/stl_iterator.cpp",
+                        "src/object_operators.cpp",
+                        "src/object_protocol.cpp",
+                        "src/slice.cpp",
+                        "src/str.cpp",
+                        "src/tuple.cpp",
+                        "src/wrapper.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/python"
+        },
+        "//third_party/boost/qvm": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "qvm": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/qvm"
+        },
+        "//third_party/boost/random": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "random": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/random_device.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/random"
+        },
+        "//third_party/boost/range": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "range": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/range"
+        },
+        "//third_party/boost/ratio": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "ratio": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/ratio"
+        },
+        "//third_party/boost/rational": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "rational": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/rational"
+        },
+        "//third_party/boost/regex": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "regex": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ],
+                        "srcs": [
+                            "src/posix_api.cpp",
+                            "src/wide_posix_api.cpp"
+                        ]
+                    },
+                    "srcs": [
+                        "src/c_regex_traits.cpp",
+                        "src/cpp_regex_traits.cpp",
+                        "src/cregex.cpp",
+                        "src/fileiter.cpp",
+                        "src/icu.cpp",
+                        "src/instances.cpp",
+                        "src/regex.cpp",
+                        "src/regex_debug.cpp",
+                        "src/regex_raw_buffer.cpp",
+                        "src/regex_traits_defaults.cpp",
+                        "src/static_mutex.cpp",
+                        "src/usinstances.cpp",
+                        "src/w32_regex_traits.cpp",
+                        "src/wc_regex_traits.cpp",
+                        "src/winstances.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/regex"
+        },
+        "//third_party/boost/scope_exit": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "scope_exit": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/scope_exit"
+        },
+        "//third_party/boost/serialization": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "serialization": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/archive_exception.cpp",
+                        "src/basic_archive.cpp",
+                        "src/basic_iarchive.cpp",
+                        "src/basic_iserializer.cpp",
+                        "src/basic_oarchive.cpp",
+                        "src/basic_oserializer.cpp",
+                        "src/basic_pointer_iserializer.cpp",
+                        "src/basic_pointer_oserializer.cpp",
+                        "src/basic_serializer_map.cpp",
+                        "src/basic_text_iprimitive.cpp",
+                        "src/basic_text_oprimitive.cpp",
+                        "src/basic_text_wiprimitive.cpp",
+                        "src/basic_text_woprimitive.cpp",
+                        "src/basic_xml_archive.cpp",
+                        "src/binary_iarchive.cpp",
+                        "src/binary_oarchive.cpp",
+                        "src/binary_wiarchive.cpp",
+                        "src/binary_woarchive.cpp",
+                        "src/codecvt_null.cpp",
+                        "src/extended_type_info.cpp",
+                        "src/extended_type_info_no_rtti.cpp",
+                        "src/extended_type_info_typeid.cpp",
+                        "src/polymorphic_iarchive.cpp",
+                        "src/polymorphic_oarchive.cpp",
+                        "src/singleton.cpp",
+                        "src/stl_port.cpp",
+                        "src/text_iarchive.cpp",
+                        "src/text_oarchive.cpp",
+                        "src/text_wiarchive.cpp",
+                        "src/text_woarchive.cpp",
+                        "src/utf8_codecvt_facet.cpp",
+                        "src/void_cast.cpp",
+                        "src/xml_archive_exception.cpp",
+                        "src/xml_grammar.cpp",
+                        "src/xml_iarchive.cpp",
+                        "src/xml_oarchive.cpp",
+                        "src/xml_wgrammar.cpp",
+                        "src/xml_wiarchive.cpp",
+                        "src/xml_woarchive.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/serialization"
+        },
+        "//third_party/boost/signals": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "signals": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/connection.cpp",
+                        "src/named_slot_map.cpp",
+                        "src/signal_base.cpp",
+                        "src/slot.cpp",
+                        "src/trackable.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/signals"
+        },
+        "//third_party/boost/signals2": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "signals2": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/signals2"
+        },
+        "//third_party/boost/smart_ptr": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "smart_ptr": {
+                    "deps": [
+                        "//third_party/boost/throw_exception"
+                    ],
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/sp_collector.cpp",
+                        "src/sp_debug_hooks.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/smart_ptr"
+        },
+        "//third_party/boost/sort": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "sort": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/sort"
+        },
+        "//third_party/boost/spirit": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "spirit": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/spirit"
+        },
+        "//third_party/boost/statechart": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "statechart": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/statechart"
+        },
+        "//third_party/boost/static_assert": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "static_assert": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/static_assert"
+        },
+        "//third_party/boost/system": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "system": {
+                    "deps": [
+                        "//third_party/boost/assert",
+                        "//third_party/boost/config",
+                        "//third_party/boost/core",
+                        "//third_party/boost/predef"
+                    ],
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/error_code.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/system"
+        },
+        "//third_party/boost/test": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "test": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/compiler_log_formatter.cpp",
+                        "src/cpp_main.cpp",
+                        "src/debug.cpp",
+                        "src/decorator.cpp",
+                        "src/execution_monitor.cpp",
+                        "src/framework.cpp",
+                        "src/junit_log_formatter.cpp",
+                        "src/plain_report_formatter.cpp",
+                        "src/progress_monitor.cpp",
+                        "src/results_collector.cpp",
+                        "src/results_reporter.cpp",
+                        "src/test_main.cpp",
+                        "src/test_tools.cpp",
+                        "src/test_tree.cpp",
+                        "src/unit_test_log.cpp",
+                        "src/unit_test_main.cpp",
+                        "src/unit_test_monitor.cpp",
+                        "src/unit_test_parameters.cpp",
+                        "src/xml_log_formatter.cpp",
+                        "src/xml_report_formatter.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/test"
+        },
+        "//third_party/boost/thread": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "thread": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/future.cpp",
+                        "src/pthread/once.cpp",
+                        "src/pthread/once_atomic.cpp",
+                        "src/pthread/thread.cpp",
+                        "src/tss_null.cpp",
+                        "src/win32/thread.cpp",
+                        "src/win32/tss_dll.cpp",
+                        "src/win32/tss_pe.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/thread"
+        },
+        "//third_party/boost/throw_exception": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "throw_exception": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/throw_exception"
+        },
+        "//third_party/boost/timer": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "timer": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/auto_timers_construction.cpp",
+                        "src/cpu_timer.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/timer"
+        },
+        "//third_party/boost/tokenizer": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "tokenizer": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/tokenizer"
+        },
+        "//third_party/boost/tr1": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "tr1": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/tr1"
+        },
+        "//third_party/boost/tti": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "tti": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/tti"
+        },
+        "//third_party/boost/tuple": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "tuple": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/tuple"
+        },
+        "//third_party/boost/type_erasure": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "type_erasure": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/dynamic_binding.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/type_erasure"
+        },
+        "//third_party/boost/type_index": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "type_index": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/type_index"
+        },
+        "//third_party/boost/type_traits": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "type_traits": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/type_traits"
+        },
+        "//third_party/boost/typeof": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "typeof": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/typeof"
+        },
+        "//third_party/boost/units": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "units": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/units"
+        },
+        "//third_party/boost/unordered": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "unordered": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/unordered"
+        },
+        "//third_party/boost/utility": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "utility": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/utility"
+        },
+        "//third_party/boost/uuid": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "uuid": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/uuid"
+        },
+        "//third_party/boost/variant": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "variant": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/variant"
+        },
+        "//third_party/boost/vmd": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "vmd": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/vmd"
+        },
+        "//third_party/boost/wave": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "wave": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "srcs": [
+                        "src/cpplexer/re2clex/aq.cpp",
+                        "src/cpplexer/re2clex/cpp_re.cpp",
+                        "src/instantiate_cpp_exprgrammar.cpp",
+                        "src/instantiate_cpp_grammar.cpp",
+                        "src/instantiate_cpp_literalgrs.cpp",
+                        "src/instantiate_defined_grammar.cpp",
+                        "src/instantiate_predef_macros.cpp",
+                        "src/instantiate_re2c_lexer.cpp",
+                        "src/instantiate_re2c_lexer_str.cpp",
+                        "src/token_ids.cpp",
+                        "src/wave_config_constant.cpp"
+                    ],
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/wave"
+        },
+        "//third_party/boost/winapi": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "winapi": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/winapi"
+        },
+        "//third_party/boost/xpressive": {
+            "branch": "boost-1.62.0",
+            "build": {
+                "xpressive": {
+                    "hdrs": [
+                        "glob:include/**/*.hpp",
+                        "glob:include/**/*.h"
+                    ],
+                    "includes": [
+                        "include"
+                    ],
+                    "linux": {
+                        "compile_flags": [
+                            "-std=c++11"
+                        ]
+                    },
+                    "type": "c++/library",
+                    "windows": {
+                        "compile_flags": [
+                            "-DBOOST_ALL_NO_LIB"
+                        ]
+                    }
+                }
+            },
+            "url": "https://github.com/boostorg/xpressive"
+        }
+    }
+}

@@ -1,0 +1,97 @@
+external: {
+  "//third_party/gflags": {
+    url: "https://github.com/gflags/gflags"
+    branch: "v2.2.0"
+    build: {
+      gflags: {
+        type: c++/library
+        srcs: [
+          "src/gflags.cc",
+          "src/gflags_completions.cc",
+          "src/gflags_reporting.cc",
+        ]
+
+        hdrs: [
+          "src/mutex.h",
+          "src/util.h",
+          "//third_party/gflags:gflags_config_gen",
+          "//third_party/gflags:gflags_gflags_h_gen",
+          "//third_party/gflags:gflags_completions_h_gen",
+        ]
+
+        includes: [
+          "."
+        ]
+
+        deps: [
+          "//third_party/gflags:gflags_config_gen",
+          "//third_party/gflags:gflags_gflags_h_gen",
+          "//third_party/gflags:gflags_completions_h_gen",
+        ]
+
+        compile_flags: [
+          "-DHAVE_STDINT_H",
+          "-DHAVE_SYS_TYPES_H",
+          "-DHAVE_INTTYPES_H",
+          "-DHAVE_SYS_STAT_H",
+          "-DHAVE_UNISTD_H",
+          "-DHAVE_FNMATCH_H",
+          "-DHAVE_STRTOLL",
+          "-DHAVE_STRTOQ",
+          "-DHAVE_PTHREAD",
+          "-DHAVE_RWLOCK",
+          "-DGFLAGS_INTTYPES_FORMAT_C99",
+          "-DGFLAGS_IS_A_DLL=0",
+        ]
+
+        link_flags: [
+          "-lpthread"
+        ]
+      }
+
+      gflags_config_gen: {
+        type: genrule
+        in: ["src/config.h.in"]
+        out: ["config.h"]
+        cmd: [
+          "awk",
+          "{ gsub(/^#cmakedefine/, \"//cmakedefine\"); print; }",
+          "third_party/gflags/src/config.h.in"]
+        cmdOut: "config.h"
+      }
+
+      gflags_gflags_h_gen: {
+        type: genrule
+        in: ["src/gflags.h.in"]
+        out: ["gflags/gflags.h"]
+        cmd: [
+          "awk",
+          "{ gsub(/@GFLAGS_ATTRIBUTE_UNUSED@/, \"\"); gsub(/@INCLUDE_GFLAGS_NS_H@/, \"#include \\\"gflags/gflags_ns.h\\\"\"); print; }",
+          "third_party/gflags/src/gflags.h.in"]
+        cmdOut: "gflags/gflags.h"
+      }
+
+      gflags_declare_h_gen: {
+        type: genrule
+        in: ["src/gflags_declare.h.in"]
+        out: ["gflags/gflags_declare.h"]
+        cmd: [
+          "awk",
+          "{ gsub(/@GFLAGS_NAMESPACE@/, \"google\"); gsub(/@(HAVE_STDINT_H|HAVE_SYS_TYPES_H|HAVE_INTTYPES_H|GFLAGS_INTTYPES_FORMAT_C99)@/, \"1\"); gsub(/@([A-Z0-9_]+)@/, \"0\"); print; }",
+          "third_party/gflags/src/gflags_declare.h.in"]
+        cmdOut: "gflags/gflags_declare.h"
+      }
+
+      gflags_completions_h_gen: {
+        type: genrule
+        in: ["src/gflags_completions.h.in"]
+        out: ["gflags/gflags_completions.h"]
+        cmd: [
+          "awk",
+          "{ gsub(/@GFLAGS_NAMESPACE@/, \"google\"); print; }",
+          "third_party/gflags/src/gflags_completions.h.in"]
+        cmdOut: "gflags/gflags_completions.h"
+      }
+    }
+  }
+}
