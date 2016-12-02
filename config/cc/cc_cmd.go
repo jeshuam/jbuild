@@ -20,6 +20,7 @@ func compileCommand(args *args.Args, target *Target, src, obj string) *exec.Cmd 
 		flags = append(flags, []string{
 			"-I" + args.WorkspaceDir,
 			"-I" + filepath.Join(args.OutputDir, "gen"),
+			"-I" + filepath.Join(args.OutputDir, "gen", target.Spec.Dir()),
 			"-I/usr/include",
 			"-fPIC",
 			"-fcolor-diagnostics",
@@ -32,8 +33,10 @@ func compileCommand(args *args.Args, target *Target, src, obj string) *exec.Cmd 
 	for _, include := range target.includes() {
 		if compiler == "cl.exe" {
 			flags = append(flags, "/I"+include.Path())
+			flags = append(flags, "/I"+filepath.Join(args.OutputDir, "gen", include.Path()))
 		} else {
 			flags = append(flags, "-I"+include.Path())
+			flags = append(flags, "-I"+filepath.Join(args.OutputDir, "gen", include.Path()))
 		}
 	}
 

@@ -54,7 +54,6 @@ func (this *Target) OutputFiles() []string {
 }
 
 func (this *Target) Validate() error {
-	// TODO(jeshua): validate once JSON validation tags are implemented.
 	return nil
 }
 

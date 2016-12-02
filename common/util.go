@@ -41,7 +41,9 @@ func RunCommand(args *args.Args, cmd *exec.Cmd, result chan error, complete func
 	// Print the command.
 	if args.DryRun {
 		log.Infof("DRY_RUN: %s", cmd.Args)
-		complete("", true, 0)
+		if complete != nil {
+			complete("", true, 0)
+		}
 		result <- nil
 		return
 	} else {
@@ -64,7 +66,9 @@ func RunCommand(args *args.Args, cmd *exec.Cmd, result chan error, complete func
 	err := cmd.Run()
 	elaspedTime := time.Since(startTime)
 	if err != nil {
-		complete(out.String(), false, elaspedTime)
+		if complete != nil {
+			complete(out.String(), false, elaspedTime)
+		}
 		if out.String() != "" {
 			result <- errors.New(out.String())
 		} else {
@@ -74,6 +78,8 @@ func RunCommand(args *args.Args, cmd *exec.Cmd, result chan error, complete func
 		return
 	}
 
-	complete(out.String(), true, elaspedTime)
+	if complete != nil {
+		complete(out.String(), true, elaspedTime)
+	}
 	result <- nil
 }

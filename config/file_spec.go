@@ -35,6 +35,10 @@ func (this *FileSpecImpl) Path() string {
 	return filepath.Join(strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
+func (this *FileSpecImpl) WorkspacePath() string {
+	return this.wsPath
+}
+
 func (this *FileSpecImpl) String() string {
 	return "//" + strings.Replace(this.wsPath, pathSeparator, "/", -1) + "/" + this.File()
 }

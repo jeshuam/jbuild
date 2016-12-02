@@ -30,6 +30,9 @@ type FileSpec interface {
 	// OutputPath should return the fully-qualified OS path to the output
 	// directory for this target.
 	OutputPath() string
+
+	// WorkspacePath should return the path relative to the root of the workspace.
+	WorkspacePath() string
 }
 
 type DirSpec interface {

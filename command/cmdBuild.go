@@ -96,9 +96,16 @@ func BuildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 				task := <-taskQueue
 
 				// Try to acquire the lock for the command.
-				task.Lock.Lock()
+				if task.Lock != nil {
+					task.Lock.Lock()
+				}
+
 				common.RunCommand(args, task.Cmd, task.Result, task.Complete)
-				task.Lock.Unlock()
+
+				if task.Lock != nil {
+					task.Lock.Unlock()
+				}
+
 			}
 		}()
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/config/cc"
 	"github.com/jeshuam/jbuild/config/filegroup"
+	"github.com/jeshuam/jbuild/config/genrule"
 	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/mattn/go-zglob"
 )
@@ -250,6 +251,9 @@ func LoadTargetFromJson(args *args.Args, spec interfaces.TargetSpec, target inte
 	case *filegroup.Target:
 		targetType = reflect.TypeOf(*target.(*filegroup.Target))
 		targetValue = reflect.ValueOf(target.(*filegroup.Target))
+	case *genrule.Target:
+		targetType = reflect.TypeOf(*target.(*genrule.Target))
+		targetValue = reflect.ValueOf(target.(*genrule.Target))
 	default:
 		return errors.New(fmt.Sprintf("Cannot load unknown target type."))
 	}

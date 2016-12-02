@@ -10,6 +10,7 @@ import (
 	argsModule "github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/config/cc"
 	"github.com/jeshuam/jbuild/config/filegroup"
+	"github.com/jeshuam/jbuild/config/genrule"
 	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/jeshuam/jbuild/config/util"
 )
@@ -92,6 +93,8 @@ func (this *TargetSpecImpl) init(args *argsModule.Args, json map[string]interfac
 		this.target = new(cc.Target)
 	} else if strings.HasPrefix(this._type, "filegroup") {
 		this.target = new(filegroup.Target)
+	} else if strings.HasPrefix(this._type, "genrule") {
+		this.target = new(genrule.Target)
 	} else {
 		return errors.New(fmt.Sprintf("Target %s has unknown type %s", this, this._type))
 	}

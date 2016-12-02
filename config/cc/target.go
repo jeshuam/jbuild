@@ -26,9 +26,9 @@ type Target struct {
 	Spec         interfaces.TargetSpec
 	Args         *args.Args
 	Type         TargetType
-	Srcs         []interfaces.Spec       `types:"file,filegroup"`
-	Hdrs         []interfaces.Spec       `types:"file,filegroup"`
-	Deps         []interfaces.TargetSpec `types:"c++/library"`
+	Srcs         []interfaces.Spec       `types:"file,filegroup,genrule"`
+	Hdrs         []interfaces.Spec       `types:"file,filegroup,genrule"`
+	Deps         []interfaces.TargetSpec `types:"c++/library,genrule"`
 	Data         []interfaces.Spec       `types:"file,filegroup"`
 	CompileFlags []string
 	LinkFlags    []string
