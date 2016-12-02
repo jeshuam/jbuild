@@ -33,10 +33,10 @@ func compileCommand(args *args.Args, target *Target, src, obj string) *exec.Cmd 
 	for _, include := range target.includes() {
 		if compiler == "cl.exe" {
 			flags = append(flags, "/I"+include.Path())
-			flags = append(flags, "/I"+filepath.Join(args.OutputDir, "gen", include.Path()))
+			flags = append(flags, "/I"+filepath.Join(args.OutputDir, "gen", include.WorkspacePath()))
 		} else {
 			flags = append(flags, "-I"+include.Path())
-			flags = append(flags, "-I"+filepath.Join(args.OutputDir, "gen", include.Path()))
+			flags = append(flags, "-I"+filepath.Join(args.OutputDir, "gen", include.WorkspacePath()))
 		}
 	}
 

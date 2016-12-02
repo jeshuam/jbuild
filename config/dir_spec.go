@@ -11,7 +11,8 @@ import (
 
 // Implementation of the FileSpec interface.
 type DirSpecImpl struct {
-	path string
+	path   string
+	wsPath string
 
 	args *args.Args
 }
@@ -25,6 +26,10 @@ func (this *DirSpecImpl) Dir() string {
 
 func (this *DirSpecImpl) Path() string {
 	return filepath.Join(strings.Replace(this.path, "/", pathSeparator, -1))
+}
+
+func (this *DirSpecImpl) WorkspacePath() string {
+	return this.wsPath
 }
 
 func (this *DirSpecImpl) String() string {
@@ -56,6 +61,7 @@ func MakeDirSpec(args *args.Args, rawSpec, cwd, buildBase string) interfaces.Dir
 	// Check to see whether this file exists and is a file. If it doesn't, then
 	// we don't have a FileSpec.
 	spec.path = strings.Replace(spec.path, pathSeparator, "/", -1)
+	spec.wsPath, _ = filepath.Rel(buildBase, spec.path)
 	if common.FileExists(spec.Path()) && common.IsDir(spec.Path()) {
 		return spec
 	}

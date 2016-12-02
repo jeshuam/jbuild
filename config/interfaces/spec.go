@@ -37,6 +37,9 @@ type FileSpec interface {
 
 type DirSpec interface {
 	Spec
+
+	// WorkspacePath should return the path relative to the root of the workspace.
+	WorkspacePath() string
 }
 
 type TargetSpec interface {
