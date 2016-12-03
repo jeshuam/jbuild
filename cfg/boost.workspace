@@ -30,6 +30,9 @@
             "branch": "boost-1.62.0",
             "build": {
                 "algorithm": {
+                    "deps": [
+                        "//third_party/boost/function"
+                    ],
                     "hdrs": [
                         "glob:include/**/*.hpp",
                         "glob:include/**/*.h"
@@ -2670,6 +2673,10 @@
             "branch": "boost-1.62.0",
             "build": {
                 "range": {
+                    "deps": [
+                        "//third_party/boost/concept_check",
+                        "//third_party/boost/utility"
+                    ],
                     "hdrs": [
                         "glob:include/**/*.hpp",
                         "glob:include/**/*.h"
