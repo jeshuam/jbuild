@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/jeshuam/jbuild/config/interfaces"
-	"github.com/op/go-logging"
 )
 
 var (
@@ -92,10 +91,10 @@ func CheckForDependencyCycles(spec interfaces.TargetSpec) error {
 }
 
 func ReadyToProcess(spec interfaces.TargetSpec) bool {
-	log := logging.MustGetLogger("jbuild")
+	// log := logging.MustGetLogger("jbuild")
 	for _, dep := range spec.Target().AllDependencies() {
 		if !dep.Target().Processed() {
-			log.Infof("Not processing %s, dependency %s isn't done", spec, dep)
+			// log.Infof("Not processing %s, dependency %s isn't done", spec, dep)
 			return false
 		}
 	}

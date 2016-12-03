@@ -106,11 +106,16 @@ func (this *Target) Processed() bool {
 		}
 	}
 
-	// We haven't been processed if out dependencies haven't been.
+	// We haven't been processed if our dependencies haven't been.
 	for _, depSpec := range this.AllDependencies() {
 		if !depSpec.Target().Processed() {
 			return false
 		}
+	}
+
+	// If one of our deps has updated, we should too.
+	if this.depsUpdated() {
+		return false
 	}
 
 	return true
@@ -384,11 +389,28 @@ func (this *Target) depsChangedSince(objStat os.FileInfo) bool {
 		switch depSpec.Target().(type) {
 		case *Target:
 			dep := depSpec.Target().(*Target)
-			for _, depHdr := range dep.hdrs() {
-				depHdrStat, _ := os.Stat(depHdr.FilePath())
-				if depHdrStat.ModTime().After(objStat.ModTime()) {
+			for _, depFile := range dep.hdrs() {
+				depFileStat, _ := os.Stat(depFile.FilePath())
+				if depFileStat.ModTime().After(objStat.ModTime()) {
 					return true
 				}
+			}
+		}
+	}
+
+	return false
+}
+
+// depsUpdated returns true iff at least one of the dependencies outputs has
+// changed relative to this target's output.
+func (this *Target) depsUpdated() bool {
+	// Check all of our object files, and compare them.
+	for _, outFile := range this.OutputFiles() {
+		outFileStat, _ := os.Stat(outFile)
+		for _, depOutFile := range this.depOutputs() {
+			depOutFileStat, _ := os.Stat(depOutFile)
+			if depOutFileStat.ModTime().After(outFileStat.ModTime()) {
+				return true
 			}
 		}
 	}

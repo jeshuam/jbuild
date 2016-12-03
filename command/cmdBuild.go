@@ -46,9 +46,18 @@ func buildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 
 	for len(targetsBuilt) < len(targetsToBuild) {
 		startedThisRound := 0
+		skippedThisRound := 0
 		for _, spec := range targetsToBuild {
 			_, targetStarted := targetsStarted[spec.String()]
 			if !targetStarted && util.ReadyToProcess(spec) {
+				skippedThisRound++
+
+				// If this target is already processed, then just skip this.
+				if spec.Target().Processed() {
+					targetsBuilt[spec.String()] = true
+					continue
+				}
+
 				log.Infof("Processing %s...", spec)
 
 				// Start processing this target.
@@ -68,7 +77,7 @@ func buildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 			}
 		}
 
-		if startedThisRound == 0 {
+		if startedThisRound == 0 && skippedThisRound == 0 {
 			return errors.New("No target started this round!")
 		}
 
@@ -79,7 +88,7 @@ func buildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 				return result.Err
 			} else {
 				targetsBuilt[result.Spec.String()] = true
-				log.Infof("Finished processing %s!", result.Spec)
+				// log.Infof("Finished processing %s!", result.Spec)
 			}
 		}
 	}

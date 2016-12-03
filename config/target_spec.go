@@ -208,6 +208,14 @@ func MakeTargetSpec(args *argsModule.Args, rawSpec string, cwd string, buildBase
 
 		buildFile = externalRepo.Build
 		buildBase = args.ExternalRepoDir
+
+		// If the buildFile is nil, then load it from the external repo.
+		if buildFile == nil {
+			buildFile, err = LoadBuildFile(filepath.Join(externalRepo.FsDir, args.BuildFilename))
+			if err != nil {
+				return nil, err
+			}
+		}
 	} else {
 		// Check to see whether the target exists. This requires that the BUILD file
 		// for this directory is parsed.

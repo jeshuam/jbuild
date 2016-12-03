@@ -308,7 +308,7 @@ func LoadTargetFromJson(args *args.Args, spec interfaces.TargetSpec, target inte
 		}
 	}
 
-	log.Infof("Loaded target %s", spec)
+	log.Infof("... load %s", spec)
 
 	return nil
 }

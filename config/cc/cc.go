@@ -96,7 +96,7 @@ func linkObjects(args *args.Args, target *Target, progressBar *progress.Progress
 
 	// Work out the output filepath.
 	outputPath := target.OutputPath()
-	if nCompiled == 0 && common.FileExists(outputPath) {
+	if nCompiled == 0 && common.FileExists(outputPath) && !target.depsUpdated() {
 		progressBar.Increment()
 		return outputPath, nil
 	}

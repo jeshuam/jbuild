@@ -15,6 +15,10 @@ type ExternalRepo struct {
 	// The path this external repo should be presented as. Must be unique.
 	Path string
 
+	// The location of the external repo on the filesystem. Only populated after
+	// LoadExternalRepo is called.
+	FsDir string
+
 	// The URL to the git repository that contains the code. Should be https://
 	// for maximum compatability.
 	Url string
@@ -30,7 +34,7 @@ type ExternalRepo struct {
 }
 
 // MakeExternalRepo from a JSON map.
-func MakeExternalRepo(path string, repoJson map[string]interface{}) (ExternalRepo, error) {
+func MakeExternalRepo(path string, repoJson map[string]interface{}) (*ExternalRepo, error) {
 	var url, branch, buildFile string
 	var build map[string]interface{}
 	var err error
@@ -43,7 +47,7 @@ func MakeExternalRepo(path string, repoJson map[string]interface{}) (ExternalRep
 	if urlOk {
 		url = urlInt.(string)
 	} else {
-		return ExternalRepo{}, errors.New("A URL must be specified for all external repos.")
+		return nil, errors.New("A URL must be specified for all external repos.")
 	}
 
 	if branchOk {
@@ -58,7 +62,7 @@ func MakeExternalRepo(path string, repoJson map[string]interface{}) (ExternalRep
 			build, err = LoadConfigFile(buildInt.(string))
 			buildFile = buildInt.(string)
 			if err != nil {
-				return ExternalRepo{}, err
+				return nil, err
 			}
 
 		case map[string]interface{}:
@@ -66,16 +70,25 @@ func MakeExternalRepo(path string, repoJson map[string]interface{}) (ExternalRep
 			buildFile = ""
 		}
 	} else {
-		return ExternalRepo{}, errors.New("A BUILD file or spec must be specified for external repos.")
+		// Assume it must be present in the external repo.
+		build = nil
+		buildFile = ""
 	}
 
 	// Make and return the external repo.
-	return ExternalRepo{path, url, branch, build, buildFile}, nil
+	externalRepo := new(ExternalRepo)
+	externalRepo.Path = path
+	externalRepo.Url = url
+	externalRepo.Branch = branch
+	externalRepo.Build = build
+	externalRepo.BuildFile = buildFile
+	return externalRepo, nil
 }
 
-func fetchGit(args *Args, repo ExternalRepo) error {
+func fetchGit(args *Args, repo *ExternalRepo) error {
 	// If the directory doesn't exist, then clone.
 	gitDir := filepath.Join(args.ExternalRepoDir, strings.Trim(repo.Path, "/"))
+	repo.FsDir = gitDir
 	if _, err := os.Stat(gitDir); err != nil {
 		// Build the git command.
 		cmd := exec.Command("git", "clone", "--recurse-submodules", "-b", repo.Branch, repo.Url, gitDir)
@@ -112,7 +125,7 @@ func fetchGit(args *Args, repo ExternalRepo) error {
 
 // LoadExternalRepo will load the external repository specified by `repo`,
 // download it and load the corresponding BUILD file.
-func LoadExternalRepo(args *Args, repo ExternalRepo) error {
+func LoadExternalRepo(args *Args, repo *ExternalRepo) error {
 	// Fetch the repo.
 	err := fetchGit(args, repo)
 	if err != nil {

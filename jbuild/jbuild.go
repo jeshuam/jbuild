@@ -102,7 +102,7 @@ func JBuildRun(args args.Args, cmdArgs []string) error {
 		}
 
 		for _, spec := range specs {
-			log.Infof("Processing target spec '%s'", spec)
+			// log.Infof("Processing target spec '%s'", spec)
 
 			// Make sure this spec is valid.
 			if command == "test" && !strings.HasSuffix(spec.Type(), "test") {
@@ -113,12 +113,12 @@ func JBuildRun(args args.Args, cmdArgs []string) error {
 				continue
 			}
 
-			log.Infof("Check '%s' for cycles", spec)
+			// log.Infof("Check '%s' for cycles", spec)
 			if err := util.CheckForDependencyCycles(spec); err != nil {
 				return err
 			}
 
-			log.Infof("Validating '%s'", spec)
+			// log.Infof("Validating '%s'", spec)
 			if err := spec.Target().Validate(); err != nil {
 				return err
 			}

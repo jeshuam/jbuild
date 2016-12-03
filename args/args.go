@@ -66,7 +66,7 @@ type Args struct {
 	// External repos that need to be loaded. Once loaded, this map should contain
 	// a mapping from the local workspace path --> BUILD file text. The local path
 	// must be absolute.
-	ExternalRepos map[string]ExternalRepo
+	ExternalRepos map[string]*ExternalRepo
 
 	// The WORKSPACE file loaded.
 	WorkspaceOptions     map[string]interface{}
@@ -291,7 +291,7 @@ func Load(cwd string) (Args, error) {
 	}
 
 	// Load any additional dependencies (e.g. from github).
-	newArgs.ExternalRepos = make(map[string]ExternalRepo)
+	newArgs.ExternalRepos = make(map[string]*ExternalRepo)
 	externalRepos, ok := newArgs.WorkspaceOptions[newArgs.ExternalRepoKey]
 	if ok {
 		for repoPath, repoJson := range externalRepos.(map[string]interface{}) {

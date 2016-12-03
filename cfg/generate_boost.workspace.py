@@ -11,6 +11,8 @@ MODULE_DEPS = dict(
   iterator=['mpl', 'static_assert'],
   mpl=['preprocessor'],
   smart_ptr=['throw_exception'],
+  range=['concept_check', 'utility'],
+  algorithm=['function'],
 )
 
 # MakeBaseConfig makes the basic configuration file for a module and returns it.
