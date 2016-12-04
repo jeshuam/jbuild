@@ -24,6 +24,26 @@ var (
 //                          Target Utility Functions                          //
 ////////////////////////////////////////////////////////////////////////////////
 
+// Get the reflected type and value for a given target. This is needed when
+// iterating over all fields.
+//
+// Add new config targets here.
+func getReflectTypeAndValueForTarget(target interfaces.Target) (reflect.Type, reflect.Value, error) {
+	switch target.(type) {
+	case *cc.Target:
+		t := target.(*cc.Target)
+		return reflect.TypeOf(*t), reflect.ValueOf(t), nil
+	case *filegroup.Target:
+		t := target.(*filegroup.Target)
+		return reflect.TypeOf(*t), reflect.ValueOf(t), nil
+	case *genrule.Target:
+		t := target.(*genrule.Target)
+		return reflect.TypeOf(*t), reflect.ValueOf(t), nil
+	default:
+		return nil, reflect.Value{}, errors.New(fmt.Sprintf("Cannot load unknown target type."))
+	}
+}
+
 // Load a list of FileSpecs from a JSON map. The values are all globs by
 // default.
 func loadSpecs(args *args.Args, json map[string]interface{}, key, cwd, buildBase string) ([]interfaces.Spec, error) {
@@ -242,20 +262,9 @@ func loadJson(
 }
 
 func LoadTargetFromJson(args *args.Args, spec interfaces.TargetSpec, target interfaces.Target, targetJson map[string]interface{}, buildBase string) error {
-	var targetType reflect.Type
-	var targetValue reflect.Value
-	switch target.(type) {
-	case *cc.Target:
-		targetType = reflect.TypeOf(*target.(*cc.Target))
-		targetValue = reflect.ValueOf(target.(*cc.Target))
-	case *filegroup.Target:
-		targetType = reflect.TypeOf(*target.(*filegroup.Target))
-		targetValue = reflect.ValueOf(target.(*filegroup.Target))
-	case *genrule.Target:
-		targetType = reflect.TypeOf(*target.(*genrule.Target))
-		targetValue = reflect.ValueOf(target.(*genrule.Target))
-	default:
-		return errors.New(fmt.Sprintf("Cannot load unknown target type."))
+	targetType, targetValue, err := getReflectTypeAndValueForTarget(target)
+	if err != nil {
+		return err
 	}
 
 	// Load platform specific options.

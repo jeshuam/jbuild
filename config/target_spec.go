@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	argsModule "github.com/jeshuam/jbuild/args"
@@ -65,6 +66,52 @@ func (this *TargetSpecImpl) Target() interfaces.Target {
 func (this *TargetSpecImpl) OutputPath() string {
 	return filepath.Join(
 		this.args.OutputDir, strings.Replace(this.path, "/", pathSeparator, -1))
+}
+
+func (this *TargetSpecImpl) Dependencies(all bool) []interfaces.TargetSpec {
+	targetType, targetValue, _ := getReflectTypeAndValueForTarget(this.Target())
+	deps := make([]interfaces.TargetSpec, 0)
+
+	// Iterate through the fields one by one.
+	for i := 0; i < targetType.NumField(); i++ {
+		val := targetValue.Elem().Field(i).Interface()
+
+		switch targetType.Field(i).Type {
+		case reflect.TypeOf([]interfaces.Spec{}):
+			for _, spec := range val.([]interfaces.Spec) {
+				switch spec.(type) {
+				case interfaces.TargetSpec:
+					deps = append(deps, spec.(interfaces.TargetSpec))
+				}
+			}
+
+		case reflect.TypeOf((*interfaces.Spec)(nil)):
+			switch val.(type) {
+			case interfaces.TargetSpec:
+				deps = append(deps, val.(interfaces.TargetSpec))
+			}
+
+		case reflect.TypeOf([]interfaces.TargetSpec{}):
+			for _, spec := range val.([]interfaces.TargetSpec) {
+				deps = append(deps, spec)
+			}
+
+		case reflect.TypeOf((*interfaces.TargetSpec)(nil)):
+			deps = append(deps, val.(interfaces.TargetSpec))
+		}
+	}
+
+	// Recurse if requested.
+	if all {
+		recursiveDeps := make([]interfaces.TargetSpec, 0)
+		for _, targetSpec := range deps {
+			recursiveDeps = append(recursiveDeps, targetSpec.Dependencies(true)...)
+		}
+
+		deps = append(deps, recursiveDeps...)
+	}
+
+	return deps
 }
 
 ////////////////////////////////////////////////////////////////////////////////

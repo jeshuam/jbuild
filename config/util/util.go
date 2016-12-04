@@ -18,35 +18,8 @@ var (
 	SpecCache = make(map[string]interfaces.Spec, 0)
 )
 
-func GetAllDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
-	deps := make([]interfaces.TargetSpec, 0, len(specs))
-	for _, spec := range specs {
-		switch spec.(type) {
-		case interfaces.TargetSpec:
-			deps = append(deps, spec.(interfaces.TargetSpec))
-			deps = append(deps, spec.(interfaces.TargetSpec).Target().AllDependencies()...)
-		}
-	}
-
-	return deps
-}
-
-func GetDependencies(specs []interfaces.Spec) []interfaces.TargetSpec {
-	deps := make([]interfaces.TargetSpec, 0, len(specs))
-	for _, spec := range specs {
-		switch spec.(type) {
-		case interfaces.TargetSpec:
-			deps = append(deps, spec.(interfaces.TargetSpec))
-		}
-	}
-
-	return deps
-}
-
 func checkForDependencyCyclesRecurse(
 	spec interfaces.TargetSpec, visited []string, seq int) error {
-	target := spec.Target()
-
 	// If this node has already been visited in the current recursive stack, then
 	// there must be a cycle in the graph.
 	for i := 0; i < seq; i++ {
@@ -66,7 +39,7 @@ func checkForDependencyCyclesRecurse(
 
 	// Look through each child of the current target and recurse to it, first
 	// adding this node to the visited list.
-	for _, dep := range target.Dependencies() {
+	for _, dep := range spec.Dependencies(false) {
 		err := checkForDependencyCyclesRecurse(dep, visited, seq+1)
 		if err != nil {
 			return err
@@ -79,8 +52,7 @@ func checkForDependencyCyclesRecurse(
 func CheckForDependencyCycles(spec interfaces.TargetSpec) error {
 	visited := make([]string, 0, 1)
 	visited = append(visited, spec.String())
-	target := spec.Target()
-	for _, dep := range target.Dependencies() {
+	for _, dep := range spec.Dependencies(false) {
 		err := checkForDependencyCyclesRecurse(dep, visited, 1)
 		if err != nil {
 			return err
@@ -92,7 +64,7 @@ func CheckForDependencyCycles(spec interfaces.TargetSpec) error {
 
 func ReadyToProcess(spec interfaces.TargetSpec) bool {
 	// log := logging.MustGetLogger("jbuild")
-	for _, dep := range spec.Target().AllDependencies() {
+	for _, dep := range spec.Dependencies(true) {
 		if !dep.Target().Processed() {
 			// log.Infof("Not processing %s, dependency %s isn't done", spec, dep)
 			return false

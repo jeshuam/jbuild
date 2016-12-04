@@ -20,13 +20,6 @@ type Target interface {
 	// If set to 0, no progress bar will be shown.
 	TotalOps() int
 
-	// Dependencies returns a list of all direct target dependencies.
-	Dependencies() []TargetSpec
-
-	// AllDependencies returns a list of all direct and indirect target
-	// dependencies.
-	AllDependencies() []TargetSpec
-
 	// Get a list of the objects output by this target. These will change
 	// depending on the type of the target, but could be executable binaries or
 	// library names or source files. For executable targets, the first output

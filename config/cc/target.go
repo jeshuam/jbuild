@@ -9,7 +9,6 @@ import (
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/interfaces"
-	"github.com/jeshuam/jbuild/config/util"
 	"github.com/jeshuam/jbuild/progress"
 )
 
@@ -107,7 +106,7 @@ func (this *Target) Processed() bool {
 	}
 
 	// We haven't been processed if our dependencies haven't been.
-	for _, depSpec := range this.AllDependencies() {
+	for _, depSpec := range this.Spec.Dependencies(true) {
 		if !depSpec.Target().Processed() {
 			return false
 		}
@@ -123,29 +122,6 @@ func (this *Target) Processed() bool {
 
 func (this *Target) TotalOps() int {
 	return len(this.srcs()) + len(this.data()) + 1
-}
-
-func (this *Target) Dependencies() []interfaces.TargetSpec {
-	deps := util.GetDependencies(this.Srcs)
-	deps = append(deps, util.GetDependencies(this.Hdrs)...)
-	deps = append(deps, util.GetDependencies(this.Data)...)
-	deps = append(deps, util.GetDependencies(this.Libs)...)
-	for _, dep := range this.Deps {
-		deps = append(deps, dep)
-	}
-	return deps
-}
-
-func (this *Target) AllDependencies() []interfaces.TargetSpec {
-	deps := util.GetAllDependencies(this.Srcs)
-	deps = append(deps, util.GetAllDependencies(this.Hdrs)...)
-	deps = append(deps, util.GetAllDependencies(this.Data)...)
-	deps = append(deps, util.GetAllDependencies(this.Libs)...)
-	for _, dep := range this.Deps {
-		deps = append(deps, dep)
-		deps = append(deps, dep.Target().AllDependencies()...)
-	}
-	return deps
 }
 
 func (this *Target) OutputFiles() []string {
@@ -302,7 +278,7 @@ func (this *Target) hdrs() []interfaces.FileSpec {
 // all dependent targets with all filegroups expanded.
 func (this *Target) compileFlags() []string {
 	compileFlags := this.CompileFlags
-	for _, dep := range this.AllDependencies() {
+	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
 			compileFlags = append(compileFlags, dep.Target().(*Target).compileFlags()...)
@@ -316,7 +292,7 @@ func (this *Target) compileFlags() []string {
 // dependent targets with all filegroups expanded.
 func (this *Target) linkFlags() []string {
 	linkFlags := this.LinkFlags
-	for _, dep := range this.AllDependencies() {
+	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
 			linkFlags = append(linkFlags, dep.Target().(*Target).linkFlags()...)
@@ -330,7 +306,7 @@ func (this *Target) linkFlags() []string {
 // dependent targets with all filegroups expanded.
 func (this *Target) includes() []interfaces.DirSpec {
 	includes := this.Includes
-	for _, dep := range this.AllDependencies() {
+	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
 			includes = append(includes, dep.Target().(*Target).includes()...)
@@ -344,7 +320,7 @@ func (this *Target) includes() []interfaces.DirSpec {
 // targets with all filegroups expanded.
 func (this *Target) libs() []interfaces.FileSpec {
 	libs := extractFileSpecs(this.Libs)
-	for _, dep := range this.AllDependencies() {
+	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
 			libs = append(libs, dep.Target().(*Target).libs()...)
@@ -358,7 +334,7 @@ func (this *Target) libs() []interfaces.FileSpec {
 // targets with all filegroups expanded.
 func (this *Target) data() []interfaces.FileSpec {
 	data := extractFileSpecs(this.Data)
-	for _, dep := range this.AllDependencies() {
+	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
 			data = append(data, dep.Target().(*Target).data()...)
@@ -371,7 +347,7 @@ func (this *Target) data() []interfaces.FileSpec {
 // DepOutputs returns a list of output files for all dependencies recursively.
 func (this *Target) depOutputs() []string {
 	outputs := make([]string, 0)
-	for _, dep := range this.AllDependencies() {
+	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
 			outputs = append(outputs, dep.Target().OutputFiles()...)
@@ -385,7 +361,7 @@ func (this *Target) depOutputs() []string {
 // changed. This will scan through the header files of the dependencies and
 // check whether they have changed relative to the given object.
 func (this *Target) depsChangedSince(objStat os.FileInfo) bool {
-	for _, depSpec := range this.AllDependencies() {
+	for _, depSpec := range this.Spec.Dependencies(true) {
 		switch depSpec.Target().(type) {
 		case *Target:
 			dep := depSpec.Target().(*Target)

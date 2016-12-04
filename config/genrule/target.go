@@ -14,7 +14,6 @@ import (
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/interfaces"
-	"github.com/jeshuam/jbuild/config/util"
 	"github.com/jeshuam/jbuild/progress"
 )
 
@@ -55,14 +54,6 @@ func (this *Target) Processed() bool {
 
 func (this *Target) TotalOps() int {
 	return 0
-}
-
-func (this *Target) Dependencies() []interfaces.TargetSpec {
-	return util.GetDependencies(this.In)
-}
-
-func (this *Target) AllDependencies() []interfaces.TargetSpec {
-	return util.GetAllDependencies(this.In)
 }
 
 func (this *Target) OutputFiles() []string {

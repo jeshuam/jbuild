@@ -54,4 +54,9 @@ type TargetSpec interface {
 	// OutputPath should return the fully-qualified OS path to the output
 	// directory for this target.
 	OutputPath() string
+
+	// Dependencies should return a list of the direct dependencies of this target
+	// spec. This is to determine which targets must be processed before. If all
+	// is set, return all direct and indirect dependencies (i.e. recursive).
+	Dependencies(all bool) []TargetSpec
 }

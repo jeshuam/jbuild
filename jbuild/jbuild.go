@@ -130,7 +130,7 @@ func JBuildRun(args args.Args, cmdArgs []string) error {
 
 			targetsSpecified[spec.String()] = spec
 			targetsToBuild[spec.String()] = spec
-			for _, spec := range spec.Target().AllDependencies() {
+			for _, spec := range spec.Dependencies(true) {
 				targetsToBuild[spec.String()] = spec
 			}
 		}
