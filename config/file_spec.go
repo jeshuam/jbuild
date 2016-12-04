@@ -87,7 +87,7 @@ func (this *FileSpecImpl) FsPath() string {
 	if this.IsGenerated() {
 		return this.FsOutputPath()
 	} else {
-		return filepath.Join(this.args.WorkspaceDir, this.Dir(), this.Filename())
+		return filepath.Join(this.FsWorkspacePath(), this.Dir(), this.Filename())
 	}
 }
 

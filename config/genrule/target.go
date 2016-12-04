@@ -160,7 +160,7 @@ func (this *Target) Process(args *args.Args, progress *progress.ProgressBar, wor
 		cmdParts := strings.Split(cmdString, ">")
 		outputFile := ""
 		if len(cmdParts) > 1 {
-			outputFile = cmdParts[len(cmdParts)-1]
+			outputFile = filepath.Join(this.Spec.Dir(), strings.TrimSpace(cmdParts[len(cmdParts)-1]))
 		}
 
 		// Split the string into parts, ignoring the redirect.

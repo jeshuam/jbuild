@@ -94,7 +94,7 @@ func loadSpecs(args *args.Args, json map[string]interface{}, key, cwd, buildBase
 		}
 
 		// If we got here, it wasn't a valid spec.
-		return nil, errors.New(fmt.Sprintf("Could not identify type of spec '%s'. Is it a file that doesn't exist maybe?", rawSpec))
+		return nil, errors.New(fmt.Sprintf("Could not identify type of spec '%s' (%s, %s). Is it a file that doesn't exist maybe?", rawSpec, cwd, buildBase))
 	}
 
 	return specs, nil
