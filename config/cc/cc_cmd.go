@@ -29,20 +29,22 @@ func compileCommand(args *args.Args, target *Target, src, obj string) *exec.Cmd 
 	flags = append(flags, target.compileFlags()...)
 	for _, include := range target.includes() {
 		if compiler == "cl.exe" {
-			flags = append(flags, "/I"+args.WorkspaceDir)
-			flags = append(flags, "/I"+args.ExternalRepoDir)
-			flags = append(flags, "/I"+filepath.Join(args.OutputDir, "gen"))
-			flags = append(flags, "/I"+filepath.Join(args.OutputDir, "gen", target.Spec.Dir()))
-			flags = append(flags, "/I"+include.Path())
-			flags = append(flags, "/I"+filepath.Join(args.OutputDir, "gen", include.WorkspacePath()))
+			flags = append(flags, "/I"+filepath.Join(args.GenOutputDir, include.Dir()))
+			flags = append(flags, "/I"+filepath.Join(include.FsPath()))
 		} else {
-			flags = append(flags, "-I"+args.WorkspaceDir)
-			flags = append(flags, "-I"+args.ExternalRepoDir)
-			flags = append(flags, "-I"+filepath.Join(args.OutputDir, "gen"))
-			flags = append(flags, "-I"+filepath.Join(args.OutputDir, "gen", target.Spec.Dir()))
-			flags = append(flags, "-I"+include.Path())
-			flags = append(flags, "-I"+filepath.Join(args.OutputDir, "gen", include.WorkspacePath()))
+			flags = append(flags, "-I"+filepath.Join(args.GenOutputDir, include.Dir()))
+			flags = append(flags, "-I"+filepath.Join(include.FsPath()))
 		}
+	}
+
+	if compiler == "cl.exe" {
+		flags = append(flags, "/I"+args.WorkspaceDir)
+		flags = append(flags, "/I"+args.ExternalRepoDir)
+		flags = append(flags, "/I"+args.GenOutputDir)
+	} else {
+		flags = append(flags, "-I"+args.WorkspaceDir)
+		flags = append(flags, "-I"+args.ExternalRepoDir)
+		flags = append(flags, "-I"+args.GenOutputDir)
 	}
 
 	// Make the command.

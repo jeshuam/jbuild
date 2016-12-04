@@ -11,8 +11,11 @@ import (
 
 // Implementation of the FileSpec interface.
 type DirSpecImpl struct {
-	path   string
-	wsPath string
+	// The location of the file within the workspace.
+	dir string
+
+	// The path to the root of the workspace.
+	workspacePath string
 
 	args *args.Args
 }
@@ -21,15 +24,11 @@ type DirSpecImpl struct {
 //                          Interface Implementation                          //
 ////////////////////////////////////////////////////////////////////////////////
 func (this *DirSpecImpl) Dir() string {
-	return this.path
+	return this.dir
 }
 
 func (this *DirSpecImpl) Path() string {
-	return filepath.Join(strings.Replace(this.path, "/", pathSeparator, -1))
-}
-
-func (this *DirSpecImpl) WorkspacePath() string {
-	return this.wsPath
+	return this.FsPath()
 }
 
 func (this *DirSpecImpl) String() string {
@@ -38,6 +37,18 @@ func (this *DirSpecImpl) String() string {
 
 func (this *DirSpecImpl) Type() string {
 	return "dir"
+}
+
+func (this *DirSpecImpl) FsWorkspacePath() string {
+	return this.workspacePath
+}
+
+func (this *DirSpecImpl) FsOutputPath() string {
+	return filepath.Join(this.args.OutputDir, this.Dir())
+}
+
+func (this *DirSpecImpl) FsPath() string {
+	return filepath.Join(this.FsWorkspacePath(), this.Dir())
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -52,17 +63,16 @@ func MakeDirSpec(args *args.Args, rawSpec, cwd, buildBase string) interfaces.Dir
 	spec.args = args
 
 	// If the spec is absolute, then we can just save the path directly.
-	if !strings.HasPrefix(rawSpec, "//") {
-		spec.path = filepath.Join(buildBase, cwd, rawSpec)
+	spec.workspacePath = buildBase
+	if strings.HasPrefix(rawSpec, "//") {
+		spec.dir = strings.Trim(rawSpec, "/")
 	} else {
-		spec.path = filepath.Join(buildBase, rawSpec)
+		spec.dir = filepath.Clean(filepath.Join(cwd, rawSpec))
 	}
 
 	// Check to see whether this file exists and is a file. If it doesn't, then
 	// we don't have a FileSpec.
-	spec.path = strings.Replace(spec.path, pathSeparator, "/", -1)
-	spec.wsPath, _ = filepath.Rel(buildBase, spec.path)
-	if common.FileExists(spec.Path()) && common.IsDir(spec.Path()) {
+	if common.FileExists(spec.FsPath()) && common.IsDir(spec.FsPath()) {
 		return spec
 	}
 

@@ -32,7 +32,7 @@ func compileFiles(args *args.Args, target *Target, progressBar *progress.Progres
 		// Work out the full path to the source file. This will need to be provided
 		// to the compiler.
 		srcPath := srcFile.FsPath()
-		objPath := filepath.Join(srcFile.FsOutputPath()) + ".o"
+		objPath := srcFile.FsOutputPath() + ".o"
 		objs = append(objs, objPath)
 
 		// Make the directory of the obj if needed.

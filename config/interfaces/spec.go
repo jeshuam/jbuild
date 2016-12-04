@@ -39,8 +39,14 @@ type FileSpec interface {
 type DirSpec interface {
 	Spec
 
-	// WorkspacePath should return the path relative to the root of the workspace.
-	WorkspacePath() string
+	// FsWorkspacePath should return the path to the root of the workspace.
+	FsWorkspacePath() string
+
+	// FsOutputPath should return the path to where the output file is kept.
+	FsOutputPath() string
+
+	// FsPath should return the fully OS path to the file.
+	FsPath() string
 }
 
 type TargetSpec interface {

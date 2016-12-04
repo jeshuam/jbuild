@@ -22,10 +22,11 @@ import (
 
 type Target struct {
 	Type string
-	Spec interfaces.TargetSpec // The spec of this target.
-	Args *args.Args            // Program arguments.
-	In   []interfaces.Spec     `types:"file,filegroup"` // The set of input files.
-	Out  []interfaces.FileSpec `generated:"true"`       // The output files created.
+	Spec interfaces.TargetSpec   // The spec of this target.
+	Args *args.Args              // Program arguments.
+	In   []interfaces.Spec       `types:"file,filegroup"` // The set of input files.
+	Out  []interfaces.FileSpec   `generated:"true"`       // The output files created.
+	Deps []interfaces.TargetSpec `types:"c++/binary"`     // Any binaries this genrule depends on.
 
 	// The command to run. The command will be run in a directory with the same
 	// structure as the workspace, from the root.
@@ -126,13 +127,13 @@ func (this *Target) Process(args *args.Args, progress *progress.ProgressBar, wor
 	}
 
 	// Make a temporary directory.
-	tempDir, err := ioutil.TempDir("", filepath.Base(args.WorkspaceDir))
+	tempDir, err := ioutil.TempDir("", filepath.Base(args.WorkspaceDir)+"-"+this.Spec.Name())
 	if err != nil {
 		return err
 	}
 
 	// Delete it when done.
-	defer os.RemoveAll(tempDir)
+	// defer os.RemoveAll(tempDir)
 
 	// Copy all input files to a temporary directory.
 	for _, spec := range this.In {
@@ -156,6 +157,13 @@ func (this *Target) Process(args *args.Args, progress *progress.ProgressBar, wor
 	// Run each command.
 	result := make(chan error)
 	for _, cmdString := range this.Cmds {
+		// Perform replacements.
+		cmdString = strings.Replace(
+			cmdString,
+			"${BIN_DIR}",
+			strings.Replace(args.OutputDir, "\\", "/", -1),
+			-1)
+
 		// First, see if we are redirecting.
 		cmdParts := strings.Split(cmdString, ">")
 		outputFile := ""
