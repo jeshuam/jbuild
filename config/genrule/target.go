@@ -8,13 +8,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/google/shlex"
 	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/jeshuam/jbuild/progress"
+	"github.com/op/go-logging"
 )
 
 type Target struct {
@@ -22,19 +25,18 @@ type Target struct {
 	Spec interfaces.TargetSpec // The spec of this target.
 	Args *args.Args            // Program arguments.
 	In   []interfaces.Spec     `types:"file,filegroup"` // The set of input files.
-	Out  []string              // The output files created.
+	Out  []interfaces.FileSpec `generated:"true"`       // The output files created.
 
 	// The command to run. The command will be run in a directory with the same
 	// structure as the workspace, from the root.
-	Cmd    []string
-	CmdOut string // The file to save the output to. Not used if blank.
+	Cmds []string
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 //                          Interface Implementation                          //
 ////////////////////////////////////////////////////////////////////////////////
 func (this *Target) String() string {
-	return fmt.Sprintf("genrule: in=%s, out=%s, cmd=%s", this.In, this.Out, this.Cmd)
+	return fmt.Sprintf("genrule: in=%s, out=%s, cmd=%s", this.In, this.Out, this.Cmds)
 }
 
 func (this *Target) GetType() string {
@@ -42,9 +44,35 @@ func (this *Target) GetType() string {
 }
 
 func (this *Target) Processed() bool {
+	// Find the newest input file.
+	var newestInputFile os.FileInfo
+	for _, inFile := range this.in() {
+		inStat, _ := os.Stat(inFile.FsPath())
+		if newestInputFile == nil || inStat.ModTime().After(newestInputFile.ModTime()) {
+			newestInputFile = inStat
+		}
+	}
+
+	// Check the BUILD/WORKSPACE file has been updated.
+	buildStat, _ := os.Stat(filepath.Join(this.Spec.Path(), this.Args.BuildFilename))
+	workspaceStat, _ := os.Stat(filepath.Join(this.Args.WorkspaceDir, this.Args.WorkspaceFilename))
+
 	// If the output files exist, then it has been processed.
-	for _, file := range this.OutputFiles() {
-		if _, err := os.Stat(file); err != nil {
+	for _, outFile := range this.OutputFiles() {
+		outFileStat, _ := os.Stat(outFile)
+		if outFileStat == nil {
+			return false
+		}
+
+		if newestInputFile.ModTime().After(outFileStat.ModTime()) {
+			return false
+		}
+
+		if buildStat != nil && buildStat.ModTime().After(outFileStat.ModTime()) {
+			return false
+		}
+
+		if workspaceStat != nil && workspaceStat.ModTime().After(outFileStat.ModTime()) {
 			return false
 		}
 	}
@@ -53,13 +81,13 @@ func (this *Target) Processed() bool {
 }
 
 func (this *Target) TotalOps() int {
-	return 0
+	return len(this.Cmds)
 }
 
 func (this *Target) OutputFiles() []string {
 	output := make([]string, 0, len(this.Out))
 	for _, file := range this.Out {
-		output = append(output, filepath.Join(this.outputDir(), file))
+		output = append(output, file.FsOutputPath())
 	}
 
 	return output
@@ -90,6 +118,8 @@ func copyFile(src, dst string) error {
 }
 
 func (this *Target) Process(args *args.Args, progress *progress.ProgressBar, workQueue chan common.CmdSpec) error {
+	log := logging.MustGetLogger("jbuild")
+
 	// If processed, skip.
 	if this.Processed() {
 		return nil
@@ -102,7 +132,7 @@ func (this *Target) Process(args *args.Args, progress *progress.ProgressBar, wor
 	}
 
 	// Delete it when done.
-	// defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir)
 
 	// Copy all input files to a temporary directory.
 	for _, spec := range this.In {
@@ -110,43 +140,60 @@ func (this *Target) Process(args *args.Args, progress *progress.ProgressBar, wor
 		case interfaces.TargetSpec:
 			filegroup := spec.(interfaces.TargetSpec).Target().(*filegroup.Target)
 			for _, fileSpec := range filegroup.AllFiles() {
-				dest := filepath.Join(tempDir, fileSpec.WorkspacePath(), fileSpec.File())
+				dest := filepath.Join(tempDir, fileSpec.Dir(), fileSpec.Filename())
 				os.MkdirAll(filepath.Dir(dest), 0755)
-				copyFile(fileSpec.FilePath(), dest)
+				copyFile(fileSpec.FsPath(), dest)
 			}
 
 		case interfaces.FileSpec:
 			fileSpec := spec.(interfaces.FileSpec)
-			dest := filepath.Join(tempDir, fileSpec.WorkspacePath(), fileSpec.File())
+			dest := filepath.Join(tempDir, fileSpec.Dir(), fileSpec.Filename())
 			os.MkdirAll(filepath.Dir(dest), 0755)
-			copyFile(fileSpec.FilePath(), dest)
+			copyFile(fileSpec.FsPath(), dest)
 		}
 	}
 
-	// Run the command in the given directory.
+	// Run each command.
 	result := make(chan error)
-	cmd := exec.Command(this.Cmd[0], this.Cmd[1:]...)
-	cmd.Dir = tempDir
+	for _, cmdString := range this.Cmds {
+		// First, see if we are redirecting.
+		cmdParts := strings.Split(cmdString, ">")
+		outputFile := ""
+		if len(cmdParts) > 1 {
+			outputFile = cmdParts[len(cmdParts)-1]
+		}
 
-	complete := func(out string, _ bool, _ time.Duration) {
-		os.MkdirAll(filepath.Join(tempDir, filepath.Dir(this.CmdOut)), 0755)
-		ioutil.WriteFile(filepath.Join(tempDir, this.CmdOut), []byte(out), 0755)
-	}
+		// Split the string into parts, ignoring the redirect.
+		cmdTokens, err := shlex.Split(cmdParts[0])
+		if err != nil {
+			return err
+		}
 
-	// Run the command.
-	workQueue <- common.CmdSpec{cmd, nil, result, complete}
+		cmd := exec.Command(cmdTokens[0], cmdTokens[1:]...)
+		cmd.Dir = tempDir
+		complete := func(out string, _ bool, _ time.Duration) {
+			if outputFile != "" {
+				os.MkdirAll(filepath.Join(tempDir, filepath.Dir(outputFile)), 0755)
+				ioutil.WriteFile(filepath.Join(tempDir, outputFile), []byte(out), 0755)
+			}
+		}
 
-	// Wait for the result.
-	err = <-result
-	if err != nil {
-		return err
+		// Run the command.
+		log.Debugf("... run %s", cmd.Args)
+		workQueue <- common.CmdSpec{cmd, nil, result, complete}
+
+		// Wait for the result.
+		err = <-result
+		if err != nil {
+			return err
+		}
 	}
 
 	// Make sure the output files were created and then copy them to the generated
 	// folder.
 	for _, outputFile := range this.Out {
-		finalOutputFilePath := filepath.Join(this.outputDir(), outputFile)
-		createdOutputFile := filepath.Join(tempDir, outputFile)
+		finalOutputFilePath := outputFile.FsOutputPath()
+		createdOutputFile := filepath.Join(tempDir, outputFile.Dir(), outputFile.Filename())
 		if exists, _ := os.Stat(createdOutputFile); exists != nil {
 			os.MkdirAll(filepath.Dir(finalOutputFilePath), 0755)
 			copyFile(createdOutputFile, finalOutputFilePath)
@@ -162,8 +209,19 @@ func (this *Target) Process(args *args.Args, progress *progress.ProgressBar, wor
 //                             Utility Functions                              //
 ////////////////////////////////////////////////////////////////////////////////
 
-// outputDir returns the generated output directory for this genrule. This is a
-// function of the genrule's location and the workspace root.
-func (this *Target) outputDir() string {
-	return filepath.Join(this.Args.OutputDir, "gen", this.Spec.Dir())
+// Get a full list of input files.
+func (this *Target) in() []interfaces.FileSpec {
+	fileSpecs := make([]interfaces.FileSpec, 0, len(this.In))
+	for _, spec := range this.In {
+		switch spec.(type) {
+		case interfaces.TargetSpec:
+			filegroup := spec.(interfaces.TargetSpec).Target().(*filegroup.Target)
+			fileSpecs = append(fileSpecs, filegroup.AllFiles()...)
+
+		case interfaces.FileSpec:
+			fileSpecs = append(fileSpecs, spec.(interfaces.FileSpec))
+		}
+	}
+
+	return fileSpecs
 }

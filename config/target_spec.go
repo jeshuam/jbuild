@@ -114,6 +114,17 @@ func (this *TargetSpecImpl) Dependencies(all bool) []interfaces.TargetSpec {
 	return deps
 }
 
+func (this *TargetSpecImpl) ReadyToProcess() bool {
+	for _, dep := range this.Dependencies(true) {
+		if !dep.Target().Processed() {
+			log.Infof("Not processing %s, dependency %s isn't done", this, dep)
+			return false
+		}
+	}
+
+	return true
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //                            TargetSpec Methods                              //
 ////////////////////////////////////////////////////////////////////////////////

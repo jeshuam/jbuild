@@ -46,7 +46,7 @@ func getReflectTypeAndValueForTarget(target interfaces.Target) (reflect.Type, re
 
 // Load a list of FileSpecs from a JSON map. The values are all globs by
 // default.
-func loadSpecs(args *args.Args, json map[string]interface{}, key, cwd, buildBase string) ([]interfaces.Spec, error) {
+func loadSpecs(args *args.Args, json map[string]interface{}, key, cwd, buildBase string, isGenerated bool) ([]interfaces.Spec, error) {
 	// First, load the array of strings from the JSON object.
 	rawSpecs := loadStrings(json, key)
 
@@ -58,32 +58,27 @@ func loadSpecs(args *args.Args, json map[string]interface{}, key, cwd, buildBase
 	for _, rawSpec := range rawSpecs {
 		// Try to load a set of globs, but only if they are prefixed by glob:.
 		if strings.HasPrefix(rawSpec, "glob:") {
-			globSpecs := MakeFileSpecGlob(args, strings.TrimPrefix(rawSpec, "glob:"), cwd, buildBase)
+			glob := strings.TrimPrefix(rawSpec, "glob:")
+			globSpecs := MakeFileSpecGlob(args, glob, cwd, buildBase)
 			if len(globSpecs) > 0 {
 				specs = append(specs, globSpecs...)
+			} else {
+				log.Warningf("No files match glob pattern %s", glob)
 			}
 
 			continue
-		} else {
-			fileSpec := MakeFileSpec(args, rawSpec, cwd, buildBase)
-			if fileSpec != nil {
-				specs = append(specs, fileSpec)
-				continue
-			}
 		}
 
+		// Try a dir spec.
 		dirSpec := MakeDirSpec(args, rawSpec, cwd, buildBase)
 		if dirSpec != nil {
 			specs = append(specs, dirSpec)
 			continue
 		}
 
+		// Try a target spec.
 		targetSpecs, err := MakeTargetSpec(args, rawSpec, cwd, buildBase)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(targetSpecs) > 0 {
+		if err == nil && len(targetSpecs) > 0 {
 			for _, spec := range targetSpecs {
 				specs = append(specs, spec)
 			}
@@ -91,8 +86,15 @@ func loadSpecs(args *args.Args, json map[string]interface{}, key, cwd, buildBase
 			continue
 		}
 
+		// Finally, try a file spec.
+		fileSpec := MakeFileSpec(args, rawSpec, cwd, buildBase, isGenerated)
+		if fileSpec != nil {
+			specs = append(specs, fileSpec)
+			continue
+		}
+
 		// If we got here, it wasn't a valid spec.
-		return nil, errors.New(fmt.Sprintf("Could not identify type of spec '%s'", rawSpec))
+		return nil, errors.New(fmt.Sprintf("Could not identify type of spec '%s'. Is it a file that doesn't exist maybe?", rawSpec))
 	}
 
 	return specs, nil
@@ -132,6 +134,22 @@ func loadDirSpecs(args *args.Args, json map[string]interface{}, key, cwd, buildB
 	}
 
 	return dirSpecs, nil
+}
+
+// Load a list of FileSpecs from a JSON map.
+func loadFileSpecs(args *args.Args, json map[string]interface{}, key, cwd, buildBase string, isGenerated bool) ([]interfaces.FileSpec, error) {
+	rawSpecs := loadStrings(json, key)
+	fileSpecs := make([]interfaces.FileSpec, 0, len(rawSpecs))
+	for _, rawSpec := range rawSpecs {
+		fileSpec := MakeFileSpec(args, rawSpec, cwd, buildBase, isGenerated)
+		if fileSpec == nil {
+			return nil, errors.New(fmt.Sprintf("Could not make FileSpec '%s'", rawSpec))
+		}
+
+		fileSpecs = append(fileSpecs, fileSpec)
+	}
+
+	return fileSpecs, nil
 }
 
 // loadStrings loads a list of strings from the given key.
@@ -183,9 +201,12 @@ func loadJson(
 		allowedTypes[allowedType] = true
 	}
 
+	// Check if the field is generated (only for FileSpecs).
+	isGenerated := fieldType.Tag.Get("generated") == "true"
+
 	switch fieldType.Type {
 	case reflect.TypeOf([]interfaces.Spec{}):
-		specs, err := loadSpecs(args, json, key, spec.Dir(), buildBase)
+		specs, err := loadSpecs(args, json, key, spec.Dir(), buildBase, isGenerated)
 		if err != nil {
 			return err
 		}
@@ -211,6 +232,16 @@ func loadJson(
 
 		currentVal := fieldValue.Interface().([]interfaces.DirSpec)
 		currentVal = append(currentVal, dirSpecs...)
+		fieldValue.Set(reflect.ValueOf(currentVal))
+
+	case reflect.TypeOf([]interfaces.FileSpec{}):
+		fileSpecs, err := loadFileSpecs(args, json, key, spec.Dir(), buildBase, isGenerated)
+		if err != nil {
+			return err
+		}
+
+		currentVal := fieldValue.Interface().([]interfaces.FileSpec)
+		currentVal = append(currentVal, fileSpecs...)
 		fieldValue.Set(reflect.ValueOf(currentVal))
 
 	case reflect.TypeOf([]interfaces.TargetSpec{}):
@@ -262,6 +293,8 @@ func loadJson(
 }
 
 func LoadTargetFromJson(args *args.Args, spec interfaces.TargetSpec, target interfaces.Target, targetJson map[string]interface{}, buildBase string) error {
+	log.Infof("... loading %s", spec)
+
 	targetType, targetValue, err := getReflectTypeAndValueForTarget(target)
 	if err != nil {
 		return err
@@ -316,8 +349,6 @@ func LoadTargetFromJson(args *args.Args, spec interfaces.TargetSpec, target inte
 			return err
 		}
 	}
-
-	log.Infof("... load %s", spec)
 
 	return nil
 }

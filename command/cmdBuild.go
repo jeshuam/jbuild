@@ -7,7 +7,6 @@ import (
 	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/interfaces"
-	"github.com/jeshuam/jbuild/config/util"
 	"github.com/jeshuam/jbuild/progress"
 	"github.com/op/go-logging"
 )
@@ -49,7 +48,7 @@ func buildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 		skippedThisRound := 0
 		for _, spec := range targetsToBuild {
 			_, targetStarted := targetsStarted[spec.String()]
-			if !targetStarted && util.ReadyToProcess(spec) {
+			if !targetStarted && spec.ReadyToProcess() {
 				skippedThisRound++
 
 				// If this target is already processed, then just skip this.
@@ -88,7 +87,7 @@ func buildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 				return result.Err
 			} else {
 				targetsBuilt[result.Spec.String()] = true
-				// log.Infof("Finished processing %s!", result.Spec)
+				log.Infof("Finished processing %s!", result.Spec)
 			}
 		}
 	}

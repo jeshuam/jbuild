@@ -100,7 +100,7 @@ func linkCommand(args *args.Args, target *Target, objs []string, output string) 
 
 		// Add static libs.
 		for _, lib := range target.libs() {
-			flags = append(flags, lib.FilePath())
+			flags = append(flags, lib.FsPath())
 		}
 
 		// Add the previous outputs to the commandline.

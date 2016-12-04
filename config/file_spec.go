@@ -17,9 +17,22 @@ var (
 
 // Implementation of the FileSpec interface.
 type FileSpecImpl struct {
-	path   string
-	wsPath string
-	file   string
+	// The location of the file within the workspace.
+	// e.g. //this/is/afile.txt --> this/is
+	dir string
+
+	// The name of the file.
+	// e.g. //this/is/afile.txt --> afile.txt
+	filename string
+
+	// The path to the root of the workspace.
+	// e.g. /home/ws/this/is/afile.txt --> /home/ws
+	workspacePath string
+
+	// `true` if the file is generated, `false` otherwise. Generated files need
+	// not exist when the spec is created, and all output references point them to
+	// the generated file directory in `args`.
+	isGenerated bool
 
 	args *args.Args
 }
@@ -27,37 +40,59 @@ type FileSpecImpl struct {
 ////////////////////////////////////////////////////////////////////////////////
 //                          Interface Implementation                          //
 ////////////////////////////////////////////////////////////////////////////////
+
+// LEGACY: try not use these if possible.
 func (this *FileSpecImpl) Dir() string {
-	return this.path
+	return this.dir
 }
 
 func (this *FileSpecImpl) Path() string {
-	return filepath.Join(strings.Replace(this.path, "/", pathSeparator, -1))
-}
-
-func (this *FileSpecImpl) WorkspacePath() string {
-	return this.wsPath
+	return this.FsPath()
 }
 
 func (this *FileSpecImpl) String() string {
-	return "//" + strings.Replace(this.wsPath, pathSeparator, "/", -1) + "/" + this.File()
+	if this.Dir() == "" {
+		return "//" + this.Filename()
+	} else {
+		return "//" + this.Dir() + "/" + this.Filename()
+	}
 }
 
 func (this *FileSpecImpl) Type() string {
 	return "file"
 }
 
-func (this *FileSpecImpl) File() string {
-	return this.file
+// NEW: use these if possible.
+func (this *FileSpecImpl) Filename() string {
+	return this.filename
 }
 
-func (this *FileSpecImpl) FilePath() string {
-	return filepath.Join(this.Path(), this.File())
+func (this *FileSpecImpl) FsWorkspacePath() string {
+	return this.workspacePath
 }
 
-func (this *FileSpecImpl) OutputPath() string {
-	return filepath.Join(
-		this.args.OutputDir, strings.Replace(this.wsPath, "/", pathSeparator, -1))
+func (this *FileSpecImpl) FsOutputDir() string {
+	if this.isGenerated {
+		return filepath.Join(this.args.GenOutputDir, this.Dir())
+	} else {
+		return filepath.Join(this.args.OutputDir, this.Dir())
+	}
+}
+
+func (this *FileSpecImpl) FsOutputPath() string {
+	return filepath.Join(this.FsOutputDir(), this.Filename())
+}
+
+func (this *FileSpecImpl) FsPath() string {
+	if this.IsGenerated() {
+		return this.FsOutputPath()
+	} else {
+		return filepath.Join(this.args.WorkspaceDir, this.Dir(), this.Filename())
+	}
+}
+
+func (this *FileSpecImpl) IsGenerated() bool {
+	return this.isGenerated
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -76,26 +111,26 @@ func splitPathAndFile(path, sep string) (string, string) {
 // MakeFileSpec constructs and returns a valid FileSpec object, or nil if the
 // given spec doesn't refer to a valid file. rawSpec can be absolute or relative
 // to `cwd`.
-func MakeFileSpec(args *args.Args, rawSpec, cwd, buildBase string) interfaces.FileSpec {
+func MakeFileSpec(args *args.Args, rawSpec, cwd, buildBase string, isGenerated bool) interfaces.FileSpec {
 	spec := new(FileSpecImpl)
 	spec.args = args
 
 	// If the spec is absolute, we already have the correct path.
+	spec.workspacePath = buildBase
 	if strings.HasPrefix(rawSpec, "//") {
-		spec.path, spec.file = splitPathAndFile(
-			strings.Trim(rawSpec, "/"), "/")
-		spec.path = filepath.Join(buildBase, spec.path)
-		spec.wsPath, _ = filepath.Rel(buildBase, spec.path)
+		spec.dir, spec.filename = splitPathAndFile(strings.Trim(rawSpec, "/"), "/")
 	} else {
-		spec.path, spec.file = splitPathAndFile(
-			filepath.Join(buildBase, cwd, rawSpec), pathSeparator)
-		spec.wsPath, _ = filepath.Rel(buildBase, spec.path)
+		spec.dir, spec.filename = splitPathAndFile(filepath.Clean(filepath.Join(cwd, rawSpec)), "/")
 	}
 
-	// Check to see whether this file exists and is a file. If it doesn't, then
-	// we don't have a FileSpec.
-	spec.path = strings.Replace(spec.path, pathSeparator, "/", -1)
-	if common.FileExists(spec.FilePath()) && !common.IsDir(spec.FilePath()) {
+	// If the file is generated, save that and stop.
+	if isGenerated {
+		spec.isGenerated = isGenerated
+		return spec
+	}
+
+	// Check if the file exists.
+	if common.FileExists(spec.FsPath()) && !common.IsDir(spec.FsPath()) {
 		return spec
 	}
 
@@ -118,7 +153,7 @@ func MakeFileSpecGlob(args *args.Args, rawSpecGlob, cwd, buildBase string) []int
 	specs := make([]interfaces.Spec, 0, len(globs))
 	for _, glob := range globs {
 		globRel, _ := filepath.Rel(buildBase, glob)
-		spec := MakeFileSpec(args, util.OSPathToWSPath(globRel), "", buildBase)
+		spec := MakeFileSpec(args, util.OSPathToWSPath(globRel), "", buildBase, false)
 		if spec != nil {
 			specs = append(specs, spec)
 		}

@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/filegroup"
+	"github.com/jeshuam/jbuild/config/genrule"
 	"github.com/jeshuam/jbuild/config/interfaces"
 	"github.com/jeshuam/jbuild/progress"
 )
@@ -99,7 +101,7 @@ func (this *Target) Processed() bool {
 
 	// Validate each file.
 	for _, fileSpec := range this.files() {
-		fileStat, _ := os.Stat(fileSpec.FilePath())
+		fileStat, _ := os.Stat(fileSpec.FsPath())
 		if fileStat.ModTime().After(outputStat.ModTime()) {
 			return false
 		}
@@ -235,18 +237,40 @@ func (this *Target) OutputPath() string {
 }
 
 // extractFileSpecs goes through a list of generic specs and returns a list of
-// file specs. It is assumed that the specs are either filegroup targets or
-// FileSpecs.
-func extractFileSpecs(specs []interfaces.Spec) []interfaces.FileSpec {
+// file specs. It is assumed that the specs are either filegroup targets,
+// genrules or FileSpecs. If suffixes is supplied, then make sure each file has
+// that suffix.
+func extractFileSpecs(specs []interfaces.Spec, suffixes []string) []interfaces.FileSpec {
 	fileSpecs := make([]interfaces.FileSpec, 0, len(specs))
 	for _, spec := range specs {
 		switch spec.(type) {
 		case interfaces.FileSpec:
 			fileSpecs = append(fileSpecs, spec.(interfaces.FileSpec))
 		case interfaces.TargetSpec:
-			target := spec.(interfaces.TargetSpec).Target().(*filegroup.Target)
-			fileSpecs = append(fileSpecs, target.AllFiles()...)
+			targetSpec := spec.(interfaces.TargetSpec)
+			switch targetSpec.Target().(type) {
+			case *filegroup.Target:
+				target := targetSpec.Target().(*filegroup.Target)
+				fileSpecs = append(fileSpecs, target.AllFiles()...)
+			case *genrule.Target:
+				target := targetSpec.Target().(*genrule.Target)
+				fileSpecs = append(fileSpecs, target.Out...)
+			}
 		}
+	}
+
+	// Filter the file specs if necessary.
+	if suffixes != nil {
+		filteredFileSpecs := make([]interfaces.FileSpec, 0, len(fileSpecs))
+		for _, fileSpec := range fileSpecs {
+			for _, suffix := range suffixes {
+				if strings.HasSuffix(fileSpec.Filename(), suffix) {
+					filteredFileSpecs = append(filteredFileSpecs, fileSpec)
+				}
+			}
+		}
+
+		return filteredFileSpecs
 	}
 
 	return fileSpecs
@@ -265,13 +289,13 @@ func (this *Target) files() []interfaces.FileSpec {
 // Srcs returns a list of all sources for this current target with all
 // filegroups expanded.
 func (this *Target) srcs() []interfaces.FileSpec {
-	return extractFileSpecs(this.Srcs)
+	return extractFileSpecs(this.Srcs, []string{".cc", ".cpp", ".c", ".cxx"})
 }
 
 // Hdrs returns a list of all headers for this current target with all
 // filegroups expanded.
 func (this *Target) hdrs() []interfaces.FileSpec {
-	return extractFileSpecs(this.Hdrs)
+	return extractFileSpecs(this.Hdrs, []string{".h", ".hpp"})
 }
 
 // CompileFlags returns a list of all compile flags for this current target and
@@ -319,7 +343,7 @@ func (this *Target) includes() []interfaces.DirSpec {
 // Libs returns a list of all libs for this current target and all dependent
 // targets with all filegroups expanded.
 func (this *Target) libs() []interfaces.FileSpec {
-	libs := extractFileSpecs(this.Libs)
+	libs := extractFileSpecs(this.Libs, nil)
 	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
@@ -333,7 +357,7 @@ func (this *Target) libs() []interfaces.FileSpec {
 // Data returns a list of all data for this current target and all dependent
 // targets with all filegroups expanded.
 func (this *Target) data() []interfaces.FileSpec {
-	data := extractFileSpecs(this.Data)
+	data := extractFileSpecs(this.Data, nil)
 	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
@@ -366,7 +390,7 @@ func (this *Target) depsChangedSince(objStat os.FileInfo) bool {
 		case *Target:
 			dep := depSpec.Target().(*Target)
 			for _, depFile := range dep.hdrs() {
-				depFileStat, _ := os.Stat(depFile.FilePath())
+				depFileStat, _ := os.Stat(depFile.FsPath())
 				if depFileStat.ModTime().After(objStat.ModTime()) {
 					return true
 				}

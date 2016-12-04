@@ -20,19 +20,20 @@ type Spec interface {
 type FileSpec interface {
 	Spec
 
-	// File should return the filename that this FileSpec references.
-	File() string
+	// Filename should return the full name of the file.
+	Filename() string
 
-	// FilePath should return the fully-qualified OS path to the file this Spec
-	// references.
-	FilePath() string
+	// FsWorkspacePath should return the path to the root of the workspace.
+	FsWorkspacePath() string
 
-	// OutputPath should return the fully-qualified OS path to the output
-	// directory for this target.
-	OutputPath() string
+	// FsOutputPath should return the path to where the output file is kept.
+	FsOutputPath() string
+	FsOutputDir() string
 
-	// WorkspacePath should return the path relative to the root of the workspace.
-	WorkspacePath() string
+	// FsPath should return the fully OS path to the file.
+	FsPath() string
+
+	IsGenerated() bool
 }
 
 type DirSpec interface {
@@ -59,4 +60,6 @@ type TargetSpec interface {
 	// spec. This is to determine which targets must be processed before. If all
 	// is set, return all direct and indirect dependencies (i.e. recursive).
 	Dependencies(all bool) []TargetSpec
+
+	ReadyToProcess() bool
 }

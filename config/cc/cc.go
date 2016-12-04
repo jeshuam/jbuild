@@ -31,8 +31,8 @@ func compileFiles(args *args.Args, target *Target, progressBar *progress.Progres
 
 		// Work out the full path to the source file. This will need to be provided
 		// to the compiler.
-		srcPath := srcFile.FilePath()
-		objPath := filepath.Join(srcFile.OutputPath(), srcFile.File()) + ".o"
+		srcPath := srcFile.FsPath()
+		objPath := filepath.Join(srcFile.FsOutputPath()) + ".o"
 		objs = append(objs, objPath)
 
 		// Make the directory of the obj if needed.
@@ -67,7 +67,12 @@ func compileFiles(args *args.Args, target *Target, progressBar *progress.Progres
 		}
 
 		// Build the compilation command.
-		log.Debugf("... compile %s", srcFile)
+		if srcFile.IsGenerated() {
+			log.Debugf("... compile %s (generated)", srcFile)
+		} else {
+			log.Debugf("... compile %s", srcFile)
+		}
+
 		cmd := compileCommand(args, target, srcPath, objPath)
 
 		// Run the command.
@@ -130,8 +135,8 @@ func linkObjects(args *args.Args, target *Target, progressBar *progress.Progress
 
 func copyData(target *Target, progressBar *progress.ProgressBar) error {
 	for _, dataSpec := range target.data() {
-		inputFile := dataSpec.FilePath()
-		outputFile := filepath.Join(dataSpec.OutputPath(), dataSpec.File())
+		inputFile := dataSpec.FsPath()
+		outputFile := filepath.Join(dataSpec.FsOutputPath())
 		dataStat, _ := os.Stat(inputFile)
 		dataOutStat, _ := os.Stat(outputFile)
 		if dataOutStat != nil && dataStat.ModTime().After(dataOutStat.ModTime()) {

@@ -38,7 +38,7 @@ func (this *Target) TotalOps() int {
 func (this *Target) OutputFiles() []string {
 	output := make([]string, 0, len(this.files()))
 	for _, file := range this.files() {
-		output = append(output, file.FilePath())
+		output = append(output, file.FsPath())
 	}
 
 	return output

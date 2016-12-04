@@ -62,18 +62,6 @@ func CheckForDependencyCycles(spec interfaces.TargetSpec) error {
 	return nil
 }
 
-func ReadyToProcess(spec interfaces.TargetSpec) bool {
-	// log := logging.MustGetLogger("jbuild")
-	for _, dep := range spec.Dependencies(true) {
-		if !dep.Target().Processed() {
-			// log.Infof("Not processing %s, dependency %s isn't done", spec, dep)
-			return false
-		}
-	}
-
-	return true
-}
-
 func OSPathToWSPath(path string) string {
 	return "//" + strings.Trim(
 		strings.Replace(path, string(os.PathSeparator), "/", -1), "/")

@@ -24,6 +24,7 @@ type Args struct {
 
 	// Input/Output options.
 	OutputDir    string
+	GenOutputDir string
 	WorkspaceDir string
 
 	// Workspace options.
@@ -90,6 +91,10 @@ func init() {
 	flag.StringVar(&args.OutputDir, "output_dir", "bin",
 		"The output directory in which all processed files will be placed. Can be "+
 			"absolute or relative to the workspace directory.")
+
+	flag.StringVar(&args.GenOutputDir, "gen_output_dir", "gen",
+		"The output directory in which all generated files will be placed. Can be "+
+			"absolute or relative to the output directory.")
 
 	flag.StringVar(&args.WorkspaceDir, "workspace_dir", "",
 		"The root directory of the workspace. If blank, the directory tree will be "+
@@ -325,6 +330,11 @@ func Load(cwd string) (Args, error) {
 		if newArgs.Configuration != "" {
 			newArgs.OutputDir = filepath.Join(newArgs.OutputDir, newArgs.Configuration)
 		}
+	}
+
+	// Load GenOutputDir based on OutputDir.
+	if !filepath.IsAbs(newArgs.GenOutputDir) {
+		newArgs.GenOutputDir = filepath.Join(newArgs.OutputDir, newArgs.GenOutputDir)
 	}
 
 	// Load the C++ compiler.
