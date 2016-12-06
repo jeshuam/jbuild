@@ -22,7 +22,7 @@ func main() {
 	}
 
 	// Load flags.
-	programArgs, err := args.Load(cwd)
+	programArgs, err := args.Load(cwd, nil)
 	if err != nil {
 		log.Fatalf("Error: %s", err)
 	}

@@ -198,12 +198,22 @@ func LoadConfigFile(path string) (map[string]interface{}, error) {
 	return configJson, nil
 }
 
+// Get a reference to the default arguments.
+func DefaultArgs() Args {
+	return args
+}
+
 // Load performs additional setup required to ensure the arguments are in a
 // consistent format. This involves making the paths absolute, finding the
 // workspace directory if necessary etc.
-func Load(cwd string) (Args, error) {
+func Load(cwd string, customArgs *Args) (Args, error) {
 	// Make a copy of the default args.
-	newArgs := args
+	var newArgs Args
+	if customArgs != nil {
+		newArgs = *customArgs
+	} else {
+		newArgs = args
+	}
 
 	// Get the user's home directory.
 	usr, err := user.Current()
@@ -218,6 +228,10 @@ func Load(cwd string) (Args, error) {
 	newArgs.WorkspaceOptions = make(map[string]interface{})
 	if newArgs.BaseWorkspaceFiles == "" {
 		newArgs.BaseWorkspaceFiles = filepath.Join(usr.HomeDir, ".jbuild")
+	} else {
+		if !filepath.IsAbs(newArgs.BaseWorkspaceFiles) {
+			newArgs.BaseWorkspaceFiles = filepath.Join(cwd, newArgs.BaseWorkspaceFiles)
+		}
 	}
 
 	// If the base workspace files dir doesn't exist, make it.
@@ -229,6 +243,8 @@ func Load(cwd string) (Args, error) {
 	if err != nil {
 		return Args{}, err
 	}
+
+	fmt.Printf("%s baseWorkspaceFiles=%s\n", newArgs.BaseWorkspaceFiles, baseWorkspaceFiles)
 
 	for _, file := range baseWorkspaceFiles {
 		filePath := filepath.Join(newArgs.BaseWorkspaceFiles, file.Name())
