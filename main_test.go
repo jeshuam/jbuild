@@ -371,3 +371,27 @@ func Test13BaseWorkspaceFiles(t *testing.T) {
 	// Now, cleanup the output directory.
 	jbuildClean(t, args)
 }
+
+func Test14MergeWorkspaceFiles(t *testing.T) {
+	// Set the current directory.
+	defaultArgs := args.DefaultArgs()
+	defaultArgs.BaseWorkspaceFiles = "base_workspace_files"
+	args := setupTest(t, filepath.Join("14_merge_workspace_files"), &defaultArgs)
+
+	// Build up the command-line.
+	require.NoError(t, jbuild.JBuildRun(args, []string{"build", ":hello_world"}))
+
+	// Make sure the output is valid.
+	fileNames, binary := listOutputFiles(t, &args, "hello_world")
+	require.Len(t, fileNames, 2)
+	assert.Contains(t, fileNames, "main.cc.o")
+	require.Contains(t, fileNames, cc.BinaryName("hello_world"))
+
+	// Run the binary and get the output.
+	output, err := runBinary(binary)
+	require.NoError(t, err)
+	assert.Equal(t, "PASSED", output)
+
+	// Now, cleanup the output directory.
+	jbuildClean(t, args)
+}

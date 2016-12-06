@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	log   = logging.MustGetLogger("jbuild")
-	locks = make(map[string]*sync.Mutex)
+	log        = logging.MustGetLogger("jbuild")
+	locks      = make(map[string]*sync.Mutex)
+	locksMutex = new(sync.Mutex)
 )
 
 // Compile the source files within the given target.
@@ -60,11 +61,13 @@ func compileFiles(args *args.Args, target *Target, progressBar *progress.Progres
 		}
 
 		// Get the lock for this src file.
+		locksMutex.Lock()
 		lock, ok := locks[srcPath]
 		if !ok {
 			lock = new(sync.Mutex)
 			locks[srcPath] = lock
 		}
+		locksMutex.Unlock()
 
 		// Build the compilation command.
 		if srcFile.IsGenerated() {

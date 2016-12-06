@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/client9/xson/hjson"
-	"github.com/imdario/mergo"
 )
 
 type Args struct {
@@ -203,6 +202,37 @@ func DefaultArgs() Args {
 	return args
 }
 
+// Union two dictionaries together recursively. This will modify dst by merging
+// in all values within src. If values in dst are multi-valued (i.e. maps or
+// slices), everything in dst will be preserved. Single-value overrides will
+// still take place.
+func Merge(dst, src map[string]interface{}) map[string]interface{} {
+	for k, v := range src {
+		switch v.(type) {
+		case map[string]interface{}:
+			_, ok := dst[k]
+			if !ok {
+				dst[k] = make(map[string]interface{}, 0)
+			}
+
+			dst[k] = Merge(dst[k].(map[string]interface{}), v.(map[string]interface{}))
+
+		case []interface{}:
+			_, ok := dst[k]
+			if !ok {
+				dst[k] = make([]interface{}, 0)
+			}
+
+			dst[k] = append(dst[k].([]interface{}), v.([]interface{})...)
+
+		default:
+			dst[k] = v
+		}
+	}
+
+	return dst
+}
+
 // Load performs additional setup required to ensure the arguments are in a
 // consistent format. This involves making the paths absolute, finding the
 // workspace directory if necessary etc.
@@ -244,8 +274,6 @@ func Load(cwd string, customArgs *Args) (Args, error) {
 		return Args{}, err
 	}
 
-	fmt.Printf("%s baseWorkspaceFiles=%s\n", newArgs.BaseWorkspaceFiles, baseWorkspaceFiles)
-
 	for _, file := range baseWorkspaceFiles {
 		filePath := filepath.Join(newArgs.BaseWorkspaceFiles, file.Name())
 		if strings.HasSuffix(strings.ToLower(file.Name()), ".workspace") {
@@ -254,10 +282,7 @@ func Load(cwd string, customArgs *Args) (Args, error) {
 				return Args{}, err
 			}
 
-			err = mergo.Merge(&newArgs.WorkspaceOptions, cfg)
-			if err != nil {
-				return Args{}, err
-			}
+			newArgs.WorkspaceOptions = Merge(newArgs.WorkspaceOptions, cfg)
 		}
 	}
 
@@ -305,10 +330,7 @@ func Load(cwd string, customArgs *Args) (Args, error) {
 			return Args{}, err
 		}
 
-		err = mergo.Merge(&newArgs.WorkspaceOptions, loadedOptions)
-		if err != nil {
-			return Args{}, err
-		}
+		newArgs.WorkspaceOptions = Merge(newArgs.WorkspaceOptions, loadedOptions)
 	}
 
 	// Load any additional dependencies (e.g. from github).
@@ -327,13 +349,11 @@ func Load(cwd string, customArgs *Args) (Args, error) {
 	}
 
 	// Load OS specific options.
+	fmt.Printf("newArgs.WorkspaceOptions = %s\n", newArgs.WorkspaceOptions)
 	workspaceOptions, ok := newArgs.WorkspaceOptions[runtime.GOOS]
 	if ok {
-		err := mergo.Merge(&newArgs.WorkspaceOptions, workspaceOptions.(map[string]interface{}))
-		if err != nil {
-			return Args{}, err
-		}
-
+		newArgs.WorkspaceOptions = Merge(
+			newArgs.WorkspaceOptions, workspaceOptions.(map[string]interface{}))
 		configurationOptions, ok := newArgs.WorkspaceOptions[newArgs.Configuration]
 		if ok {
 			newArgs.ConfigurationOptions = configurationOptions.(map[string]interface{})
