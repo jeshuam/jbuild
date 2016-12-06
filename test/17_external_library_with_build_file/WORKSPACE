@@ -1,0 +1,6 @@
+external: {
+  "//third_party/googletest": {
+    url: "https://github.com/google/googletest"
+    build: "test/17_external_library_with_build_file/googletest.build"
+  }
+}
