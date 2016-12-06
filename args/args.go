@@ -349,7 +349,6 @@ func Load(cwd string, customArgs *Args) (Args, error) {
 	}
 
 	// Load OS specific options.
-	fmt.Printf("newArgs.WorkspaceOptions = %s\n", newArgs.WorkspaceOptions)
 	workspaceOptions, ok := newArgs.WorkspaceOptions[runtime.GOOS]
 	if ok {
 		newArgs.WorkspaceOptions = Merge(
