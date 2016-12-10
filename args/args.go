@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/client9/xson/hjson"
-	"github.com/imdario/mergo"
 )
 
 type Args struct {
@@ -198,12 +197,53 @@ func LoadConfigFile(path string) (map[string]interface{}, error) {
 	return configJson, nil
 }
 
+// Get a reference to the default arguments.
+func DefaultArgs() Args {
+	return args
+}
+
+// Union two dictionaries together recursively. This will modify dst by merging
+// in all values within src. If values in dst are multi-valued (i.e. maps or
+// slices), everything in dst will be preserved. Single-value overrides will
+// still take place.
+func Merge(dst, src map[string]interface{}) map[string]interface{} {
+	for k, v := range src {
+		switch v.(type) {
+		case map[string]interface{}:
+			_, ok := dst[k]
+			if !ok {
+				dst[k] = make(map[string]interface{}, 0)
+			}
+
+			dst[k] = Merge(dst[k].(map[string]interface{}), v.(map[string]interface{}))
+
+		case []interface{}:
+			_, ok := dst[k]
+			if !ok {
+				dst[k] = make([]interface{}, 0)
+			}
+
+			dst[k] = append(dst[k].([]interface{}), v.([]interface{})...)
+
+		default:
+			dst[k] = v
+		}
+	}
+
+	return dst
+}
+
 // Load performs additional setup required to ensure the arguments are in a
 // consistent format. This involves making the paths absolute, finding the
 // workspace directory if necessary etc.
-func Load(cwd string) (Args, error) {
+func Load(cwd string, customArgs *Args) (Args, error) {
 	// Make a copy of the default args.
-	newArgs := args
+	var newArgs Args
+	if customArgs != nil {
+		newArgs = *customArgs
+	} else {
+		newArgs = args
+	}
 
 	// Get the user's home directory.
 	usr, err := user.Current()
@@ -218,6 +258,10 @@ func Load(cwd string) (Args, error) {
 	newArgs.WorkspaceOptions = make(map[string]interface{})
 	if newArgs.BaseWorkspaceFiles == "" {
 		newArgs.BaseWorkspaceFiles = filepath.Join(usr.HomeDir, ".jbuild")
+	} else {
+		if !filepath.IsAbs(newArgs.BaseWorkspaceFiles) {
+			newArgs.BaseWorkspaceFiles = filepath.Join(cwd, newArgs.BaseWorkspaceFiles)
+		}
 	}
 
 	// If the base workspace files dir doesn't exist, make it.
@@ -238,10 +282,7 @@ func Load(cwd string) (Args, error) {
 				return Args{}, err
 			}
 
-			err = mergo.Merge(&newArgs.WorkspaceOptions, cfg)
-			if err != nil {
-				return Args{}, err
-			}
+			newArgs.WorkspaceOptions = Merge(newArgs.WorkspaceOptions, cfg)
 		}
 	}
 
@@ -289,10 +330,7 @@ func Load(cwd string) (Args, error) {
 			return Args{}, err
 		}
 
-		err = mergo.Merge(&newArgs.WorkspaceOptions, loadedOptions)
-		if err != nil {
-			return Args{}, err
-		}
+		newArgs.WorkspaceOptions = Merge(newArgs.WorkspaceOptions, loadedOptions)
 	}
 
 	// Load any additional dependencies (e.g. from github).
@@ -313,11 +351,8 @@ func Load(cwd string) (Args, error) {
 	// Load OS specific options.
 	workspaceOptions, ok := newArgs.WorkspaceOptions[runtime.GOOS]
 	if ok {
-		err := mergo.Merge(&newArgs.WorkspaceOptions, workspaceOptions.(map[string]interface{}))
-		if err != nil {
-			return Args{}, err
-		}
-
+		newArgs.WorkspaceOptions = Merge(
+			newArgs.WorkspaceOptions, workspaceOptions.(map[string]interface{}))
 		configurationOptions, ok := newArgs.WorkspaceOptions[newArgs.Configuration]
 		if ok {
 			newArgs.ConfigurationOptions = configurationOptions.(map[string]interface{})

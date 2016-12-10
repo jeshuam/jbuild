@@ -1,0 +1,9 @@
+debug: {
+  compile_flags: ['-DX']
+}
+
+linux: {
+  debug: {
+    compile_flags: ['-std=c++11']
+  }
+}

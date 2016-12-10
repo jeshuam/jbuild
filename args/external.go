@@ -64,7 +64,13 @@ func MakeExternalRepo(path string, repoJson map[string]interface{}) (*ExternalRe
 	if buildOk {
 		switch buildInt.(type) {
 		case string:
-			build, err = LoadConfigFile(buildInt.(string))
+			buildPath := buildInt.(string)
+			if !filepath.IsAbs(buildPath) {
+				buildPath = filepath.Join(args.WorkspaceDir, buildPath)
+			}
+
+			fmt.Printf("looking for %s, %s\n", buildPath, args.WorkspaceDir)
+			build, err = LoadConfigFile(buildPath)
 			buildFile = buildInt.(string)
 			if err != nil {
 				return nil, err
