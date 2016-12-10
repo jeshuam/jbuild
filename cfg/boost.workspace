@@ -85,6 +85,10 @@
             "branch": "boost-1.62.0",
             "build": {
                 "any": {
+                    "deps": [
+                        "//third_party/boost/config",
+                        "//third_party/boost/type_index"
+                    ],
                     "hdrs": [
                         "glob:include/**/*.hpp",
                         "glob:include/**/*.h"
@@ -3210,6 +3214,9 @@
             "branch": "boost-1.62.0",
             "build": {
                 "throw_exception": {
+                    "deps": [
+                        "//third_party/boost/assert"
+                    ],
                     "hdrs": [
                         "glob:include/**/*.hpp",
                         "glob:include/**/*.h"
@@ -3399,6 +3406,13 @@
             "branch": "boost-1.62.0",
             "build": {
                 "type_index": {
+                    "deps": [
+                        "//third_party/boost/core",
+                        "//third_party/boost/mpl",
+                        "//third_party/boost/static_assert",
+                        "//third_party/boost/throw_exception",
+                        "//third_party/boost/type_traits"
+                    ],
                     "hdrs": [
                         "glob:include/**/*.hpp",
                         "glob:include/**/*.h"

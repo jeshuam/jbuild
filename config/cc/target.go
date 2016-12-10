@@ -165,7 +165,17 @@ func (this *Target) Process(args *args.Args, progressBar *progress.ProgressBar, 
 			}
 		}
 
-		forceCompile = (buildStat != nil && buildStat.ModTime().After(outputStat.ModTime())) ||
+		// Check if header files are newer than the output file.
+		for _, hdrFile := range this.hdrs() {
+			hdrStat, _ := os.Stat(hdrFile.FsPath())
+			if hdrStat.ModTime().After(outputStat.ModTime()) {
+				forceCompile = true
+				break
+			}
+		}
+
+		forceCompile = forceCompile ||
+			(buildStat != nil && buildStat.ModTime().After(outputStat.ModTime())) ||
 			workspaceStat.ModTime().After(outputStat.ModTime())
 	}
 

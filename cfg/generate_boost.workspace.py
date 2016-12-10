@@ -1,7 +1,8 @@
 import os
 import json
 
-BOOST_DIR = 'D:\\Development\\Code\\C++\\boost'
+# BOOST_DIR = 'D:\\Development\\Code\\C++\\boost'
+BOOST_DIR = '/home/jeshua/code/c++/boost'
 EXT_DIR = '//third_party/boost/%s'
 SRC_EXTS = ['c', 'cpp', 'cc']
 
@@ -13,6 +14,10 @@ MODULE_DEPS = dict(
   smart_ptr=['throw_exception'],
   range=['concept_check', 'utility'],
   algorithm=['function'],
+  any=['config', 'type_index'],
+  type_index=['static_assert', 'throw_exception', 'core', 'type_traits', 'mpl'],
+  throw_exception=['assert'],
+  spirit=['config', 'type_traits', 'throw_exception', 'static_assert', 'mpl', 'core'],
 )
 
 # MakeBaseConfig makes the basic configuration file for a module and returns it.
