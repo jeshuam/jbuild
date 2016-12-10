@@ -374,7 +374,9 @@ func (this *Target) depOutputs() []string {
 	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
-			outputs = append(outputs, dep.Target().OutputFiles()...)
+			if dep.Target().GetType() == "c++/library" {
+				outputs = append(outputs, dep.Target().OutputFiles()...)
+			}
 		}
 	}
 

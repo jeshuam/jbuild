@@ -3,6 +3,7 @@ package args
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,6 +28,9 @@ type ExternalRepo struct {
 	// when checking out the code (e.g. a tag, branch). If blank, uses master.
 	Branch string
 
+	// A patch to apply to the repository after checking it out.
+	Patch string
+
 	// The build instructions needed to build this external repo. Can either be
 	// the raw BUILD contents or a filepath (relative to the workspace root).
 	Build     map[string]interface{}
@@ -35,7 +39,7 @@ type ExternalRepo struct {
 
 // MakeExternalRepo from a JSON map.
 func MakeExternalRepo(path string, repoJson map[string]interface{}) (*ExternalRepo, error) {
-	var url, branch, buildFile string
+	var url, branch, buildFile, patch string
 	var build map[string]interface{}
 	var err error
 
@@ -43,6 +47,7 @@ func MakeExternalRepo(path string, repoJson map[string]interface{}) (*ExternalRe
 	urlInt, urlOk := repoJson["url"]
 	branchInt, branchOk := repoJson["branch"]
 	buildInt, buildOk := repoJson["build"]
+	patchInt, patchOk := repoJson["patch"]
 
 	if urlOk {
 		url = urlInt.(string)
@@ -75,11 +80,16 @@ func MakeExternalRepo(path string, repoJson map[string]interface{}) (*ExternalRe
 		buildFile = ""
 	}
 
+	if patchOk {
+		patch = patchInt.(string)
+	}
+
 	// Make and return the external repo.
 	externalRepo := new(ExternalRepo)
 	externalRepo.Path = path
 	externalRepo.Url = url
 	externalRepo.Branch = branch
+	externalRepo.Patch = patch
 	externalRepo.Build = build
 	externalRepo.BuildFile = buildFile
 	return externalRepo, nil
@@ -102,6 +112,36 @@ func fetchGit(args *Args, repo *ExternalRepo) error {
 		err := cmd.Run()
 		if err != nil {
 			return err
+		}
+
+		// Patch the repo if necessary.
+		if repo.Patch != "" {
+			fmt.Printf("Patching %s...\n", repo.Path)
+
+			// Write a temporary patch file.
+			tmpPatchFile, err := ioutil.TempFile("", "patch")
+			if err != nil {
+				return err
+			}
+
+			defer os.Remove(tmpPatchFile.Name())
+
+			if _, err := tmpPatchFile.Write([]byte(repo.Patch)); err != nil {
+				return err
+			}
+
+			if err := tmpPatchFile.Close(); err != nil {
+				return err
+			}
+
+			cmd := exec.Command("git", "apply", tmpPatchFile.Name())
+			cmd.Dir = gitDir
+			cmd.Stdout = os.Stdout
+
+			err = cmd.Run()
+			if err != nil {
+				return err
+			}
 		}
 	} else if args.UpdateExternals {
 		// Otherwise, update the git repo and checkout the branch.
