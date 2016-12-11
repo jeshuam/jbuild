@@ -53,12 +53,11 @@ func buildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 
 				// If this target is already processed, then just skip this.
 				if spec.Target().Processed() {
+					targetsStarted[spec.String()] = true
 					targetsBuilt[spec.String()] = true
 
-					var progressBar *progress.ProgressBar
 					if spec.Target().TotalOps() > 0 {
-						progressBar = progress.AddBar(spec.Target().TotalOps(), spec.String())
-						progressBar.Finish()
+						progress.AddBar(spec.Target().TotalOps(), spec.String()).Finish()
 					}
 
 					continue
