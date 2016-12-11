@@ -10,6 +10,7 @@ import (
 
 	argsModule "github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/config/cc"
+	"github.com/jeshuam/jbuild/config/doxygen"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/genrule"
 	"github.com/jeshuam/jbuild/config/interfaces"
@@ -74,6 +75,10 @@ func (this *TargetSpecImpl) Dependencies(all bool) []interfaces.TargetSpec {
 
 	// Iterate through the fields one by one.
 	for i := 0; i < targetType.NumField(); i++ {
+		if !targetValue.Elem().Field(i).CanInterface() {
+			continue
+		}
+
 		val := targetValue.Elem().Field(i).Interface()
 
 		switch targetType.Field(i).Type {
@@ -153,6 +158,8 @@ func (this *TargetSpecImpl) init(args *argsModule.Args, json map[string]interfac
 		this.target = new(filegroup.Target)
 	} else if strings.HasPrefix(this._type, "genrule") {
 		this.target = new(genrule.Target)
+	} else if strings.HasPrefix(this._type, "doxygen") {
+		this.target = new(doxygen.Target)
 	} else {
 		return errors.New(fmt.Sprintf("Target %s has unknown type %s", this, this._type))
 	}

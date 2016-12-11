@@ -10,6 +10,7 @@ import (
 	"github.com/etgryphon/stringUp"
 	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/config/cc"
+	"github.com/jeshuam/jbuild/config/doxygen"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/genrule"
 	"github.com/jeshuam/jbuild/config/interfaces"
@@ -38,6 +39,9 @@ func getReflectTypeAndValueForTarget(target interfaces.Target) (reflect.Type, re
 		return reflect.TypeOf(*t), reflect.ValueOf(t), nil
 	case *genrule.Target:
 		t := target.(*genrule.Target)
+		return reflect.TypeOf(*t), reflect.ValueOf(t), nil
+	case *doxygen.Target:
+		t := target.(*doxygen.Target)
 		return reflect.TypeOf(*t), reflect.ValueOf(t), nil
 	default:
 		return nil, reflect.Value{}, errors.New(fmt.Sprintf("Cannot load unknown target type."))
