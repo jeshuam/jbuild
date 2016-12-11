@@ -61,7 +61,7 @@ func loadTestResult(args *args.Args, target interfaces.TargetSpec) *testResult {
 
 	// Check to see if the test executable was changed since the cache was made.
 	cacheStat, _ := os.Stat(cacheFileName)
-	outputStat, _ := os.Stat(filepath.Join(target.OutputPath(), target.Name()))
+	outputStat, _ := os.Stat(target.Target().OutputFiles()[0])
 	if outputStat != nil && outputStat.ModTime().After(cacheStat.ModTime()) {
 		return nil
 	}

@@ -400,7 +400,7 @@ func Load(cwd string, customArgs *Args) (Args, error) {
 	// Load the C++ compiler.
 	if newArgs.CCCompiler == "" {
 		if runtime.GOOS == "windows" {
-			newArgs.CCCompiler = "cl.exe"
+			newArgs.CCCompiler = "clang++.exe"
 		} else if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
 			newArgs.CCCompiler = "clang++"
 		} else {
