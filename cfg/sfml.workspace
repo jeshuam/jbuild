@@ -1,220 +1,226 @@
-external: {
-  "//third_party/sfml": {
-    url: "https://github.com/SFML/SFML"
-    branch: "2.4.1"
-    build: {
-      system: {
-        type: c++/library
-        srcs: [
-          "glob:src/SFML/System/*.cpp"
-        ]
+import json
 
-        includes: [
-          "include",
-          "src",
-        ]
+workspace = dict(
+  external = {
+    '//third_party/sfml': dict(
+      url = 'https://github.com/SFML/SFML',
+      branch = '2.4.1',
+      build = dict(
+        system = dict(
+          type = 'c++/library',
+          srcs = [
+            'glob:src/SFML/System/*.cpp',
+          ],
 
-        compile_flags: [
-          "-DSFML_STATIC",
-        ]
+          includes = [
+            'include',
+            'src',
+          ],
 
-        linux: {
-          srcs: [
-            "glob:src/SFML/System/Unix/*.cpp"
-          ]
+          compile_flags = [
+            '-DSFML_STATIC',
+          ],
 
-          link_flags: [
-            "-lpthread",
-            "-lrt",
-            "-lm",
-          ]
-        }
+          linux = dict(
+            srcs = [
+              'glob:src/SFML/System/Unix/*.cpp',
+            ],
 
-        windows: {
-          srcs: [
-            "glob:src/SFML/System/Win32/*.cpp"
-          ]
+            link_flags = [
+              '-lpthread',
+              '-lrt',
+              '-lm',
+            ],
+          ),
 
-          link_flags: [
-            "winmm.lib",
-          ]
+          windows = dict(
+            srcs = [
+              'glob:src/SFML/System/Win32/*.cpp',
+            ],
 
-          compile_flags: [
-            "-DSFML_USE_STATIC_STD_LIBS",
-          ]
-        }
-      }
+            link_flags = [
+              'winmm.lib',
+            ],
 
-      window: {
-        type: c++/library
-        deps: [
-          ":system",
-        ]
+            compile_flags = [
+              '-DSFML_USE_STATIC_STD_LIBS',
+            ],
+          )
+        ),
 
-        srcs: [
-          "src/SFML/Window/Context.cpp",
-          "src/SFML/Window/GlContext.cpp",
-          "src/SFML/Window/GlResource.cpp",
-          "src/SFML/Window/Joystick.cpp",
-          "src/SFML/Window/JoystickManager.cpp",
-          "src/SFML/Window/Keyboard.cpp",
-          "src/SFML/Window/Mouse.cpp",
-          "src/SFML/Window/Touch.cpp",
-          "src/SFML/Window/Sensor.cpp",
-          "src/SFML/Window/SensorManager.cpp",
-          "src/SFML/Window/VideoMode.cpp",
-          "src/SFML/Window/Window.cpp",
-          "src/SFML/Window/WindowImpl.cpp",
-        ]
+        window = dict(
+          type = 'c++/library',
+          deps = [
+            ':system',
+          ],
 
-        linux: {
-          srcs: [
-            "glob:src/SFML/Window/Unix/*.cpp"
-          ]
-        }
+          srcs = [
+            'src/SFML/Window/Context.cpp',
+            'src/SFML/Window/GlContext.cpp',
+            'src/SFML/Window/GlResource.cpp',
+            'src/SFML/Window/Joystick.cpp',
+            'src/SFML/Window/JoystickManager.cpp',
+            'src/SFML/Window/Keyboard.cpp',
+            'src/SFML/Window/Mouse.cpp',
+            'src/SFML/Window/Touch.cpp',
+            'src/SFML/Window/Sensor.cpp',
+            'src/SFML/Window/SensorManager.cpp',
+            'src/SFML/Window/VideoMode.cpp',
+            'src/SFML/Window/Window.cpp',
+            'src/SFML/Window/WindowImpl.cpp',
+          ],
 
-        windows: {
-          srcs: [
-            "glob:src/SFML/Window/Win32/*.cpp"
-          ]
+          linux = dict(
+            srcs = [
+              'glob:src/SFML/Window/Unix/*.cpp',
+            ],
+          ),
 
-          includes: [
-            "extlibs/headers",
-            "extlibs/headers/AL",
-          ]
+          windows = dict(
+            srcs = [
+              'glob:src/SFML/Window/Win32/*.cpp',
+            ],
 
-          compile_flags: [
-              "-DUNICODE",
-              "-D_UNICODE",
-          ]
+            includes = [
+              'extlibs/headers',
+              'extlibs/headers/AL',
+            ],
 
-          link_flags: [
-            "opengl32.lib",
-            "winmm.lib",
-            "gdi32.lib",
-            "advapi32.lib",
-            "user32.lib",
-          ]
-        }
-      }
+            compile_flags = [
+                '-DUNICODE',
+                '-D_UNICODE',
+            ],
 
-      graphics: {
-        type: c++/library
-        deps: [
-          ":system",
-          ":window",
-        ]
+            link_flags = [
+              'opengl32.lib',
+              'winmm.lib',
+              'gdi32.lib',
+              'advapi32.lib',
+              'user32.lib',
+            ],
+          )
+        ),
 
-        srcs: [
-          "glob:src/SFML/Graphics/*.cpp",
-        ]
+        graphics = dict(
+          type = 'c++/library',
+          deps = [
+            ':system',
+            ':window',
+          ],
 
-        includes: [
-          "extlibs/headers/stb_image",
-        ]
+          srcs = [
+            'glob:src/SFML/Graphics/*.cpp',
+          ],
 
-        windows: {
-          libs: [
-            "extlibs/libs-msvc-universal/x86/freetype.lib",
-            "extlibs/libs-msvc-universal/x86/jpeg.lib",
-          ]
+          includes = [
+            'extlibs/headers/stb_image',
+          ],
 
-          includes: [
-            "extlibs/headers/freetype2",
-            "extlibs/headers/jpeg",
-          ]
+          windows = dict(
+            libs = [
+              'extlibs/libs-msvc-universal/x86/freetype.lib',
+              'extlibs/libs-msvc-universal/x86/jpeg.lib',
+            ],
 
-          link_flags: [
-            "legacy_stdio_definitions.lib",
-          ]
-        }
+            includes = [
+              'extlibs/headers/freetype2',
+              'extlibs/headers/jpeg',
+            ],
 
-        linux: {
-          compile_flags: [
-            "-I/usr/include/freetype2",
-          ]
+            link_flags = [
+              'legacy_stdio_definitions.lib',
+            ],
+          ),
 
-          link_flags: [
-            "-lGL",
-            "-lSM",
-            "-lICE",
-            "-lX11",
-            "-lXext",
-            "-lfreetype",
-            "-ljpeg",
-            "-lxcb",
-            "-lX11-xcb",
-            "-lxcb-image",
-            "-lxcb-randr",
-            "-ludev",
-          ]
-        }
-      }
+          linux = dict(
+            compile_flags = [
+              '-I/usr/include/freetype2',
+            ],
 
-      audio: {
-        type: c++/library
-        deps: [
-          ":system",
-        ]
+            link_flags = [
+              '-lGL',
+              '-lSM',
+              '-lICE',
+              '-lX11',
+              '-lXext',
+              '-lfreetype',
+              '-ljpeg',
+              '-lxcb',
+              '-lX11-xcb',
+              '-lxcb-image',
+              '-lxcb-randr',
+              '-ludev',
+            ],
+          ),
+        ),
 
-        srcs: [
-          "glob:src/SFML/Audio/*.cpp",
-        ]
+        audio = dict(
+          type = 'c++/library',
+          deps = [
+            ':system',
+          ],
 
-        linux: {
-          link_flags: [
-            "-lopenal",
-            "-lvorbisenc",
-            "-lvorbisfile",
-            "-lvorbis",
-            "-logg",
-            "-lFLAC",
-          ]
-        }
+          srcs = [
+            'glob:src/SFML/Audio/*.cpp',
+          ],
 
-        windows: {
-          libs: [
-            "extlibs/libs-msvc-universal/x86/flac.lib",
-            "extlibs/libs-msvc-universal/x86/openal32.lib",
-            "extlibs/libs-msvc-universal/x86/vorbis.lib",
-            "extlibs/libs-msvc-universal/x86/vorbisenc.lib",
-            "extlibs/libs-msvc-universal/x86/vorbisfile.lib",
-            "extlibs/libs-msvc-universal/x86/ogg.lib",
-          ]
+          linux = dict(
+            link_flags = [
+              '-lopenal',
+              '-lvorbisenc',
+              '-lvorbisfile',
+              '-lvorbis',
+              '-logg',
+              '-lFLAC',
+            ],
+          ),
 
-          includes: [
-            "extlibs/headers",
-            "extlibs/headers/AL",
-          ]
-        }
-      }
+          windows = dict(
+            libs = [
+              'extlibs/libs-msvc-universal/x86/flac.lib',
+              'extlibs/libs-msvc-universal/x86/openal32.lib',
+              'extlibs/libs-msvc-universal/x86/vorbis.lib',
+              'extlibs/libs-msvc-universal/x86/vorbisenc.lib',
+              'extlibs/libs-msvc-universal/x86/vorbisfile.lib',
+              'extlibs/libs-msvc-universal/x86/ogg.lib',
+            ],
 
-      network: {
-        type: c++/library
-        deps: [
-          ":system",
-        ]
+            includes = [
+              'extlibs/headers',
+              'extlibs/headers/AL',
+            ],
+          ),
+        ),
 
-        srcs: [
-          "glob:src/SFML/Network/*.cpp"
-        ]
+        network = dict(
+          type = 'c++/library',
+          deps = [
+            ':system',
+          ],
 
-        linux: {
-          srcs: [
-            "glob:src/SFML/Network/Unix/*.cpp"
-          ]
-        }
+          srcs = [
+            'glob:src/SFML/Network/*.cpp',
+          ],
 
-        windows: {
-          srcs: [
-            "glob:src/SFML/Network/Win32/*.cpp"
-          ]
+          linux = dict(
+            srcs = [
+              'glob:src/SFML/Network/Unix/*.cpp',
+            ],
+          ),
 
-          link_flags: [
-            "ws2_32.lib"
-          ]
-        }
-      }
-    }
+          windows = dict(
+            srcs = [
+              'glob:src/SFML/Network/Win32/*.cpp',
+            ],
+
+            link_flags = [
+              'ws2_32.lib',
+            ],
+          ),
+        ),
+      ),
+    )
   }
-}
+)
+
+print(json.dumps(workspace))

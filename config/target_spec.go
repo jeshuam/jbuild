@@ -192,7 +192,7 @@ func expandAllTargetsInTree(args *argsModule.Args, path, buildBase string) ([]in
 func expandAllTargetsInDir(args *argsModule.Args, path, buildBase string) ([]interfaces.TargetSpec, error) {
 	log.Debugf("Scanning for all targets in '%s'", util.OSPathToWSPath(path))
 	buildFilepath := filepath.Join(buildBase, path, args.BuildFilename)
-	targetsJSON, err := LoadBuildFile(buildFilepath)
+	targetsJSON, err := argsModule.LoadConfigFile(args, buildFilepath)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +269,8 @@ func MakeTargetSpec(args *argsModule.Args, rawSpec string, cwd string, buildBase
 
 		// If the buildFile is nil, then load it from the external repo.
 		if buildFile == nil {
-			buildFile, err = LoadBuildFile(filepath.Join(externalRepo.FsDir, args.BuildFilename))
+			buildFile, err = argsModule.LoadConfigFile(
+				args, filepath.Join(externalRepo.FsDir, args.BuildFilename))
 			if err != nil {
 				return nil, err
 			}
@@ -277,7 +278,8 @@ func MakeTargetSpec(args *argsModule.Args, rawSpec string, cwd string, buildBase
 	} else {
 		// Check to see whether the target exists. This requires that the BUILD file
 		// for this directory is parsed.
-		buildFile, err = LoadBuildFile(filepath.Join(spec.Path(), args.BuildFilename))
+		buildFile, err = argsModule.LoadConfigFile(
+			args, filepath.Join(spec.Path(), args.BuildFilename))
 		if err != nil {
 			return nil, err
 		}

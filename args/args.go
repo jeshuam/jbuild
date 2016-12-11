@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"runtime"
@@ -22,9 +23,10 @@ type Args struct {
 	DryRun bool
 
 	// Input/Output options.
-	OutputDir    string
-	GenOutputDir string
-	WorkspaceDir string
+	OutputDir            string
+	GenOutputDir         string
+	WorkspaceDir         string
+	UsePythonConfigFiles bool
 
 	// Workspace options.
 	BaseWorkspaceFiles string
@@ -99,6 +101,10 @@ func init() {
 		"The root directory of the workspace. If blank, the directory tree will be "+
 			"scanned for a WORKSPACE file. The filename searched for can be configured "+
 			"using the workspace_filename flag.")
+
+	flag.BoolVar(&args.UsePythonConfigFiles, "use_python_config_files", true,
+		"Use Python as the configuration language. BUILD files and WORKSPACE "+
+			"files must be executable python, which should print a JSON dictionary.")
 
 	// Workspace options.
 	flag.StringVar(&args.BaseWorkspaceFiles, "base_workspace_files", "",
@@ -176,20 +182,30 @@ func init() {
 // LoadConfigFile loads the BUILD specification file located at `path` and
 // returns a generic key-value mapping as the result. The BUILD file is
 // actually JSON, but we use hjson to make the config easier to write.
-func LoadConfigFile(path string) (map[string]interface{}, error) {
-	if _, err := os.Stat(path); err != nil {
-		return nil, errors.New(fmt.Sprintf("Config file not found '%s'", path))
-	}
+func LoadConfigFile(args *Args, path string) (map[string]interface{}, error) {
+	var jsonContent []byte
+	var err error
+	if args.UsePythonConfigFiles {
+		cmd := exec.Command("python", path)
+		jsonContent, err = cmd.CombinedOutput()
+		if err != nil {
+			return nil, errors.New(string(jsonContent))
+		}
+	} else {
+		if _, err = os.Stat(path); err != nil {
+			return nil, errors.New(fmt.Sprintf("Config file not found '%s'", path))
+		}
 
-	// Load the BUILD file.
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, errors.New(
-			fmt.Sprintf("Could not read config file '%s': %s", path, err))
+		// Load the BUILD file.
+		jsonContent, err = ioutil.ReadFile(path)
+		if err != nil {
+			return nil, errors.New(
+				fmt.Sprintf("Could not read config file '%s': %s", path, err))
+		}
 	}
 
 	configJson := make(map[string]interface{})
-	err = hjson.Unmarshal(content, &configJson)
+	err = hjson.Unmarshal(jsonContent, &configJson)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +293,7 @@ func Load(cwd string, customArgs *Args) (Args, error) {
 	for _, file := range baseWorkspaceFiles {
 		filePath := filepath.Join(newArgs.BaseWorkspaceFiles, file.Name())
 		if strings.HasSuffix(strings.ToLower(file.Name()), ".workspace") {
-			cfg, err := LoadConfigFile(filePath)
+			cfg, err := LoadConfigFile(&newArgs, filePath)
 			if err != nil {
 				return Args{}, err
 			}
@@ -325,7 +341,7 @@ func Load(cwd string, customArgs *Args) (Args, error) {
 	workspaceFilePath := filepath.Join(newArgs.WorkspaceDir, newArgs.WorkspaceFilename)
 	workspaceFileStat, _ := os.Stat(workspaceFilePath)
 	if workspaceFileStat.Size() > 0 {
-		loadedOptions, err := LoadConfigFile(workspaceFilePath)
+		loadedOptions, err := LoadConfigFile(&newArgs, workspaceFilePath)
 		if err != nil {
 			return Args{}, err
 		}
@@ -337,13 +353,22 @@ func Load(cwd string, customArgs *Args) (Args, error) {
 	newArgs.ExternalRepos = make(map[string]*ExternalRepo)
 	externalRepos, ok := newArgs.WorkspaceOptions[newArgs.ExternalRepoKey]
 	if ok {
-		for repoPath, repoJson := range externalRepos.(map[string]interface{}) {
+		for repoPath, repoJsonInt := range externalRepos.(map[string]interface{}) {
+			repoJson := repoJsonInt.(map[string]interface{})
+
+			// Get platform specific information.
+			platformRepoJson, ok := repoJson[runtime.GOOS]
+			if ok {
+				repoJson = Merge(repoJson, platformRepoJson.(map[string]interface{}))
+			}
+
 			// Load some basic information about the external repo.
-			externalRepo, err := MakeExternalRepo(repoPath, repoJson.(map[string]interface{}))
+			externalRepo, err := MakeExternalRepo(repoPath, repoJson)
 			if err != nil {
 				return Args{}, err
 			}
 
+			// Load platform specific options, and then merge.
 			newArgs.ExternalRepos[repoPath] = externalRepo
 		}
 	}

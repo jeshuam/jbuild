@@ -1,46 +1,213 @@
-external: {
-  "//third_party/googletest": {
-    url: "https://github.com/google/googletest"
-    branch: "release-1.8.0"
-    build: {
-      googletest: {
-        type: c++/library
-        srcs: [
-          "googletest/src/gtest.cc",
-          "googletest/src/gtest-death-test.cc",
-          "googletest/src/gtest-filepath.cc",
-          "googletest/src/gtest-port.cc",
-          "googletest/src/gtest-printers.cc",
-          "googletest/src/gtest-test-part.cc",
-          "googletest/src/gtest-typed-test.cc",
-        ]
+import json
 
-        hdrs: ["glob:googletest/include/gtest/**/*.h"]
-        includes: [
-          "googletest",
-          "googletest/include",
-        ]
-      }
+workspace = dict(
+  external = {
+    '//third_party/googletest': dict(
+      url = 'https://github.com/google/googletest',
+      branch = 'release-1.8.0',
+      build = dict(
+        googletest = dict(
+          type = 'c++/library',
+          srcs = [
+            'googletest/src/gtest.cc',
+            'googletest/src/gtest-death-test.cc',
+            'googletest/src/gtest-filepath.cc',
+            'googletest/src/gtest-port.cc',
+            'googletest/src/gtest-printers.cc',
+            'googletest/src/gtest-test-part.cc',
+            'googletest/src/gtest-typed-test.cc',
+          ],
 
-      main: {
-        type: c++/library
-        srcs: ["googletest/src/gtest_main.cc"]
-        deps: [
-          ":googletest"
-        ]
+          hdrs = [
+            'glob:googletest/include/gtest/**/*.h',
+          ],
 
-        linux: {
-          link_flags: [
-            "-lpthread",
-          ]
-        }
+          includes = [
+            'googletest',
+            'googletest/include',
+          ],
+        ),
 
-        windows: {
-          link_flags: [
-            "/SUBSYSTEM:CONSOLE",
-          ]
-        }
-      }
-    }
+        main = dict(
+          type = 'c++/library',
+          srcs = [
+            'googletest/src/gtest_main.cc',
+          ],
+
+          deps = [
+            ':googletest',
+          ],
+
+          linux = dict(
+            link_flags = [
+              '-lpthread',
+            ],
+          ),
+
+          windows = dict(
+            link_flags = [
+              '/SUBSYSTEM:CONSOLE',
+            ],
+          ),
+        ),
+      ),
+
+      windows = dict(
+        patch = '''
+diff --git a/googletest/include/gtest/internal/gtest-port.h b/googletest/include/gtest/internal/gtest-port.h
+index 0094ed5..372fda2 100644
+--- a/googletest/include/gtest/internal/gtest-port.h
++++ b/googletest/include/gtest/internal/gtest-port.h
+@@ -95,7 +95,7 @@
+ //   GTEST_HAS_STREAM_REDIRECTION
+ //                            - Define it to 1/0 to indicate whether the
+ //                              platform supports I/O stream redirection using
+-//                              dup() and dup2().
++//                              dup() and _dup2().
+ //   GTEST_USE_OWN_TR1_TUPLE  - Define it to 1/0 to indicate whether Google
+ //                              Test's own tr1 tuple implementation should be
+ //                              used.  Unused when the user sets
+@@ -2371,17 +2371,17 @@ inline FILE* FOpen(const char* path, const char* mode) {
+ inline FILE *FReopen(const char* path, const char* mode, FILE* stream) {
+   return freopen(path, mode, stream);
+ }
+-inline FILE* FDOpen(int fd, const char* mode) { return fdopen(fd, mode); }
++inline FILE* FDOpen(int fd, const char* mode) { return _fdopen(fd, mode); }
+ #endif
+ inline int FClose(FILE* fp) { return fclose(fp); }
+ #if !GTEST_OS_WINDOWS_MOBILE
+ inline int Read(int fd, void* buf, unsigned int count) {
+-  return static_cast<int>(read(fd, buf, count));
++  return static_cast<int>(_read(fd, buf, count));
+ }
+ inline int Write(int fd, const void* buf, unsigned int count) {
+-  return static_cast<int>(write(fd, buf, count));
++  return static_cast<int>(_write(fd, buf, count));
+ }
+-inline int Close(int fd) { return close(fd); }
++inline int Close(int fd) { return _close(fd); }
+ inline const char* StrError(int errnum) { return strerror(errnum); }
+ #endif
+ inline const char* GetEnv(const char* name) {
+diff --git a/googletest/src/gtest-death-test.cc b/googletest/src/gtest-death-test.cc
+index a01a369..5117c19 100644
+--- a/googletest/src/gtest-death-test.cc
++++ b/googletest/src/gtest-death-test.cc
+@@ -854,7 +854,7 @@ DeathTest::TestRole NoExecDeathTest::AssumeRole() {
+   GTEST_DEATH_TEST_CHECK_(child_pid != -1);
+   set_child_pid(child_pid);
+   if (child_pid == 0) {
+-    GTEST_DEATH_TEST_CHECK_SYSCALL_(close(pipe_fd[0]));
++    GTEST_DEATH_TEST_CHECK_SYSCALL_(_close(pipe_fd[0]));
+     set_write_fd(pipe_fd[1]);
+     // Redirects all logging to stderr in the child process to prevent
+     // concurrent writes to the log files.  We capture stderr in the parent
+@@ -866,7 +866,7 @@ DeathTest::TestRole NoExecDeathTest::AssumeRole() {
+     g_in_fast_death_test_child = true;
+     return EXECUTE_TEST;
+   } else {
+-    GTEST_DEATH_TEST_CHECK_SYSCALL_(close(pipe_fd[1]));
++    GTEST_DEATH_TEST_CHECK_SYSCALL_(_close(pipe_fd[1]));
+     set_read_fd(pipe_fd[0]);
+     set_spawned(true);
+     return OVERSEE_TEST;
+@@ -959,7 +959,7 @@ inline char** GetEnviron() { return environ; }
+ // any potentially unsafe operations like malloc or libc functions.
+ static int ExecDeathTestChildMain(void* child_arg) {
+   ExecDeathTestArgs* const args = static_cast<ExecDeathTestArgs*>(child_arg);
+-  GTEST_DEATH_TEST_CHECK_SYSCALL_(close(args->close_fd));
++  GTEST_DEATH_TEST_CHECK_SYSCALL_(_close(args->close_fd));
+
+   // We need to execute the test program in the same environment where
+   // it was originally invoked.  Therefore we change to the original
+@@ -1049,7 +1049,7 @@ static pid_t ExecDeathTestSpawnChild(char* const* argv, int close_fd) {
+   child_pid = spawn(args.argv[0], 0, NULL, &inherit, args.argv, GetEnviron());
+   // Restores the current working directory.
+   GTEST_DEATH_TEST_CHECK_(fchdir(cwd_fd) != -1);
+-  GTEST_DEATH_TEST_CHECK_SYSCALL_(close(cwd_fd));
++  GTEST_DEATH_TEST_CHECK_SYSCALL_(_close(cwd_fd));
+
+ #  else   // GTEST_OS_QNX
+ #   if GTEST_OS_LINUX
+@@ -1154,7 +1154,7 @@ DeathTest::TestRole ExecDeathTest::AssumeRole() {
+   FlushInfoLog();
+
+   const pid_t child_pid = ExecDeathTestSpawnChild(args.Argv(), pipe_fd[0]);
+-  GTEST_DEATH_TEST_CHECK_SYSCALL_(close(pipe_fd[1]));
++  GTEST_DEATH_TEST_CHECK_SYSCALL_(_close(pipe_fd[1]));
+   set_child_pid(child_pid);
+   set_read_fd(pipe_fd[0]);
+   set_spawned(true);
+diff --git a/googletest/src/gtest-port.cc b/googletest/src/gtest-port.cc
+index e5bf3dd..f70d038 100644
+--- a/googletest/src/gtest-port.cc
++++ b/googletest/src/gtest-port.cc
+@@ -143,7 +143,7 @@ size_t GetThreadCount() {
+   procfs_info process_info;
+   const int status =
+       devctl(fd, DCMD_PROC_INFO, &process_info, sizeof(process_info), NULL);
+-  close(fd);
++  _close(fd);
+   if (status == EOK) {
+     return static_cast<size_t>(process_info.num_threads);
+   } else {
+@@ -933,7 +933,7 @@ GTEST_DISABLE_MSC_WARNINGS_PUSH_(4996)
+ class CapturedStream {
+  public:
+   // The ctor redirects the stream to a temporary file.
+-  explicit CapturedStream(int fd) : fd_(fd), uncaptured_fd_(dup(fd)) {
++  explicit CapturedStream(int fd) : fd_(fd), uncaptured_fd_(_dup(fd)) {
+ # if GTEST_OS_WINDOWS
+     char temp_dir_path[MAX_PATH + 1] = { '\\0' };  // NOLINT
+     char temp_file_path[MAX_PATH + 1] = { '\\0' };  // NOLINT
+@@ -945,7 +945,7 @@ class CapturedStream {
+                                             temp_file_path);
+     GTEST_CHECK_(success != 0)
+         << "Unable to create a temporary file in " << temp_dir_path;
+-    const int captured_fd = creat(temp_file_path, _S_IREAD | _S_IWRITE);
++    const int captured_fd = _creat(temp_file_path, _S_IREAD | _S_IWRITE);
+     GTEST_CHECK_(captured_fd != -1) << "Unable to open temporary file "
+                                     << temp_file_path;
+     filename_ = temp_file_path;
+@@ -977,8 +977,8 @@ class CapturedStream {
+     filename_ = name_template;
+ # endif  // GTEST_OS_WINDOWS
+     fflush(NULL);
+-    dup2(captured_fd, fd_);
+-    close(captured_fd);
++    _dup2(captured_fd, fd_);
++    _close(captured_fd);
+   }
+
+   ~CapturedStream() {
+@@ -989,8 +989,8 @@ class CapturedStream {
+     if (uncaptured_fd_ != -1) {
+       // Restores the original stream.
+       fflush(NULL);
+-      dup2(uncaptured_fd_, fd_);
+-      close(uncaptured_fd_);
++      _dup2(uncaptured_fd_, fd_);
++      _close(uncaptured_fd_);
+       uncaptured_fd_ = -1;
+     }
+
+diff --git a/googletest/src/gtest.cc b/googletest/src/gtest.cc
+index d882ab2..e2a800e 100644
+--- a/googletest/src/gtest.cc
++++ b/googletest/src/gtest.cc
+@@ -3804,7 +3804,7 @@ void StreamingListener::SocketWriter::MakeConnection() {
+     if (sockfd_ != -1) {
+       // Connect the client socket to the server socket.
+       if (connect(sockfd_, cur_addr->ai_addr, cur_addr->ai_addrlen) == -1) {
+-        close(sockfd_);
++        _close(sockfd_);
+         sockfd_ = -1;
+       }
+     }
+        '''
+      )
+    )
   }
-}
+)
+
+print(json.dumps(workspace))

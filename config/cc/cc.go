@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -30,10 +31,18 @@ func compileFiles(args *args.Args, target *Target, progressBar *progress.Progres
 		// Display the source file we are building.
 		progressBar.SetSuffix(srcFile.String())
 
+		// Work out the suffix.
+		var suffix string
+		if runtime.GOOS == "windows" {
+			suffix = ".obj"
+		} else {
+			suffix = ".o"
+		}
+
 		// Work out the full path to the source file. This will need to be provided
 		// to the compiler.
 		srcPath := srcFile.FsPath()
-		objPath := srcFile.FsOutputPath() + ".o"
+		objPath := srcFile.FsOutputPath() + suffix
 		objs = append(objs, objPath)
 
 		// Make the directory of the obj if needed.

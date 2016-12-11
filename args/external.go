@@ -3,7 +3,6 @@ package args
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -69,8 +68,7 @@ func MakeExternalRepo(path string, repoJson map[string]interface{}) (*ExternalRe
 				buildPath = filepath.Join(args.WorkspaceDir, buildPath)
 			}
 
-			fmt.Printf("looking for %s, %s\n", buildPath, args.WorkspaceDir)
-			build, err = LoadConfigFile(buildPath)
+			build, err = LoadConfigFile(&args, buildPath)
 			buildFile = buildInt.(string)
 			if err != nil {
 				return nil, err
@@ -125,28 +123,28 @@ func fetchGit(args *Args, repo *ExternalRepo) error {
 			fmt.Printf("Patching %s...\n", repo.Path)
 
 			// Write a temporary patch file.
-			tmpPatchFile, err := ioutil.TempFile("", "patch")
+			patchFilePath := filepath.Join(gitDir, "jbuild.patch")
+			patchFile, err := os.Create(patchFilePath)
 			if err != nil {
 				return err
 			}
 
-			defer os.Remove(tmpPatchFile.Name())
+			defer os.Remove(patchFilePath)
 
-			if _, err := tmpPatchFile.Write([]byte(repo.Patch)); err != nil {
+			if _, err := patchFile.Write([]byte(repo.Patch)); err != nil {
 				return err
 			}
 
-			if err := tmpPatchFile.Close(); err != nil {
+			if err := patchFile.Close(); err != nil {
 				return err
 			}
 
-			cmd := exec.Command("git", "apply", tmpPatchFile.Name())
+			cmd := exec.Command("git", "apply", "jbuild.patch")
 			cmd.Dir = gitDir
-			cmd.Stdout = os.Stdout
 
-			err = cmd.Run()
+			output, err := cmd.CombinedOutput()
 			if err != nil {
-				return err
+				return errors.New(string(output))
 			}
 		}
 	} else if args.UpdateExternals {

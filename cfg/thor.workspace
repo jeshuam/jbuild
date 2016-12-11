@@ -1,39 +1,45 @@
-external: {
-  "//third_party/sfml/thor": {
-    url: "https://github.com/Bromeon/Thor"
-    branch: "master"
-    build: {
-      thor: {
-        type: c++/library
-        srcs: [
-          "glob:src/*.cpp",
-        ]
+import json
 
-        hdrs: [
-          "glob:include/**/*.hpp",
-          "glob:extlibs/aurora/include/**/*.hpp",
-        ]
+workspace = dict(
+  external = {
+    '//third_party/sfml/thor': dict(
+      url = 'https://github.com/Bromeon/Thor',
+      branch = 'master',
+      build = dict(
+        thor = dict(
+          type = 'c++/library',
+          srcs = [
+            'glob:src/*.cpp',
+          ],
 
-        includes: [
-          "extlibs/aurora/include",
-          "include",
-        ]
+          hdrs = [
+            'glob:include/**/*.hpp',
+            'glob:extlibs/aurora/include/**/*.hpp',
+          ],
 
-        deps: [
-          "//third_party/sfml:audio",
-          "//third_party/sfml:graphics",
-        ]
+          includes = [
+            'extlibs/aurora/include',
+            'include',
+          ],
 
-        compile_flags: [
-          "-DTHOR_EXPORTS",
-        ]
+          deps = [
+            '//third_party/sfml:audio',
+            '//third_party/sfml:graphics',
+          ],
 
-        linux: {
-          compile_flags: [
-            "-std=c++11",
-          ]
-        }
-      }
-    }
+          compile_flags = [
+            '-DTHOR_EXPORTS',
+          ],
+
+          linux = dict(
+            compile_flags = [
+              '-std=c++11',
+            ],
+          ),
+        )
+      )
+    )
   }
-}
+)
+
+print(json.dumps(workspace))

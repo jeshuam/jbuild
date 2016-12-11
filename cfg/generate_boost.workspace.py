@@ -1,8 +1,8 @@
 import os
 import json
 
-# BOOST_DIR = 'D:\\Development\\Code\\C++\\boost'
-BOOST_DIR = '/home/jeshua/code/c++/boost'
+BOOST_DIR = 'D:\\Development\\Code\\C++\\boost'
+# BOOST_DIR = '/home/jeshua/code/c++/boost'
 EXT_DIR = '//third_party/boost/%s'
 SRC_EXTS = ['c', 'cpp', 'cc']
 
@@ -94,5 +94,12 @@ for module in modules:
   externalCfg['build'] = buildCfg
   finalCfg['external'][EXT_DIR % module] = externalCfg
 
+# Format the output as a python file.
+cfg = '''
+print("""
+%s
+""")
+''' % json.dumps(finalCfg)
+
 # Print the final config as json.
-print(json.dumps(finalCfg, indent=4, sort_keys=True))
+print(cfg)

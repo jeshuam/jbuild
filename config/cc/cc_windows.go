@@ -90,14 +90,23 @@ func prepareEnvironment(args *args.Args, target *Target, cmd *exec.Cmd) {
 
 	// Set LIBDIR.
 	env = append(env, fmt.Sprintf(
-		"LIB=%s;%s;%s;%s;%s",
-		filepath.Join(vcInstallDir, "lib"),
+		"LIBPATH=%s;%s;%s;",
 		filepath.Join(vcInstallDir, "lib", "amd64"),
-		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "ucrt", "x86"),
-		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "um", "x86")))
+		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "ucrt", "x64"),
+		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "um", "x64")))
+
+	env = append(env, fmt.Sprintf(
+		"LIB=%s;%s;%s;",
+		filepath.Join(vcInstallDir, "lib", "amd64"),
+		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "ucrt", "x64"),
+		filepath.Join(ucrtSdkDir, "Lib", ucrtSdkVersion, "um", "x64")))
 
 	cmd.Env = env
-	cmd.Path = filepath.Join(vcInstallDir, "bin", cmd.Args[0])
+
+	filename := filepath.Base(cmd.Args[0])
+	if filename == "cl.exe" || filename == "link.exe" || filename == "lib.exe" {
+		cmd.Path = filepath.Join(vcInstallDir, "bin", "amd64", cmd.Args[0])
+	}
 }
 
 func LibraryName(name string) string {

@@ -3,6 +3,7 @@ package cc
 import (
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/jeshuam/jbuild/args"
@@ -18,11 +19,12 @@ func compileCommand(args *args.Args, target *Target, src, obj string) *exec.Cmd 
 		flags = append(flags, []string{"/c", "/Fo" + obj, src, "/EHsc"}...)
 	} else {
 		flags = append(flags, []string{
-			"-I/usr/include",
-			"-fPIC",
 			"-fcolor-diagnostics",
 			"-c", "-o", obj, src}...)
 	}
+
+	// Add the OS as a #define, which could be useful.
+	flags = append(flags, "-DOS_"+strings.ToUpper(runtime.GOOS))
 
 	// Build up the command line. This varies depending on the compiler type
 	// (mainly because cl.exe is really weird).
@@ -61,7 +63,7 @@ func compileCommand(args *args.Args, target *Target, src, obj string) *exec.Cmd 
 func linkCommand(args *args.Args, target *Target, objs []string, output string) *exec.Cmd {
 	// Work out which linker to use.
 	var linker string
-	if args.CCCompiler == "cl.exe" {
+	if runtime.GOOS == "windows" {
 		if strings.HasSuffix(output, ".lib") {
 			linker = "lib.exe"
 		} else {
@@ -79,7 +81,7 @@ func linkCommand(args *args.Args, target *Target, objs []string, output string) 
 	// Make the flags.
 	flags := []string{}
 	if linker == "lib.exe" || linker == "link.exe" {
-		flags = []string{"/OUT:" + output}
+		flags = []string{"/OUT:" + output, "msvcrt.lib"}
 	} else if linker == "ar" {
 		flags = []string{"cr", output}
 	} else {
