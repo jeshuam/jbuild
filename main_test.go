@@ -498,6 +498,7 @@ func Test19ExternalLibraryWithIncludedBUILDFile(t *testing.T) {
 	// Set the current directory.
 	defaultArgs := args.DefaultArgs()
 	defaultArgs.CleanExternalRepos = true
+	defaultArgs.BaseWorkspaceFiles = "../../cfg"
 	args := setupTest(t, filepath.Join("19_external_library_with_included_workspace"), &defaultArgs)
 
 	// Build up the command-line.
