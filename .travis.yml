@@ -1,2 +1,7 @@
-language: go
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y golang python
+
+install: go get -ut github.com/jeshuam/jbuild
 script: go test .
+language: c++
