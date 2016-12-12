@@ -5,3 +5,5 @@ before_install:
 install: go get -u -t github.com/jeshuam/jbuild
 script: go test -v .
 language: c++
+notifications:
+  email: false
