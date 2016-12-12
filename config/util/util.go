@@ -3,6 +3,7 @@ package util
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -79,4 +80,25 @@ func MakeUnique(args []string) []string {
 	}
 
 	return output
+}
+
+func CopyFile(src, dst string) error {
+	fmt.Printf("copying %s -> %s\n", src, dst)
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+
+	defer srcFile.Close()
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(dstFile, srcFile); err != nil {
+		dstFile.Close()
+		return err
+	}
+
+	return dstFile.Close()
 }

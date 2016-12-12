@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"time"
 
 	"github.com/jeshuam/jbuild/args"
 	"github.com/jeshuam/jbuild/common"
+	"github.com/jeshuam/jbuild/config/util"
 	"github.com/jeshuam/jbuild/progress"
 	"github.com/op/go-logging"
 )
@@ -32,12 +32,7 @@ func compileFiles(args *args.Args, target *Target, progressBar *progress.Progres
 		progressBar.SetSuffix(srcFile.String())
 
 		// Work out the suffix.
-		var suffix string
-		if runtime.GOOS == "windows" {
-			suffix = ".obj"
-		} else {
-			suffix = ".o"
-		}
+		suffix := ".o"
 
 		// Work out the full path to the source file. This will need to be provided
 		// to the compiler.
@@ -157,7 +152,7 @@ func copyData(target *Target, progressBar *progress.ProgressBar) error {
 
 		// If the output file doesn't exist, then copy it.
 		if !common.FileExists(outputFile) {
-			err := os.Link(inputFile, outputFile)
+			err := util.CopyFile(inputFile, outputFile)
 			if err != nil {
 				return err
 			}

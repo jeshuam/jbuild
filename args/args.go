@@ -23,10 +23,9 @@ type Args struct {
 	DryRun bool
 
 	// Input/Output options.
-	OutputDir            string
-	GenOutputDir         string
-	WorkspaceDir         string
-	UsePythonConfigFiles bool
+	OutputDir    string
+	GenOutputDir string
+	WorkspaceDir string
 
 	// Workspace options.
 	BaseWorkspaceFiles string
@@ -101,10 +100,6 @@ func init() {
 		"The root directory of the workspace. If blank, the directory tree will be "+
 			"scanned for a WORKSPACE file. The filename searched for can be configured "+
 			"using the workspace_filename flag.")
-
-	flag.BoolVar(&args.UsePythonConfigFiles, "use_python_config_files", true,
-		"Use Python as the configuration language. BUILD files and WORKSPACE "+
-			"files must be executable python, which should print a JSON dictionary.")
 
 	// Workspace options.
 	flag.StringVar(&args.BaseWorkspaceFiles, "base_workspace_files", "",
@@ -185,29 +180,34 @@ func init() {
 func LoadConfigFile(args *Args, path string) (map[string]interface{}, error) {
 	var jsonContent []byte
 	var err error
-	if args.UsePythonConfigFiles {
+
+	// First, try to load the config file as JSON. If there was some error, then
+	// try to load it as a Python file.
+	if _, err = os.Stat(path); err != nil {
+		return nil, errors.New(fmt.Sprintf("Config file not found '%s'", path))
+	}
+
+	jsonContent, err = ioutil.ReadFile(path)
+	if err != nil {
+		return nil, errors.New(
+			fmt.Sprintf("Could not read config file '%s': %s", path, err))
+	}
+
+	configJson := make(map[string]interface{})
+	err = hjson.Unmarshal(jsonContent, &configJson)
+
+	// Failed to load JSON, try execute it as a Python file.
+	if err != nil {
 		cmd := exec.Command("python", path)
 		jsonContent, err = cmd.CombinedOutput()
 		if err != nil {
 			return nil, errors.New(string(jsonContent))
 		}
-	} else {
-		if _, err = os.Stat(path); err != nil {
-			return nil, errors.New(fmt.Sprintf("Config file not found '%s'", path))
-		}
 
-		// Load the BUILD file.
-		jsonContent, err = ioutil.ReadFile(path)
+		err = hjson.Unmarshal(jsonContent, &configJson)
 		if err != nil {
-			return nil, errors.New(
-				fmt.Sprintf("Could not read config file '%s': %s", path, err))
+			return nil, err
 		}
-	}
-
-	configJson := make(map[string]interface{})
-	err = hjson.Unmarshal(jsonContent, &configJson)
-	if err != nil {
-		return nil, err
 	}
 
 	return configJson, nil
@@ -400,7 +400,7 @@ func Load(cwd string, customArgs *Args) (Args, error) {
 	// Load the C++ compiler.
 	if newArgs.CCCompiler == "" {
 		if runtime.GOOS == "windows" {
-			newArgs.CCCompiler = "clang++.exe"
+			newArgs.CCCompiler = "cl.exe"
 		} else if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
 			newArgs.CCCompiler = "clang++"
 		} else {

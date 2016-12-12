@@ -480,9 +480,9 @@ func Test18MultistepGenrules(t *testing.T) {
 	fileNames, binary := listOutputFiles(t, &args, "hello_world")
 	require.Len(t, fileNames, 8)
 	assert.Contains(t, fileNames, "main.cc.o")
-	assert.Contains(t, fileNames, "gen/pa.cc")
-	assert.Contains(t, fileNames, "gen/ss.cc")
-	assert.Contains(t, fileNames, "gen/ed.cc")
+	assert.Contains(t, fileNames, filepath.Join("gen", "pa.cc"))
+	assert.Contains(t, fileNames, filepath.Join("gen", "ss.cc"))
+	assert.Contains(t, fileNames, filepath.Join("gen", "ed.cc"))
 	require.Contains(t, fileNames, cc.BinaryName("hello_world"))
 
 	// Run the binary and get the output.

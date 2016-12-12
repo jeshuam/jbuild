@@ -3,7 +3,6 @@ package genrule
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -16,6 +15,7 @@ import (
 	"github.com/jeshuam/jbuild/common"
 	"github.com/jeshuam/jbuild/config/filegroup"
 	"github.com/jeshuam/jbuild/config/interfaces"
+	"github.com/jeshuam/jbuild/config/util"
 	"github.com/jeshuam/jbuild/progress"
 	"github.com/op/go-logging"
 )
@@ -98,26 +98,6 @@ func (this *Target) Validate() error {
 	return nil
 }
 
-func copyFile(src, dst string) error {
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-
-	defer srcFile.Close()
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-
-	if _, err := io.Copy(dstFile, srcFile); err != nil {
-		dstFile.Close()
-		return err
-	}
-
-	return dstFile.Close()
-}
-
 func (this *Target) Process(args *args.Args, progress *progress.ProgressBar, workQueue chan common.CmdSpec) error {
 	log := logging.MustGetLogger("jbuild")
 
@@ -143,14 +123,14 @@ func (this *Target) Process(args *args.Args, progress *progress.ProgressBar, wor
 			for _, fileSpec := range filegroup.AllFiles() {
 				dest := filepath.Join(tempDir, fileSpec.Dir(), fileSpec.Filename())
 				os.MkdirAll(filepath.Dir(dest), 0755)
-				copyFile(fileSpec.FsPath(), dest)
+				util.CopyFile(fileSpec.FsPath(), dest)
 			}
 
 		case interfaces.FileSpec:
 			fileSpec := spec.(interfaces.FileSpec)
 			dest := filepath.Join(tempDir, fileSpec.Dir(), fileSpec.Filename())
 			os.MkdirAll(filepath.Dir(dest), 0755)
-			copyFile(fileSpec.FsPath(), dest)
+			util.CopyFile(fileSpec.FsPath(), dest)
 		}
 	}
 
@@ -204,7 +184,7 @@ func (this *Target) Process(args *args.Args, progress *progress.ProgressBar, wor
 		createdOutputFile := filepath.Join(tempDir, outputFile.Dir(), outputFile.Filename())
 		if exists, _ := os.Stat(createdOutputFile); exists != nil {
 			os.MkdirAll(filepath.Dir(finalOutputFilePath), 0755)
-			copyFile(createdOutputFile, finalOutputFilePath)
+			util.CopyFile(createdOutputFile, finalOutputFilePath)
 		} else {
 			return errors.New(fmt.Sprintf("Required file %s was not created", outputFile))
 		}
