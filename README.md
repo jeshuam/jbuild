@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jeshuam/jbuild.svg?branch=master)](https://travis-ci.org/jeshuam/jbuild)
+
 # JBuild
 JBuild is a cross-platform, C++ build system written in Go. JBuild aims to have
 a very simple configuration compared to other build systems (such as CMake) to
