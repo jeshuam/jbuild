@@ -83,7 +83,6 @@ func MakeUnique(args []string) []string {
 }
 
 func CopyFile(src, dst string) error {
-	fmt.Printf("copying %s -> %s\n", src, dst)
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return err
