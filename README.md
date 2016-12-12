@@ -12,7 +12,7 @@ worked natively on both Windows and Linux.
 JBuild can currently be installed using Go's awesome toolset:
 
 `
-go -u install github.com/jeshuam/jbuild
+go get -u github.com/jeshuam/jbuild && go install github.com/jeshuam/jbuild
 `
 
 ## Quick Example
