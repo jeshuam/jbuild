@@ -1,0 +1,6 @@
+external: {
+  "//util/string": {
+    url: "https://github.com/jeshuam/cppstring"
+    build_root: "src"
+  }
+}

@@ -95,11 +95,4 @@ for module in modules:
   finalCfg['external'][EXT_DIR % module] = externalCfg
 
 # Format the output as a python file.
-cfg = '''
-print("""
-%s
-""")
-''' % json.dumps(finalCfg)
-
-# Print the final config as json.
-print(cfg)
+print(json.dumps(finalCfg))
