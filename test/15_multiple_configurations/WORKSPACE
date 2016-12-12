@@ -1,11 +1,11 @@
 windows: {
   debug: {
-    compile_flags: ['/DX']
+    compile_flags: ["/DX"]
   }
 }
 
 linux: {
   debug: {
-    compile_flags: ['-std=c++11', '-DX']
+    compile_flags: ["-std=c++11", "-DX"]
   }
 }

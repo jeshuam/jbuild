@@ -15,7 +15,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/client9/xson/hjson"
+	"github.com/hjson/hjson-go"
 )
 
 type Args struct {
