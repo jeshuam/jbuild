@@ -332,9 +332,8 @@ func Load(cwd string, customArgs *Args) (Args, error) {
 	}
 
 	// Load the ExternalRepoDir flag.
-	workspaceName := filepath.Base(newArgs.WorkspaceDir)
 	if newArgs.ExternalRepoDir == "" {
-		newArgs.ExternalRepoDir = filepath.Join(usr.HomeDir, ".jbuild", workspaceName)
+		newArgs.ExternalRepoDir = filepath.Join(usr.HomeDir, ".jbuild", "external")
 	}
 
 	// Load the workspace file.
