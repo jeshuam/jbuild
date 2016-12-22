@@ -72,9 +72,11 @@ func MakeUnique(args []string) []string {
 	found := make(map[string]bool, len(args))
 	output := make([]string, 0, len(args))
 	for _, arg := range args {
-		_, ok := found[arg]
+		// If the arg is key-value, then only keep the first one.
+		argName := strings.Split(arg, "=")[0]
+		_, ok := found[argName]
 		if !ok {
-			found[arg] = true
+			found[argName] = true
 			output = append(output, arg)
 		}
 	}
