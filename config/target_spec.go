@@ -69,9 +69,12 @@ func (this *TargetSpecImpl) OutputPath() string {
 		this.args.OutputDir, strings.Replace(this.path, "/", pathSeparator, -1))
 }
 
-func (this *TargetSpecImpl) Dependencies(all bool) []interfaces.TargetSpec {
+func (this *TargetSpecImpl) dependenciesRecurse(
+	all bool, found map[string]interfaces.TargetSpec) map[string]interfaces.TargetSpec {
 	targetType, targetValue, _ := getReflectTypeAndValueForTarget(this.Target())
 	deps := make([]interfaces.TargetSpec, 0)
+
+	found[this.String()] = this
 
 	// Iterate through the fields one by one.
 	for i := 0; i < targetType.NumField(); i++ {
@@ -108,12 +111,36 @@ func (this *TargetSpecImpl) Dependencies(all bool) []interfaces.TargetSpec {
 
 	// Recurse if requested.
 	if all {
-		recursiveDeps := make([]interfaces.TargetSpec, 0)
 		for _, targetSpec := range deps {
-			recursiveDeps = append(recursiveDeps, targetSpec.Dependencies(true)...)
-		}
+			// If we have already found this, then stop.
+			_, ok := found[targetSpec.String()]
+			if ok {
+				continue
+			}
 
-		deps = append(deps, recursiveDeps...)
+			targetSpec.(*TargetSpecImpl).dependenciesRecurse(true, found)
+		}
+	}
+
+	if !all {
+		// Add all of the direct deps.
+		for _, dep := range deps {
+			found[dep.String()] = dep
+		}
+	}
+
+	return found
+}
+
+func (this *TargetSpecImpl) Dependencies(all bool) []interfaces.TargetSpec {
+	found := this.dependenciesRecurse(all, make(map[string]interfaces.TargetSpec))
+
+	// Make a list of specs.
+	deps := make([]interfaces.TargetSpec, 0, len(found))
+	for _, v := range found {
+		if v.String() != this.String() {
+			deps = append(deps, v)
+		}
 	}
 
 	return deps

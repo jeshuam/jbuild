@@ -61,10 +61,8 @@ func (this *Target) GetType() string {
 }
 
 func (this *Target) Processed() bool {
-	// If there are no source files for this target, then we have to be finished.
-	// This is because there must be no output. It's probably just a bag of
-	// headers or something.
-	if len(this.srcs()) == 0 {
+	// If we have nothing to do, then we must be processed.
+	if this.TotalOps() == 0 {
 		return true
 	}
 
@@ -123,7 +121,13 @@ func (this *Target) Processed() bool {
 }
 
 func (this *Target) TotalOps() int {
-	return len(this.srcs()) + len(this.data()) + 1
+	numSrcs := len(this.srcs())
+	ops := numSrcs + len(this.data())
+	if numSrcs > 0 {
+		ops += 1 // for linking
+	}
+
+	return ops
 }
 
 func (this *Target) OutputFiles() []string {
@@ -315,7 +319,7 @@ func (this *Target) compileFlags() []string {
 	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
-			compileFlags = append(compileFlags, dep.Target().(*Target).compileFlags()...)
+			compileFlags = append(compileFlags, dep.Target().(*Target).CompileFlags...)
 		}
 	}
 
@@ -329,7 +333,7 @@ func (this *Target) linkFlags() []string {
 	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
-			linkFlags = append(linkFlags, dep.Target().(*Target).linkFlags()...)
+			linkFlags = append(linkFlags, dep.Target().(*Target).LinkFlags...)
 		}
 	}
 
@@ -343,7 +347,7 @@ func (this *Target) includes() []interfaces.DirSpec {
 	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
-			includes = append(includes, dep.Target().(*Target).includes()...)
+			includes = append(includes, dep.Target().(*Target).Includes...)
 		}
 	}
 
@@ -357,7 +361,8 @@ func (this *Target) libs() []interfaces.FileSpec {
 	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
-			libs = append(libs, dep.Target().(*Target).libs()...)
+			libs = append(
+				libs, extractFileSpecs(dep.Target().(*Target).Libs, nil)...)
 		}
 	}
 
@@ -371,7 +376,8 @@ func (this *Target) data() []interfaces.FileSpec {
 	for _, dep := range this.Spec.Dependencies(true) {
 		switch dep.Target().(type) {
 		case *Target:
-			data = append(data, dep.Target().(*Target).data()...)
+			data = append(
+				data, extractFileSpecs(dep.Target().(*Target).Data, nil)...)
 		}
 	}
 
