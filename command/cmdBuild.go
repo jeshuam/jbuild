@@ -60,6 +60,8 @@ func buildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 						progress.AddBar(spec.Target().TotalOps(), spec.String()).Finish()
 					}
 
+					log.Infof("Skipping %s...", spec)
+
 					continue
 				}
 
@@ -88,6 +90,7 @@ func buildTargets(args *args.Args, targetsToBuild map[string]interfaces.TargetSp
 
 		for i := 0; i < startedThisRound; i++ {
 			// Get results from running targets.
+			log.Infof("waiting for %d to finish processing...", startedThisRound)
 			result := <-results
 			if result.Err != nil {
 				return result.Err

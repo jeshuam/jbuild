@@ -146,10 +146,12 @@ func JBuildRun(args args.Args, cmdArgs []string) error {
 	// Further process the targets.
 	if command == "run" {
 		log.Infof("Running '%s'", firstTargetSpecified)
-		cmd := exec.Command(firstTargetSpecified.Target().OutputFiles()[0], cmdArgs[2:]...)
+		binary := firstTargetSpecified.Target().OutputFiles()[0]
+		cmd := exec.Command(binary, cmdArgs[2:]...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
+		cmd.Dir = filepath.Dir(binary)
 
 		if args.ShowCommands {
 			log.Infof("$ %s", cmd.Args)

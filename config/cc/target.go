@@ -117,6 +117,15 @@ func (this *Target) Processed() bool {
 		return false
 	}
 
+	// Check if any data files need to be updated.
+	for _, dataFileSpec := range this.data() {
+		dataFileStat, _ := os.Stat(dataFileSpec.FsPath())
+		outputDataFileStat, _ := os.Stat(dataFileSpec.FsOutputPath())
+		if outputDataFileStat == nil || dataFileStat.ModTime().After(outputDataFileStat.ModTime()) {
+			return false
+		}
+	}
+
 	return true
 }
 
