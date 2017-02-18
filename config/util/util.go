@@ -41,6 +41,11 @@ func checkForDependencyCyclesRecurse(
 	// Look through each child of the current target and recurse to it, first
 	// adding this node to the visited list.
 	for _, dep := range spec.Dependencies(false) {
+		// We can stop if the dep doesn't need processing.
+		if dep.Target().TotalOps() == 0 {
+			continue
+		}
+
 		err := checkForDependencyCyclesRecurse(dep, visited, seq+1)
 		if err != nil {
 			return err

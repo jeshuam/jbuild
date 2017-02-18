@@ -152,6 +152,7 @@ func copyData(target *Target, progressBar *progress.ProgressBar) error {
 
 		// If the output file doesn't exist, then copy it.
 		if !common.FileExists(outputFile) {
+			os.MkdirAll(filepath.Dir(outputFile), 0755)
 			err := util.CopyFile(inputFile, outputFile)
 			if err != nil {
 				return err
