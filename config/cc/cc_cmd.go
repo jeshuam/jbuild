@@ -106,15 +106,16 @@ func linkCommand(args *args.Args, target *Target, objs []string, output string) 
 		for _, lib := range target.libs() {
 			flags = append(flags, lib.FsPath())
 		}
-
-		// Add the previous outputs to the commandline.
-		for _, output := range target.depOutputs() {
-			flags = append(flags, output)
-		}
 	}
 
+	// Uniqueify the flags now.
+	flags = util.MakeUnique(flags)
+
+	// Add the previous outputs to the commandline.
+	flags = append(flags, target.depOutputs()...)
+
 	// Make the command.
-	command := exec.Command(linker, util.MakeUnique(flags)...)
+	command := exec.Command(linker, flags...)
 
 	// Prepare the environment.
 	prepareEnvironment(args, target, command)
